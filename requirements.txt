@@ -1,0 +1,7 @@
+asgi-redis
+asgiref
+channels
+Django>=1.9.7
+psycopg2
+redis
+six
