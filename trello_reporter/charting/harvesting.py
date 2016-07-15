@@ -16,8 +16,6 @@ class Harvestor:
 
     @classmethod
     def get_card_actions(cls, board):
-        with open("/opt/app/trello-response.json", "r") as fd:
-            return json.load(fd)
         response = []
         before = None
         filters = [
