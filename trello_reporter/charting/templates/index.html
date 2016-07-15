@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="home-container">
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control Chart of a trello board</title>
+  <meta name="description" content="">
+  <link rel="shortcut icon" href="/static/patternfly/dist/img/favicon.ico">
+  <link rel="stylesheet" href="/static/patternfly/dist/css/patternfly-additions.min.css">
+
+  <script type="text/javascript" src="/static/jquery/dist/jquery.min.js"></script>
+  <script type="text/javascript" src="/static/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="/static/bootstrap-combobox/js/bootstrap-combobox.js"></script>
+  <script type="text/javascript" src="/static/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
+  <script type="text/javascript" src="/static/bootstrap-select/dist/js/bootstrap-select.min.js"></script>
+  <script type="text/javascript" src="/static/bootstrap-switch/dist/js/bootstrap-switch.min.js"></script>
+  <script type="text/javascript" src="/static/bootstrap-touchspin/dist/jquery.bootstrap-touchspin.min.js"></script>
+  <script type="text/javascript" src="/static/bootstrap-treeview/dist/bootstrap-treeview.min.js"></script>
+  <script type="text/javascript" src="/static/c3/c3.min.js"></script>
+  <script type="text/javascript" src="/static/d3/d3.min.js"></script>
+  <script type="text/javascript" src="/static/datatables/media/js/jquery.dataTables.js"></script>
+  <script type="text/javascript" src="/static/google-code-prettify/bin/prettify.min.js"></script>
+  <script type="text/javascript" src="/static/patternfly/dist/js/patternfly.min.js"></script>
+  {% block js %}
+  {% endblock %}
+
+</head>
+
+  <body class="home">
+  {% block body %}
+    <ul>
+    {% for board in boards %}
+      <li><a href="{% url 'chart' board.id %}">{{ board.name }}</a></li>
+    {% endfor %}
+    </ul>
+  {% endblock %}
+  </body>
+
+</html>

@@ -2,42 +2,58 @@ web:
   build: .
   ports:
    - "8000:8000"
-#  volumes:
-#   - ./channels-example/:/opt/app/
+  volumes:
+   - .:/opt/app/
   links:
    - db
    - redis
   environment:
-#    - DATABASE_URL=postgres://user:password@db:5432/chat
-    - REDIS_URL=redis://redis:6379/1
+   - REDIS_URL=redis://redis:6379/1
+   - POSTGRESQL_DATABASE=trello-reporting
+   - POSTGRESQL_USER=user
+   - POSTGRESQL_PASSWORD=password
+   - API_KEY
+   - API_SECRET
+   - OAUTH_TOKEN
+   - OAUTH_SECRET
 db:
   image: praiskup/postgresql:APIv1.0.1-fedora23
 #  volumes:
 #   - ./db:/var/lib/pgsql/data
   environment:
-   - POSTGRESQL_DATABASE=chat
+   - POSTGRESQL_DATABASE=trello-reporting
    - POSTGRESQL_USER=user
    - POSTGRESQL_PASSWORD=password
    - POSTGRESQL_CONTAINER_OPTS=assert_external_data = false
-worker:
-  build: .
-  environment:
-    - DATABASE_URL=postgres://user:password@db:5432/chat
-    - REDIS_URL=redis://redis:6379/1
-  links:
-   - db
-   - redis
-  volumes:
-   - ./channels-example/:/opt/app/
-  command: bash -c "sleep 7 && exec python /opt/app/manage.py runworker -v3"
+# worker:
+#   build: .
+#   environment:
+#    - POSTGRESQL_DATABASE=trello-reporting
+#    - POSTGRESQL_USER=user
+#    - POSTGRESQL_PASSWORD=password
+#    - REDIS_URL=redis://redis:6379/1
+#   links:
+#    - db
+#    - redis
+#   volumes:
+#    - .:/opt/app/
+#   command: bash -c "sleep 7 && exec python /opt/app/manage.py runworker -v3"
 redis:
   image: redis
 migrator:
   build: .
   environment:
-   - DATABASE_URL=postgres://user:password@db:5432/chat
+   - POSTGRESQL_DATABASE=trello-reporting
+   - POSTGRESQL_USER=user
+   - POSTGRESQL_PASSWORD=password
    - REDIS_URL=redis://redis:6379/1
+   - API_KEY
+   - API_SECRET
+   - OAUTH_TOKEN
+   - OAUTH_SECRET
+  volumes:
+   - .:/opt/app/
   links:
    - db
   # it indeed takes this long to start the database
-command: bash -c "sleep 5 && exec python /opt/app/manage.py migrate"
+  command: bash -c "sleep 5 && exec python /opt/app/manage.py migrate"
