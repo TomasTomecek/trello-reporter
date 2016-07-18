@@ -124,7 +124,7 @@ class Board(models.Model):
             n = n2
             if n > end:
                 break
-        return response, interval.values
+        return response, list(interval.values)
 
     def get_movements_interval(self, beginning, end):
         """

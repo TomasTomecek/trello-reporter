@@ -1,6 +1,9 @@
 import logging
 
 import datetime
+import re
+from collections import OrderedDict
+
 from django.http.response import JsonResponse
 from django.shortcuts import render
 
@@ -34,6 +37,7 @@ def chart(request, board_id):
 
 def cumulative_chart(request, board_id):
     board = Board.objects.get(id=board_id)
+    workflow = None
     if request.method == "POST":
         form = Workflow(request.POST)
         if form.is_valid():
@@ -51,6 +55,20 @@ def cumulative_chart(request, board_id):
             else:
                 raise Exception("Invalid time measure.")
 
+            workflow = OrderedDict()
+            regex = re.compile(r"workflow-(\d+)-\d+")
+            for key, value in request.POST.items():
+                # it's easy to send empty input
+                value = value.strip()
+                if value and key.startswith("workflow"):
+                    try:
+                        k = regex.findall(key)[0]
+                    except IndexError:
+                        logger.warning("starts with workflow, but doesn't match regex: %s", key)
+                        continue
+                    workflow.setdefault(k, [])
+                    workflow[k].append(value)
+
             interval, lists = board.group_card_movements(
                 beginning=from_dt,
                 end=to_dt,
@@ -59,11 +77,13 @@ def cumulative_chart(request, board_id):
         else:
             logger.warning("form is not valid")
             raise Exception("Invalid form.")
-            # raise or something
     else:
         interval, lists = board.group_card_movements()
-    data = ChartExporter.cumulative_chart_c3(interval, lists)
-    logger.debug(data)
-    import json
-    logging.debug(json.dumps(data))
-    return JsonResponse(data, safe=False)  # FIXME: return dict, not list
+    data, order = ChartExporter.cumulative_chart_c3(interval, lists, workflow=workflow)
+    response = {
+        "data": data,
+        "order": order,
+        "all_lists": lists
+    }
+    logger.debug(response)
+    return JsonResponse(response)

@@ -3,11 +3,18 @@
 <script type="text/javascript" src="/static/main.js"></script>
 {% endblock %}
 {% block body %}
-<h1>{{ board.name }}</h1>
+<h1>Board "{{ board.name }}"</h1>
 <form id="chart-settings" action="{% url 'cumulative-chart' board.id %}" method="post">
     {% csrf_token %}
     {{ form }}
     <input class="submit-button" type="button" value="Submit" />
+
+    <div id="chart-workflow">
+        <div class="chart-settings-state-column">
+            <select id="workflow-1-1" name="workflow-1-1">
+            </select>
+        </div>
+    </div>
 </form>
 <div id="chart" class="line-chart-pf"></div>
 {% endblock %}
