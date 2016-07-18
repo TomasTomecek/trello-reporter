@@ -1,12 +1,17 @@
+// global variables, hold current state
 var chart_data_url = null
 var chart = null;
 var chart_data = null;
 
+// get current URL:
 // window.location.pathname + "cumulative/",
 
 // DOM is ready, let's start the show
 $(function() {
+  // load URL for getting data for chart
   chart_data_url = $("#chart-settings").attr('action');
+
+  // load chart data
   $.ajax({
     url: chart_data_url,
     cache: false,
@@ -15,6 +20,7 @@ $(function() {
     display_chart(data);
   });
 
+  // get chart data on form submit
   $('form#chart-settings input.submit-button').click(function() {
     $.post(
       chart_data_url,
@@ -28,7 +34,7 @@ $(function() {
   });
 });
 
-
+// render cumulative chart
 function display_chart(data) {
   grouped = []
   $.each(data, function(index, value) {
