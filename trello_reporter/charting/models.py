@@ -69,7 +69,7 @@ class Board(models.Model):
         # TODO: load latest actions
         if self.card_actions.exists():
             return
-        actions = Harvestor.get_card_actions(self.trello_id)
+        actions = Harvestor.get_card_actions(self)
         for action in actions:
             CardAction.from_trello_response_json(action)
 

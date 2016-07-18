@@ -36,7 +36,7 @@ class Harvestor:
             }
             if before:
                 f["before"] = before
-            j = client.fetch_json('/boards/' + board.id + '/actions', query_params=f)
+            j = client.fetch_json('/boards/' + board.trello_id + '/actions', query_params=f)
             if not j:
                 # trello returns [] if there are no actions
                 break

@@ -4,5 +4,10 @@
 {% endblock %}
 {% block body %}
 <h1>{{ board.name }}</h1>
+<form id="chart-settings" action="{% url 'cumulative-chart' board.id %}" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input class="submit-button" type="button" value="Submit" />
+</form>
 <div id="chart" class="line-chart-pf"></div>
 {% endblock %}
