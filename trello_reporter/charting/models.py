@@ -179,12 +179,26 @@ class Board(models.Model):
             if card_action.closing:
                 # card is closed
                 current_list_name = "Closed"
+            elif card_action.opening:
+                # card is opened again
+                current_list_name = card_action.list_name
             else:
                 current_list_name = card_action.target_list_name
 
             interval.add(previous_action_date, card_action.date, previous_list_name)
 
             time_machine[card_action.trello_card_id] = (card_action.date, current_list_name)
+
+        def delete_card(card_action):
+            try:
+                previous_action_date, previous_list_name = time_machine[card_action.trello_card_id]
+            except KeyError:
+                logger.warning("delete card %s form board: time machine doesn't know it",
+                               card_action.trello_card_id)
+                # default card?
+                return
+            interval.add(previous_action_date, card_action.date, previous_list_name)
+            del time_machine[card_action.trello_card_id]
 
         def move_card_from_board(card_action):
             try:
@@ -200,11 +214,11 @@ class Board(models.Model):
         actions_map = {
             "createCard": create_card,
             "updateCard": update_card,
-            "moveCardToBoard": None,
+            "moveCardToBoard": create_card,
             "moveCardFromBoard": move_card_from_board,
-            "deleteCard": None,
+            "deleteCard": delete_card,
             "convertToCardFromCheckItem": create_card,  # we don't care it's a convert
-            "copyCard": None,
+            "copyCard": create_card,
         }
 
         for card_action in card_actions:
@@ -313,6 +327,11 @@ class CardAction(models.Model):
     def target_list_name(self):
         """ get target list name for movement actions """
         return self.data["data"]["listAfter"]["name"]
+
+    @property
+    def opening(self):
+        """ does this action opens the card? """
+        return self.data["data"].get("old", {}).get("closed", False)
 
     @property
     def closing(self):
