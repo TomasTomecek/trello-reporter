@@ -61,3 +61,7 @@ class ChartExporter(object):
         for state, counts in stats.items():
             response.append([state] + counts)
         return response, order
+
+    @classmethod
+    def control_flow_c3(cls):
+        pass

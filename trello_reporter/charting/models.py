@@ -126,6 +126,23 @@ class Board(models.Model):
                 break
         return response, list(interval.values)
 
+    def get_card_actions(self):
+        """
+        returns complete history for a card on board
+
+        :return:
+        {
+            card: [action1, action2, action3]  # sorted by date
+
+        }
+
+        where action is:
+        {
+            "date": dt,  # dt when card got to the list
+            "list": list_name
+        }
+        """
+
     def get_movements_interval(self, beginning, end):
         """
         initiate interval with all card movements within
@@ -142,6 +159,7 @@ class Board(models.Model):
         # state of cards on one specific board in a given time
         # card_id -> (date, list_name)
         time_machine = {}
+        # TODO: rewrite and use pgsql's intervals
         interval = ChartInterval()
         # this is a list of cards we failed to process and needs to be processed separately
         cards_to_babysit = set()
