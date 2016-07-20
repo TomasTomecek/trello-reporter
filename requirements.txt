@@ -7,3 +7,6 @@ redis
 six
 intervaltree
 py-trello
+
+ipdb
+django-extensions
