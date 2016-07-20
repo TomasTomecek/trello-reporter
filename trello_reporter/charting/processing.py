@@ -1,6 +1,9 @@
 from __future__ import unicode_literals, print_function
 
-import itertools
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ChartExporter(object):
@@ -17,6 +20,7 @@ class ChartExporter(object):
         :param lists: list of str, name of lists in specific interval
         :param workflow: dict, mapping between checkpoints and a set of states which belongs to
                          this checkpoint
+                         idx -> { idx -> list-name }
 
         :return:
         c3 requires output like this:
@@ -26,7 +30,28 @@ class ChartExporter(object):
         ["In Progress", 3, 6, 0, ...],
         """
         if workflow:
-            order = list(itertools.chain(*workflow.values()))
+            logger.debug("workflow = %s", workflow)
+            order = []
+            idx = 1
+            while True:
+                try:
+                    val = workflow[idx]
+                except KeyError:
+                    break
+                else:
+                    idx_in = 1
+                    while True:
+                        try:
+                            val_in = val[idx_in]
+                        except KeyError:
+                            break
+                        else:
+                            order.append(val_in)
+                            idx_in += 1
+                    idx += 1
+            order.reverse()
+
+            logger.info(order)
             lists_filter = set(order)
             lists_set = set(lists)
             stats = {x: [] for x in lists_set.intersection(lists_filter)}
@@ -39,7 +64,6 @@ class ChartExporter(object):
             lists_filter = []
             order = lists
 
-        idx = 0
         for day, v in data.items():
             # TODO: don't display consecutive zeros
             for state in stats.keys():
@@ -47,19 +71,17 @@ class ChartExporter(object):
                     if state not in lists_filter:
                         continue
                 try:
-                    stats[state].insert(idx, v[state])
+                    stats[state].append(v[state])
                 except KeyError:
-                    stats[state].insert(idx, 0)
-            idx += 1
+                    stats[state].append(0)
 
         response = [["x"] + [day.strftime("%Y-%m-%d") for day in data.keys()]]
         if workflow:
-            for checkpoint in workflow.values():
-                for state in checkpoint:
-                    response.append([state] + stats[state])
-
-        for state, counts in stats.items():
-            response.append([state] + counts)
+            for state in order:
+                response.append([state] + stats[state])
+        else:
+            for state, counts in stats.items():
+                response.append([state] + counts)
         return response, order
 
     @classmethod

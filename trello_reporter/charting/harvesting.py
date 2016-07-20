@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 import trello
@@ -11,11 +12,21 @@ client = trello.TrelloClient(
     token_secret=os.environ["OAUTH_SECRET"]
 )
 
+logger = logging.getLogger(__name__)
+
 
 class Harvestor:
 
     @classmethod
-    def get_card_actions(cls, board):
+    def get_card_actions(cls, board, since=None):
+        """
+        fetch card actions relevant to movement of cards on a specific board
+
+        :param board: instance of trello_reporter.charting.models.Board
+        :param since: datetime or None
+        :return: list of json-like structures
+        """
+        logger.info("fetch card actions for board %s, since=%s", board, since)
         response = []
         before = None
         filters = [
@@ -36,14 +47,15 @@ class Harvestor:
             }
             if before:
                 f["before"] = before
+            if since:
+                f["since"] = since
             j = client.fetch_json('/boards/' + board.trello_id + '/actions', query_params=f)
             if not j:
                 # trello returns [] if there are no actions
                 break
             before = j[-1]["date"]
             response += j
-        with open("trello-response.json", "w") as fd:
-            json.dump(response, fd, indent=2)
+        response.reverse()  # oldest first
         return response
 
     @classmethod

@@ -17,27 +17,14 @@ import collections
 from dateutil import parser as dateparser
 from dateutil.tz import tzutc
 
-import intervaltree
-
-from django.db import models
-from django.contrib.postgres.fields import JSONField
-
 from trello_reporter.charting.harvesting import Harvestor
 
+from django.db import models
+from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.postgres.fields import JSONField
+
+
 logger = logging.getLogger(__name__)
-
-
-class ChartInterval(object):
-    def __init__(self):
-        self.it = intervaltree.IntervalTree()
-        self.values = set()
-
-    def add(self, begin, end, value):
-        self.it.addi(begin, end, value)
-        self.values.add(value)
-
-    def __str__(self):
-        return "%s %s" % (self.values, self.it)
 
 
 class BoardManager(models.Manager):
@@ -45,7 +32,7 @@ class BoardManager(models.Manager):
 
 
 class Board(models.Model):
-    trello_id = models.CharField(max_length=32)
+    trello_id = models.CharField(max_length=32, db_index=True)
     name = models.CharField(max_length=255, null=True)
 
     objects = BoardManager()
@@ -55,6 +42,11 @@ class Board(models.Model):
 
     @classmethod
     def list_boards(cls):
+        """
+        list boards for currently logged in user
+
+        :return: boards query
+        """
         boards = Harvestor.list_boards()
         for board in boards:
             b, c = Board.objects.get_or_create(trello_id=board.id)
@@ -64,14 +56,18 @@ class Board(models.Model):
 
     def ensure_actions(self):
         """
-        ensure that card actions are loaded, if not, load them
+        ensure that card actions were fetched and loaded inside database; if not, load them
         """
-        # TODO: load latest actions
-        if self.card_actions.exists():
-            return
-        actions = Harvestor.get_card_actions(self)
-        for action in actions:
-            CardAction.from_trello_response_json(action)
+        try:
+            latest_action = self.card_actions.latest()
+        except ObjectDoesNotExist:
+            logger.info("fetching all card actions")
+            actions = Harvestor.get_card_actions(self)
+        else:
+            logger.info("fetching card actions since %s", latest_action.date)
+            actions = Harvestor.get_card_actions(self, since=latest_action.date)
+
+        CardAction.from_trello_response_list(self, actions)
 
     def actions_for_interval(self, beginning, end):
         """
@@ -96,6 +92,7 @@ class Board(models.Model):
           }
         }
         """
+        # TODO: add option to show/hide card archivals
         now = datetime.datetime.now(tz=tzutc())
         if beginning is None:
             beginning = now - datetime.timedelta(days=30)
@@ -106,25 +103,23 @@ class Board(models.Model):
 
         response = collections.OrderedDict()
 
-        interval = self.get_movements_interval(beginning, end)
+        # TODO: do this async
+        self.ensure_actions()
+
+        lists = set()
 
         n = beginning
         while True:
-            interval_data = {}  # data in one unit
-
             n2 = n + time_span
-            values = interval.it.search(n, n2)
 
-            for value in values:
-                interval_data.setdefault(value.data, 0)
-                interval_data[value.data] += 1
-
-            response[n.date()] = interval_data
+            list_stats = CardAction.objects.get_cards_per_list(self.id, n)
+            lists.update(list_stats.keys())
+            response[n.date()] = list_stats
 
             n = n2
             if n > end:
                 break
-        return response, list(interval.values)
+        return response, list(lists)  # this is converted to list b/c set can't be json-serialized
 
     def get_card_actions(self):
         """
@@ -143,141 +138,6 @@ class Board(models.Model):
         }
         """
 
-    def get_movements_interval(self, beginning, end):
-        """
-        initiate interval with all card movements within
-
-        :param beginning: datetime
-        :param end: datetime
-        :return: instance of ChartInterval
-        """
-        # oldest first
-        card_actions = self.actions_for_interval(beginning, end)
-
-        logger.debug("# actions: %d" % len(card_actions))
-
-        # state of cards on one specific board in a given time
-        # card_id -> (date, list_name)
-        time_machine = {}
-        # TODO: rewrite and use pgsql's intervals
-        interval = ChartInterval()
-        # this is a list of cards we failed to process and needs to be processed separately
-        cards_to_babysit = set()
-
-        def create_card(card_action):
-            if card_action.trello_board_id != self.trello_id:
-                logger.info("card %s was created on board %s",
-                            card_action.trello_card_id, card_action.trello_board_id)
-                return
-            try:
-                target_list_name = card_action.list_name
-            except KeyError:
-                logger.warning("create card %s: list name not found", card_action.trello_card_id)
-                # trello, you're so much fun
-                # this happens when card was created on a different board
-                # we don't care about that, let's skip
-                return
-            time_machine[card_action.trello_card_id] = (card_action.date, target_list_name)
-
-        def update_card(card_action):
-            """
-            possible actions:
-             * move card to different list
-             * close card
-            """
-            try:
-                previous_action_date, previous_list_name = time_machine[card_action.trello_card_id]
-            except KeyError:
-                logger.warning("update card %s: time machine doesn't know it", card_action.trello_card_id)
-                # this should not happen, it means that trello returned something we didn't expect
-                # let's process the card separately then
-                cards_to_babysit.add(card_action.trello_card_id)
-                return
-
-            if card_action.closing:
-                # card is closed
-                current_list_name = "Closed"
-            elif card_action.opening:
-                # card is opened again
-                current_list_name = card_action.list_name
-            else:
-                current_list_name = card_action.target_list_name
-
-            interval.add(previous_action_date, card_action.date, previous_list_name)
-
-            time_machine[card_action.trello_card_id] = (card_action.date, current_list_name)
-
-        def delete_card(card_action):
-            try:
-                previous_action_date, previous_list_name = time_machine[card_action.trello_card_id]
-            except KeyError:
-                logger.warning("delete card %s form board: time machine doesn't know it",
-                               card_action.trello_card_id)
-                # default card?
-                return
-            interval.add(previous_action_date, card_action.date, previous_list_name)
-            del time_machine[card_action.trello_card_id]
-
-        def move_card_from_board(card_action):
-            try:
-                previous_action_date, previous_list_name = time_machine[card_action.trello_card_id]
-            except KeyError:
-                logger.warning("move card %s form board: time machine doesn't know it",
-                               card_action.trello_card_id)
-                # default card?
-                return
-            interval.add(previous_action_date, card_action.date, previous_list_name)
-            del time_machine[card_action.trello_card_id]  # we no longer care about the card, it's gone
-
-        actions_map = {
-            "createCard": create_card,
-            "updateCard": update_card,
-            "moveCardToBoard": create_card,
-            "moveCardFromBoard": move_card_from_board,
-            "deleteCard": delete_card,
-            "convertToCardFromCheckItem": create_card,  # we don't care it's a convert
-            "copyCard": create_card,
-        }
-
-        for card_action in card_actions:
-            logger.debug("[%s] card %s at %s", card_action.action_type, card_action.trello_card_id,
-                         card_action.date)
-            fn = actions_map[card_action.action_type]
-            if fn is not None:
-                fn(card_action)
-            else:
-                logger.critical("IMPLEMENT!!!")
-
-        # record rest of the interval
-        for card_id, (date, list_name) in time_machine.items():
-            interval.add(date, end, list_name)
-
-        logger.debug(interval)
-
-        return interval
-
-    @classmethod
-    def from_trello_response_json(cls, trello_response):
-        card, _ = Card.objects.get_or_create(trello_id=trello_response["data"]["card"]["id"])
-        card.save()
-        board, _ = Board.objects.get_or_create(trello_id=trello_response["data"]["board"]["id"],
-                                               name=trello_response["data"]["board"].get("name"))
-        board.save()
-
-        logger.debug(card)
-        logger.debug(board)
-
-        c = CardAction(
-            trello_id=trello_response["id"],
-            date=dateparser.parse(trello_response["date"], tzinfos=tzutc),
-            action_type=trello_response["type"],
-            data=trello_response,
-            card=card,
-            board=board
-        )
-        c.save()
-        return c
-
 
 class Card(models.Model):
     """
@@ -289,6 +149,53 @@ class Card(models.Model):
     def __str__(self):
         return str(self.trello_id)
 
+    @property
+    def latest_action(self):
+        try:
+            return self.actions.latest()
+        except ObjectDoesNotExist:
+            return None
+
+
+class List(models.Model):
+    trello_id = models.CharField(max_length=32, unique=True, db_index=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return "List(trello_id=%s, name=\"%s\")" % (self.trello_id, self.name)
+
+    @classmethod
+    def get_or_create_list(cls, trello_list_id, list_name):
+        trello_list, _ = List.objects.get_or_create(trello_id=trello_list_id)
+        if list_name is not None:
+            # set or update the list name
+            trello_list.name = list_name
+        trello_list.save()
+        return trello_list
+
+
+class CardActionManager(models.Manager):
+    def get_cards_at(self, board_id, date):
+        """ this is a time machine: shows board state in a given time """
+        return self \
+            .filter(board__id=board_id, date__lte=date) \
+            .order_by('card', '-date') \
+            .distinct('card') \
+            .filter(is_archived=False, is_deleted=False)
+
+    def get_cards_per_list(self, board_id, date):
+        # list_name -> # of cards
+        response = {}
+        # FIXME how to do this with SQL?
+        #   NotImplementedError: annotate() + distinct(fields) is not implemented.
+        #  on the other hand this could work:
+        #   .annotate(max_date=Max('student__score__date')).filter(date=F('max_date'))
+        #  but we would have to query cards, not CAs
+        for ca in self.get_cards_at(board_id, date):
+            response.setdefault(ca.list.name, 0)
+            response[ca.list.name] += 1
+        return response
+
 
 class CardAction(models.Model):
     trello_id = models.CharField(max_length=32, db_index=True)
@@ -298,7 +205,12 @@ class CardAction(models.Model):
     action_type = models.CharField(max_length=32)
     # when copying cards, this is the original card, not the newly created one
     card = models.ForeignKey(Card, models.CASCADE, related_name="actions")
+    list = models.ForeignKey(List, models.CASCADE, default=None, null=True, blank=True,
+                             related_name="card_actions")
     board = models.ForeignKey(Board, models.CASCADE, related_name="card_actions")
+    
+    is_archived = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
 
     # complete response from trello API
     #
@@ -326,20 +238,49 @@ class CardAction(models.Model):
     #   u'type': u'updateCard'},
     data = JSONField()
 
-    def __str__(self):
-        return "%s %s %s" % (self.card, self.action_type, self.board)
+    objects = CardActionManager()
+
+    class Meta:
+        get_latest_by = "date"
+
+    def __unicode__(self):
+        return "[%s] %s (%s) %s" % (self.action_type, self.card, self.card_name, self.date)
 
     @property
     def trello_card_id(self):
         return self.card.trello_id
 
     @property
+    def trello_list_id(self):
+        return self.list.trello_id
+
+    @property
     def trello_board_id(self):
         return self.board.trello_id
 
     @property
+    def list_id_and_name(self):
+        d = self.data["data"].get("list", {})
+        return d.get("id", None), d.get("name", None)
+
+    @property
     def list_name(self):
         return self.data["data"]["list"]["name"]
+
+    @property
+    def source_list_name(self):
+        """ get source list name for movement actions """
+        return self.data["data"]["listBefore"]["name"]
+
+    @property
+    def source_list_id(self):
+        """ get source list name for movement actions """
+        return self.data["data"]["listBefore"]["id"]
+
+    @property
+    def target_list_id_and_name(self):
+        d = self.data["data"].get("listAfter", {})
+        return d.get("id", None), d.get("name", None)
 
     @property
     def target_list_name(self):
@@ -348,32 +289,92 @@ class CardAction(models.Model):
 
     @property
     def opening(self):
-        """ does this action opens the card? """
-        return self.data["data"].get("old", {}).get("closed", False)
+        """ does this action opens (sends to board) the card? """
+        try:
+            return self.data["data"]["old"]["closed"]
+        except KeyError:
+            return False
 
     @property
-    def closing(self):
-        """ does this action closes the card? """
-        return self.data["data"]["card"].get("closed", False)
+    def archiving(self):
+        """ does this action closes (archives) the card? """
+        try:
+            was_closed = self.data["data"]["old"]["closed"]
+        except KeyError:
+            was_closed = True
+        try:
+            is_closed = self.data["data"]["card"]["closed"]
+        except KeyError:
+            is_closed = False
+        return is_closed or not was_closed
+
+    @property
+    def card_name(self):
+        return self.data["data"]["card"]["name"]
 
     @classmethod
-    def from_trello_response_json(cls, trello_response):
-        card, _ = Card.objects.get_or_create(trello_id=trello_response["data"]["card"]["id"])
-        card.save()
-        board, _ = Board.objects.get_or_create(trello_id=trello_response["data"]["board"]["id"],
-                                               name=trello_response["data"]["board"].get("name"))
-        board.save()
+    def from_trello_response_list(cls, board, actions):
+        cards_to_babysit = []
+        logger.debug("processing %d actions", len(actions))
+        for action_data in actions:
+            card, _ = Card.objects.get_or_create(trello_id=action_data["data"]["card"]["id"])
+            card.save()
 
-        logger.debug(card)
-        logger.debug(board)
+            ca = CardAction(
+                trello_id=action_data["id"],
+                date=dateparser.parse(action_data["date"], tzinfos=tzutc),
+                action_type=action_data["type"],
+                data=action_data,
+                card=card,
+                board=board
+            )
 
-        c = CardAction(
-            trello_id=trello_response["id"],
-            date=dateparser.parse(trello_response["date"], tzinfos=tzutc),
-            action_type=trello_response["type"],
-            data=trello_response,
-            card=card,
-            board=board
-        )
-        c.save()
-        return c
+            previous_action = card.latest_action
+
+            # figure out list_name, archivals, removals and unicorns
+            if ca.action_type in ["createCard", "moveCardToBoard",
+                                  "copyCard", "convertToCardFromCheckItem"]:  # create-like events
+                if ca.trello_board_id != board.trello_id:
+                    logger.info("card %s was created on board %s",
+                                ca.trello_card_id, ca.trello_board_id)
+                    # we don't care about such state
+                    continue
+                # when list is changed (or on different board), name is missing; fun stuff!
+                trello_list_id, list_name = ca.list_id_and_name
+                ca.list = List.get_or_create_list(trello_list_id, list_name)
+
+            elif ca.action_type in ["updateCard"]:  # update = change list, close or open
+                if not previous_action:
+                    logger.warning("update card %s: previous state is unknown",
+                                   ca.trello_card_id)
+                    # this should not happen, it means that trello returned something
+                    # we didn't expect, let's process the card separately then
+                    # FIXME: alternatively, we could start action history here
+                    cards_to_babysit.append(ca)
+                    continue
+
+                if ca.archiving:
+                    ca.list = None
+                    ca.is_archived = True
+                elif ca.opening:
+                    # card is opened again
+                    trello_list_id, list_name = ca.list_id_and_name
+                    ca.list = List.get_or_create_list(trello_list_id, list_name)
+                else:
+                    trello_list_id, list_name = ca.target_list_id_and_name
+                    ca.list = List.get_or_create_list(trello_list_id, list_name)
+
+            elif ca.action_type in ["moveCardFromBoard", "deleteCard"]:  # delete
+                if previous_action:
+                    ca.list = None
+                    ca.is_deleted = True
+                else:
+                    logger.warning("card %s has unknown previous state",
+                                   ca.trello_card_id)
+                    # default card?
+                    continue
+
+            ca.save()
+
+        # TODO
+        logger.warning("you should process now these cards: %s", cards_to_babysit)

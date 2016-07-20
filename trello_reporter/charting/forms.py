@@ -25,3 +25,7 @@ class Workflow(forms.Form):
     to_dt = forms.DateTimeField()
     count = forms.FloatField()
     time_type = forms.ChoiceField(choices=DELTA_CHOICES)
+
+
+class DateForm(forms.Form):
+    date = forms.DateTimeField()

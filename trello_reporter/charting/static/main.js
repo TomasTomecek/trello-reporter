@@ -33,9 +33,9 @@ $(function() {
       chart_data_url,
       $('#chart-settings').serialize(),
       function(data) {
-        chart_data["columns"] = data["data"]
-        chart_data["unload"] = chart.column
-        chart_data["groups"] = data["order"]
+        chart_data["columns"] = data["data"];
+        chart_data["unload"] = chart.columns;
+        chart_data["groups"] = data["order"];
         chart.load(chart_data);
       },
       'json' // I expect a JSON response
@@ -76,7 +76,7 @@ function on_focus_states(data) {
     var new_div = root_div.children("div").last();
     var new_select = parent_div
         .children("select")
-        .last()
+        .first()
         .clone()
         .appendTo(new_div)
         .val("")

@@ -20,6 +20,7 @@ from .charting import views
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^chart/(?P<board_id>[0-9]+)/$', views.chart, name='chart'),
+    url(r'^chart/(?P<board_id>[0-9]+)/cards_at/$', views.cards_on_board_at, name='cards-at'),
     url(r'^chart/(?P<board_id>[0-9]+)/cumulative/$', views.cumulative_chart,
         name='cumulative-chart'),
     url(r'^$', views.index, name='index'),

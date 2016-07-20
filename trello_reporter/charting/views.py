@@ -1,14 +1,15 @@
+from __future__ import unicode_literals
+
 import logging
 
 import datetime
 import re
-from collections import OrderedDict
 
 from django.http.response import JsonResponse
 from django.shortcuts import render
 
-from trello_reporter.charting.forms import Workflow
-from trello_reporter.charting.models import Board
+from trello_reporter.charting.forms import Workflow, DateForm
+from trello_reporter.charting.models import Board, CardAction
 from trello_reporter.charting.processing import ChartExporter
 
 
@@ -35,6 +36,35 @@ def chart(request, board_id):
     return render(request, "charting.html", {"board": board, "form": form})
 
 
+def cards_on_board_at(request, board_id):
+    n = datetime.datetime.now()
+
+    if request.method == "POST":
+        form = DateForm(request.POST)
+        if form.is_valid():
+            date = form.cleaned_data["date"]
+        else:
+            raise Exception("Form is not valid")
+    else:
+        date = n - datetime.timedelta(days=10)
+        form = DateForm(initial={"date": date})
+
+    board = Board.objects.get(id=board_id)
+    card_actions = CardAction.objects.get_cards_at(board_id, date)
+    # it's already ordered in sql, we can't order again
+    card_actions = sorted(card_actions, key=lambda x: x.date, reverse=True)
+
+    return render(
+        request,
+        "cards_on_board_at.html",
+        {
+            "card_actions": card_actions,
+            "form": form,
+            "board": board,
+        }
+    )
+
+
 def cumulative_chart(request, board_id):
     board = Board.objects.get(id=board_id)
     workflow = None
@@ -55,19 +85,21 @@ def cumulative_chart(request, board_id):
             else:
                 raise Exception("Invalid time measure.")
 
-            workflow = OrderedDict()
-            regex = re.compile(r"workflow-(\d+)-\d+")
+            # idx -> { idx -> list-name }
+            workflow = {}
+            regex = re.compile(r"^workflow-(\d+)-(\d+)$")
             for key, value in request.POST.items():
                 # it's easy to send empty input
                 value = value.strip()
                 if value and key.startswith("workflow"):
                     try:
-                        k = regex.findall(key)[0]
+                        checkpoint, idx = regex.findall(key)[0]
                     except IndexError:
                         logger.warning("starts with workflow, but doesn't match regex: %s", key)
                         continue
-                    workflow.setdefault(k, [])
-                    workflow[k].append(value)
+                    checkpoint_int = int(checkpoint)
+                    workflow.setdefault(checkpoint_int, {})
+                    workflow[checkpoint_int][int(idx)] = value
 
             interval, lists = board.group_card_movements(
                 beginning=from_dt,
@@ -85,5 +117,4 @@ def cumulative_chart(request, board_id):
         "order": order,
         "all_lists": lists
     }
-    logger.debug(response)
     return JsonResponse(response)
