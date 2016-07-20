@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'trello_reporter.charting',
+    'django_extensions',
     # 'channels',
 ]
 
@@ -128,9 +129,18 @@ STATIC_URL = '/static/'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)-7s %(asctime)s %(pathname)-50s %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
     'handlers': {
         'console': {
             'level': 'DEBUG',
+            'formatter': "verbose",
             'class': 'logging.StreamHandler',
         },
     },
