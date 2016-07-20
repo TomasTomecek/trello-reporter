@@ -25,7 +25,9 @@ SECRET_KEY = '5n_v*opwlu_u@i1nw=rdheam4#hr+1$x93_qj2go5jhb5u&q-7'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+INTERNAL_IPS = ['172.17.0.1']
+
+ALLOWED_HOSTS = ['172.17.0.1']
 
 
 # Application definition
@@ -39,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'trello_reporter.charting',
     'django_extensions',
+    'debug_toolbar',
     # 'channels',
 ]
 

@@ -1,12 +1,8 @@
-asgi-redis
-asgiref
-channels
 Django>=1.9.7
 psycopg2
-redis
-six
-intervaltree
 py-trello
 
 ipdb
 django-extensions
+django-debug-toolbar
+sqlparse==0.1.19
