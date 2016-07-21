@@ -17,6 +17,11 @@ $(function() {
     cache: false,
     dataType: "json"
   }).done(function(data) {
+    if (chart_data_url.indexOf("control") > -1) {
+      render_control_chart(data);
+    } else if (chart_data_url.indexOf("cumulative") > -1) {
+      render_cumulative_chart(data);
+    }
     $.each(data["all_lists"], function(idx, value) {
       $('#workflow-1-1')
           .append($("<option></option>")
@@ -24,7 +29,6 @@ $(function() {
           .text(value)
       );
     });
-    display_chart(data);
   });
 
   // get chart data on form submit
@@ -91,8 +95,37 @@ function on_focus_states(data) {
   }
 }
 
-// render cumulative chart
-function display_chart(data) {
+function render_control_chart(data) {
+  chart_data = {
+    columns: data["data"],
+    x: 'x',
+    xFormat: '%Y-%m-%d',
+    type: 'scatter',
+  };
+  console.log(chart_data);
+
+  chart = c3.generate({
+    bindto: '#chart',
+    data: chart_data,
+    legend: {
+      show: true
+    },
+    axis: {
+      x: {
+        type: 'timeseries',
+        tick: {
+          fit: true,
+          format: '%Y-%m-%d'
+        }
+      },
+      y: {
+        label: 'hours',
+      }
+    }
+  });
+}
+
+function render_cumulative_chart(data) {
   chart_data = {
     columns: data["data"],
     x: 'x',

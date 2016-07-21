@@ -21,7 +21,7 @@ def index(request):
     return render(request, "index.html", {"boards": boards})
 
 
-def chart(request, board_id):
+def show_control_chart(request, board_id):
     n = datetime.datetime.now()
     from_dt = n - datetime.timedelta(days=30)
     # TODO [DRY]: use exactly same variables for charting
@@ -33,7 +33,42 @@ def chart(request, board_id):
     }
     form = Workflow(initial=initial)
     board = Board.objects.get(id=board_id)
-    return render(request, "charting.html", {"board": board, "form": form})
+    return render(request, "charting.html",
+                  {"board": board, "form": form, "chart_url": "control-chart-data"})
+
+
+def show_cumulative_chart(request, board_id):
+    n = datetime.datetime.now()
+    from_dt = n - datetime.timedelta(days=30)
+    # TODO [DRY]: use exactly same variables for charting
+    initial = {
+        "from_dt": from_dt,
+        "to_dt": n,
+        "count": 1,
+        "time_type": "m"
+    }
+    form = Workflow(initial=initial)
+    board = Board.objects.get(id=board_id)
+    return render(request, "charting.html",
+                  {"board": board, "form": form, "chart_url": "cumulative-chart-data"})
+
+
+def card_history(request, board_id):
+    board = Board.objects.get(id=board_id)
+    card_actions = CardAction.objects.actions_for_board(board_id)
+    # card -> [action, action]
+    response = {}
+    for ca in card_actions:
+        response.setdefault(ca.card, [])
+        response[ca.card].insert(0, ca)
+    return render(
+        request,
+        "card_history.html",
+        {
+            "response": response,
+            "board": board,
+        }
+    )
 
 
 def cards_on_board_at(request, board_id):
@@ -63,6 +98,15 @@ def cards_on_board_at(request, board_id):
             "board": board,
         }
     )
+
+
+def control_chart(request, board_id):
+    board = Board.objects.get(id=board_id)
+    data = ChartExporter.control_flow_c3(board)
+    response = {
+        "data": data,
+    }
+    return JsonResponse(response)
 
 
 def cumulative_chart(request, board_id):

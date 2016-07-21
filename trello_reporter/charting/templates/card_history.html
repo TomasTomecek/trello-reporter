@@ -1,0 +1,21 @@
+{% extends "index.html" %}
+{% block body %}
+<h1>Board "{{ board.name }}"</h1>
+<ul>
+    {% for card, card_actions in response.items %}
+    <li>
+        {{ card.latest_action.card_name }}
+        {% for ca in card_actions %}
+            ->
+            {% if ca.is_archived %}
+                Archived
+            {% elif ca.is_deleted %}
+                Deleted
+            {% else %}
+                {{ ca.list.name }}
+            {% endif %}
+        {% endfor %}
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

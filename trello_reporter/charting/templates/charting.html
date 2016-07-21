@@ -4,7 +4,7 @@
 {% endblock %}
 {% block body %}
 <h1>Board "{{ board.name }}"</h1>
-<form id="chart-settings" action="{% url 'cumulative-chart' board.id %}" method="post">
+<form id="chart-settings" action="{% url chart_url board.id %}" method="post">
     {% csrf_token %}
     {{ form }}
     <input class="submit-button" type="button" value="Submit" />

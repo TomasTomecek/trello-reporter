@@ -30,7 +30,11 @@
   {% block body %}
     <ul>
     {% for board in boards %}
-      <li><a href="{% url 'chart' board.id %}">{{ board.name }}</a></li>
+      <li>
+        <em>{{ board.name }}</em>
+        <a href="{% url 'show-cumulative-chart' board.id %}">cumulative chart</a>
+        <a href="{% url 'show-control-chart' board.id %}">control chart</a>
+      </li>
     {% endfor %}
     </ul>
   {% endblock %}

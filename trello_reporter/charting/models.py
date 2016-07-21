@@ -121,23 +121,6 @@ class Board(models.Model):
                 break
         return response, list(lists)  # this is converted to list b/c set can't be json-serialized
 
-    def get_card_actions(self):
-        """
-        returns complete history for a card on board
-
-        :return:
-        {
-            card: [action1, action2, action3]  # sorted by date
-
-        }
-
-        where action is:
-        {
-            "date": dt,  # dt when card got to the list
-            "list": list_name
-        }
-        """
-
 
 class Card(models.Model):
     """
@@ -174,11 +157,26 @@ class List(models.Model):
         return trello_list
 
 
+class CardActionQuerySet(models.QuerySet):
+    def for_board(self, board_id):
+        return self.filter(board__id=board_id)
+
+    def since(self, date):
+        return self.filter(date__gte=date)
+
+    def before(self, date):
+        return self.filter(date__lte=date)
+
+    def ordered_desc(self):
+        return self.order_by("-date")
+
+
 class CardActionManager(models.Manager):
     def get_cards_at(self, board_id, date):
         """ this is a time machine: shows board state in a given time """
         return self \
-            .filter(board__id=board_id, date__lte=date) \
+            .for_board(board_id) \
+            .before(date) \
             .order_by('card', '-date') \
             .distinct('card') \
             .filter(is_archived=False, is_deleted=False)
@@ -195,6 +193,9 @@ class CardActionManager(models.Manager):
             response.setdefault(ca.list.name, 0)
             response[ca.list.name] += 1
         return response
+
+    def actions_for_board(self, board_id):
+        return self.for_board(board_id).ordered_desc()
 
 
 class CardAction(models.Model):
@@ -238,7 +239,7 @@ class CardAction(models.Model):
     #   u'type': u'updateCard'},
     data = JSONField()
 
-    objects = CardActionManager()
+    objects = CardActionManager.from_queryset(CardActionQuerySet)()
 
     class Meta:
         get_latest_by = "date"

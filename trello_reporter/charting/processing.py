@@ -2,6 +2,7 @@ from __future__ import unicode_literals, print_function
 
 import logging
 
+from trello_reporter.charting.models import CardAction
 
 logger = logging.getLogger(__name__)
 
@@ -85,5 +86,24 @@ class ChartExporter(object):
         return response, order
 
     @classmethod
-    def control_flow_c3(cls):
-        pass
+    def control_flow_c3(cls, board):
+        card_actions = CardAction.objects.actions_for_board(board.id)
+        # card -> [action, action]
+        card_history = {}
+
+        logger.debug("board has %d actions", card_actions.count())
+
+        for ca in card_actions:
+            card_history.setdefault(ca.card, [])
+            card_history[ca.card].insert(0, ca)
+        # ["cards", value, value, value... ]
+        legend = ["x"]
+        cards = ["cards"]
+        for card, actions in card_history.items():
+            if len(actions) <= 1:
+                continue
+            else:
+                hours = int((actions[-1].date - actions[0].date).total_seconds() / 3600)
+                cards.append(hours)
+                legend.append(actions[-1].date.strftime("%Y-%m-%d"))
+        return [legend, cards]
