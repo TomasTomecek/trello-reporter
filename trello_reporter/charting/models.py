@@ -13,6 +13,7 @@ from __future__ import unicode_literals
 import logging
 import datetime
 import collections
+import re
 
 from dateutil import parser as dateparser
 from dateutil.tz import tzutc
@@ -179,7 +180,7 @@ class CardActionManager(models.Manager):
             .before(date) \
             .order_by('card', '-date') \
             .distinct('card') \
-            .filter(is_archived=False, is_deleted=False)
+            .select_related()
 
     def get_cards_per_list(self, board_id, date):
         # list_name -> # of cards
@@ -190,12 +191,18 @@ class CardActionManager(models.Manager):
         #   .annotate(max_date=Max('student__score__date')).filter(date=F('max_date'))
         #  but we would have to query cards, not CAs
         for ca in self.get_cards_at(board_id, date):
+            if ca.is_deleted or ca.is_archived:
+                continue
             response.setdefault(ca.list.name, 0)
             response[ca.list.name] += 1
         return response
 
     def actions_for_board(self, board_id):
-        return self.for_board(board_id).ordered_desc()
+        return self.for_board(board_id) \
+            .ordered_desc() \
+            .select_related() \
+            .prefetch_related(models.Prefetch("card__actions",
+                                              queryset=CardAction.objects.order_by("-date")))
 
 
 class CardAction(models.Model):
@@ -204,6 +211,8 @@ class CardAction(models.Model):
     date = models.DateTimeField(db_index=True)
     # type of actions displayed as string
     action_type = models.CharField(max_length=32)
+    story_points = models.IntegerField(null=True, blank=True)
+
     # when copying cards, this is the original card, not the newly created one
     card = models.ForeignKey(Card, models.CASCADE, related_name="actions")
     list = models.ForeignKey(List, models.CASCADE, default=None, null=True, blank=True,
@@ -314,6 +323,19 @@ class CardAction(models.Model):
         return self.data["data"]["card"]["name"]
 
     @classmethod
+    def get_story_points(cls, card_name):
+        """
+
+        :param card_name:
+        :return:
+        """
+        regex = r"^\s*\((\d+)\)"
+        try:
+            return re.findall(regex, card_name)[0]
+        except IndexError:
+            return None
+
+    @classmethod
     def from_trello_response_list(cls, board, actions):
         cards_to_babysit = []
         logger.debug("processing %d actions", len(actions))
@@ -375,6 +397,9 @@ class CardAction(models.Model):
                     # default card?
                     continue
 
+            points_str = CardAction.get_story_points(ca.card_name)
+            if points_str is not None:
+                ca.story_points = int(points_str)
             ca.save()
 
         # TODO
