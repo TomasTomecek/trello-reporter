@@ -50,28 +50,27 @@ $(function() {
 });
 
 // handler for growing state machine
-// FIXME: focus event is not active right away, debug & fix
 function on_focus_states(data) {
   var t = $(this);
   var parent_div = t.parent("div")
 
-  // should we add another state?
-  if (parent_div.children("select").last().find(":selected").length > 0) {
-    var new_select = parent_div
-        .children("select")
-        .last()
-        .clone()
-        .appendTo(parent_div)
-        .val("")
-        .attr("id", function(i, oldVal) {
-            return oldVal.replace(/\d+$/, function(m) {
-                return (+m + 1);  // +m means it's converted to `int(m) + 1`
-            });
-        });
-    new_select
-        .attr("name", new_select.attr("id"))
-        .on("focus", on_focus_states);
-  }
+  // // should we add another state?
+  // if (parent_div.children("select").last().find(":selected").length > 0) {
+  //   var new_select = parent_div
+  //       .children("select")
+  //       .last()
+  //       .clone()
+  //       .appendTo(parent_div)
+  //       .val("")
+  //       .attr("id", function(i, oldVal) {
+  //           return oldVal.replace(/\d+$/, function(m) {
+  //               return (+m + 1);  // +m means it's converted to `int(m) + 1`
+  //           });
+  //       });
+  //   new_select
+  //       .attr("name", new_select.attr("id"))
+  //       .on("focus", on_focus_states);
+  // }
 
   // should we add another checkpoint?
   if ($("#chart-workflow div").last().children("select").find(":selected").length > 0) {
