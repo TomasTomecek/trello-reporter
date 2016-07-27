@@ -96,14 +96,12 @@ class ChartExporter(object):
         for ca in card_actions:
             card_history.setdefault(ca.card, [])
             card_history[ca.card].insert(0, ca)
-        # ["cards", value, value, value... ]
-        legend = ["x"]
-        cards = ["cards"]
+        cards = []
         for card, actions in card_history.items():
             if len(actions) <= 1:
                 continue
             else:
                 hours = int((actions[-1].date - actions[0].date).total_seconds() / 3600)
-                cards.append(hours)
-                legend.append(actions[-1].date.strftime("%Y-%m-%d"))
-        return [legend, cards]
+                date = actions[-1].date.strftime("%Y-%m-%d")
+                cards.append({"hours": hours, "id": card.id, "label": "Hours", "date": date})
+        return cards

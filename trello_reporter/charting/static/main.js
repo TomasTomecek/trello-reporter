@@ -94,14 +94,41 @@ function on_focus_states(data) {
   }
 }
 
+function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
+  console.log(d, defaultTitleFormat, defaultValueFormat, color);
+  var tooltip = $("div#custom-chart-tooltip").html();
+  tooltip.replace("TITLE", "");
+  return tooltip;
+}
+
+function on_point_click(d, element) {
+  var x;
+}
+
+function point_size(d) {
+  return Math.random() * 5;
+}
+
+function get_point_color(color, d) {
+  return "#006";
+}
+
 function render_control_chart(data) {
   chart_data = {
-    columns: data["data"],
-    x: 'x',
+    json: data["data"],
+    keys: {
+      value: ["date", "hours"]
+    },
+    x: 'date',
     xFormat: '%Y-%m-%d',
     type: 'scatter',
+    onclick: on_point_click,
+    color: get_point_color,
+    colors: {
+      hours: '#ff0000',
+      date: '#00ff00'
+    }
   };
-  console.log(chart_data);
 
   chart = c3.generate({
     bindto: '#chart',
@@ -120,6 +147,12 @@ function render_control_chart(data) {
       y: {
         label: 'hours',
       }
+    },
+    tooltip: {
+      contents: get_tooltip
+    },
+    point: {
+      r: point_size
     }
   });
 }
