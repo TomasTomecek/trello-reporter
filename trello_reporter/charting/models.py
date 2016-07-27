@@ -29,7 +29,9 @@ logger = logging.getLogger(__name__)
 
 
 class BoardManager(models.Manager):
-    pass
+    def get_by_id(self, board_id):
+        return self.get(id=board_id)
+        return self.filter(id=board_id).prefetch_related("card_actions")[0]
 
 
 class Board(models.Model):
@@ -136,8 +138,8 @@ class Card(models.Model):
     @property
     def latest_action(self):
         try:
-            return self.actions.latest()
-        except ObjectDoesNotExist:
+            return self.actions.first()
+        except IndexError:
             return None
 
 
@@ -180,7 +182,7 @@ class CardActionManager(models.Manager):
             .before(date) \
             .order_by('card', '-date') \
             .distinct('card') \
-            .select_related()
+            .select_related("list", "card", "board")
 
     def get_cards_per_list(self, board_id, date):
         # list_name -> # of cards
@@ -200,9 +202,8 @@ class CardActionManager(models.Manager):
     def actions_for_board(self, board_id):
         return self.for_board(board_id) \
             .ordered_desc() \
-            .select_related() \
-            .prefetch_related(models.Prefetch("card__actions",
-                                              queryset=CardAction.objects.order_by("-date")))
+            .select_related("list", "board", "card") \
+            .prefetch_related(models.Prefetch("card__actions"))
 
 
 class CardAction(models.Model):
@@ -252,6 +253,7 @@ class CardAction(models.Model):
 
     class Meta:
         get_latest_by = "date"
+        ordering = ["-date", ]
 
     def __unicode__(self):
         return "[%s] %s (%s) %s" % (self.action_type, self.card, self.card_name, self.date)

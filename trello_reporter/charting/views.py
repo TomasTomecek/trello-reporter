@@ -32,7 +32,7 @@ def show_control_chart(request, board_id):
         "time_type": "m"
     }
     form = Workflow(initial=initial)
-    board = Board.objects.get(id=board_id)
+    board = Board.objects.get_by_id(board_id)
     return render(request, "charting.html",
                   {"board": board, "form": form, "chart_url": "control-chart-data"})
 
@@ -54,7 +54,7 @@ def show_cumulative_chart(request, board_id):
 
 
 def card_history(request, board_id):
-    board = Board.objects.get(id=board_id)
+    board = Board.objects.get_by_id(board_id)
     card_actions = CardAction.objects.actions_for_board(board_id)
     # card -> [action, action]
     response = {}
