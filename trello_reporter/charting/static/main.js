@@ -95,7 +95,6 @@ function on_focus_states(data) {
 }
 
 function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
-  console.log(d, defaultTitleFormat, defaultValueFormat, color);
   var tooltip = $("div#custom-chart-tooltip").html();
   tooltip.replace("TITLE", "");
   return tooltip;
@@ -117,16 +116,18 @@ function render_control_chart(data) {
   chart_data = {
     json: data["data"],
     keys: {
-      value: ["date", "hours"]
+      value: ["date", "hours", "v"]
     },
     x: 'date',
     xFormat: '%Y-%m-%d',
-    type: 'scatter',
+    types: {
+      hours: "scatter",
+      v: "area"
+    },
     onclick: on_point_click,
-    color: get_point_color,
     colors: {
       hours: '#ff0000',
-      date: '#00ff00'
+      v: '#00ff00'
     }
   };
 
