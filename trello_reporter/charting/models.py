@@ -2,10 +2,6 @@
 notes:
 
  * trello_id -- we don't trust trello's ID system
-
-
-TODO:
- * last day is full of 0s
 """
 
 from __future__ import unicode_literals
