@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class BoardManager(models.Manager):
     def get_by_id(self, board_id):
-        return self.get(id=board_id)
+        # return self.get(id=board_id)
         return self.filter(id=board_id).prefetch_related("card_actions")[0]
 
 
