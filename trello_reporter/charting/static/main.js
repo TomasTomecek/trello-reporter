@@ -21,6 +21,8 @@ $(function() {
       render_control_chart(data);
     } else if (chart_data_url.indexOf("cumulative") > -1) {
       render_cumulative_chart(data);
+    } else if (chart_data_url.indexOf("burndown") > -1) {
+      render_burndown_chart(data);
     }
     $.each(data["all_lists"], function(idx, value) {
       $('#workflow-1-1')
@@ -181,6 +183,47 @@ function render_cumulative_chart(data) {
     },
     legend: {
       show: true
+    }
+  });
+}
+
+function render_burndown_chart(data) {
+  chart_data = {
+    json: data["data"],
+    keys: {
+      value: ["done", "not_done", "date"]
+    },
+    x: 'date',
+    xFormat: '%Y-%m-%d',
+    types: {
+      "done": "line",
+      "not_done": "line",
+    }
+  };
+
+  chart = c3.generate({
+    bindto: '#chart',
+    data: chart_data,
+    legend: {
+      show: true
+    },
+    axis: {
+      x: {
+        type: 'timeseries',
+        tick: {
+          fit: true,
+          format: '%Y-%m-%d'
+        }
+      },
+      y: {
+        label: 'hours',
+      }
+    },
+    tooltip: {
+      contents: get_tooltip
+    },
+    point: {
+      r: point_size
     }
   });
 }

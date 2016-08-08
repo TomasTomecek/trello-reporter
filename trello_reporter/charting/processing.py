@@ -105,3 +105,21 @@ class ChartExporter(object):
                 date = actions[-1].date.strftime("%Y-%m-%d")
                 cards.append({"hours": hours, "id": card.id, "label": "Hours", "date": date})
         return cards
+
+    @classmethod
+    def burndown_chart_c3(cls, data):
+        in_progress_lists = ["Next", "In Progress"]
+        completed_list = "Complete"
+
+        # {"day": day, "done": int, "not_done": int}
+        stats = []
+        for day, v in data.items():
+            not_done = v.get(in_progress_lists[0], 0) + v.get(in_progress_lists[1], 0)
+            done = v.get(completed_list, 0)
+            stats.append({
+                "done": done,
+                "not_done": not_done,
+                "date": day.strftime("%Y-%m-%d")
+            })
+
+        return stats

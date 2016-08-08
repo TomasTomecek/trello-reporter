@@ -19,6 +19,7 @@ from .charting import views
 
 urlpatterns = [
     # TODO: sanitize URLs, do better namespacing
+    # FIXME: API, HTML
     url(r'^admin/', admin.site.urls),
     url(r'^chart/(?P<board_id>[0-9]+)/cards_at/$', views.cards_on_board_at, name='cards-at'),
     url(r'^chart/(?P<board_id>[0-9]+)/card_history/$', views.card_history, name='card-history'),
@@ -30,6 +31,11 @@ urlpatterns = [
     url(r'^chart/(?P<board_id>[0-9]+)/control/$', views.show_control_chart,
         name='show-control-chart'),
     url(r'^chart/(?P<board_id>[0-9]+)/control-data/$', views.control_chart,
-        name='control-chart-data'),  # FIXME, make this part of API
+        name='control-chart-data'),
+
+    url(r'^chart/(?P<board_id>[0-9]+)/burndown/$', views.show_burndown_chart,
+        name='show-burndown-chart'),
+    url(r'^chart/(?P<board_id>[0-9]+)/burndown-data/$', views.burndown_chart_data,
+        name='burndown-chart-data'),
     url(r'^$', views.index, name='index'),
 ]

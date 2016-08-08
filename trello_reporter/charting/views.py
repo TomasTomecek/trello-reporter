@@ -37,6 +37,12 @@ def show_control_chart(request, board_id):
                   {"board": board, "form": form, "chart_url": "control-chart-data"})
 
 
+def show_burndown_chart(request, board_id):
+    board = Board.objects.get_by_id(board_id)
+    return render(request, "charting.html",
+                  {"board": board, "chart_url": "burndown-chart-data"})
+
+
 def show_cumulative_chart(request, board_id):
     n = datetime.datetime.now()
     from_dt = n - datetime.timedelta(days=30)
@@ -160,5 +166,15 @@ def cumulative_chart(request, board_id):
         "data": data,
         "order": order,
         "all_lists": lists
+    }
+    return JsonResponse(response)
+
+
+def burndown_chart_data(request, board_id):
+    board = Board.objects.get(id=board_id)
+    interval, _ = board.group_card_movements()
+    data = ChartExporter.burndown_chart_c3(interval)
+    response = {
+        "data": data,
     }
     return JsonResponse(response)
