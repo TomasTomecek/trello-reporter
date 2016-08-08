@@ -29,3 +29,8 @@ class Workflow(forms.Form):
 
 class DateForm(forms.Form):
     date = forms.DateTimeField()
+
+
+class BurndownForm(forms.Form):
+    from_dt = forms.DateTimeField()
+    to_dt = forms.DateTimeField()

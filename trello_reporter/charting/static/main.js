@@ -39,10 +39,16 @@ $(function() {
       chart_data_url,
       $('#chart-settings').serialize(),
       function(data) {
-        chart_data["columns"] = data["data"];
-        chart_data["unload"] = chart.columns;
-        chart_data["groups"] = data["order"];
-        chart.load(chart_data);
+        if (chart_data_url.indexOf("control") > -1) {
+          alert("not implemented yet");
+        } else if (chart_data_url.indexOf("cumulative") > -1) {
+          chart_data["columns"] = data["data"];
+          chart_data["unload"] = chart.columns;
+          chart_data["groups"] = data["order"];
+          chart.load(chart_data);
+        } else if (chart_data_url.indexOf("burndown") > -1) {
+          reload_burndown_chart(data);
+        }
       },
       'json' // I expect a JSON response
     );
@@ -187,6 +193,12 @@ function render_cumulative_chart(data) {
   });
 }
 
+function reload_burndown_chart(data) {
+  chart_data["json"] = data["data"];
+  chart_data["unload"] = chart.columns;
+  chart.load(chart_data);
+}
+
 function render_burndown_chart(data) {
   chart_data = {
     json: data["data"],
@@ -211,7 +223,6 @@ function render_burndown_chart(data) {
       x: {
         type: 'timeseries',
         tick: {
-          fit: true,
           format: '%Y-%m-%d'
         }
       },
@@ -219,11 +230,5 @@ function render_burndown_chart(data) {
         label: 'hours',
       }
     },
-    tooltip: {
-      contents: get_tooltip
-    },
-    point: {
-      r: point_size
-    }
   });
 }

@@ -8,7 +8,7 @@ import re
 from django.http.response import JsonResponse
 from django.shortcuts import render
 
-from trello_reporter.charting.forms import Workflow, DateForm
+from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm
 from trello_reporter.charting.models import Board, CardAction
 from trello_reporter.charting.processing import ChartExporter
 
@@ -39,8 +39,19 @@ def show_control_chart(request, board_id):
 
 def show_burndown_chart(request, board_id):
     board = Board.objects.get_by_id(board_id)
-    return render(request, "charting.html",
-                  {"board": board, "chart_url": "burndown-chart-data"})
+    n = datetime.datetime.now()
+    from_dt = n - datetime.timedelta(days=30)
+    initial = {
+        "from_dt": from_dt,
+        "to_dt": n,
+    }
+    form = BurndownForm(initial=initial)
+    context = {
+        "form": form,
+        "board": board,
+        "chart_url": "burndown-chart-data"
+    }
+    return render(request, "charting.html", context)
 
 
 def show_cumulative_chart(request, board_id):
@@ -172,7 +183,17 @@ def cumulative_chart(request, board_id):
 
 def burndown_chart_data(request, board_id):
     board = Board.objects.get(id=board_id)
-    interval, _ = board.group_card_movements()
+    if request.method == "POST":
+        form = BurndownForm(request.POST)
+        if form.is_valid():
+            from_dt = form.cleaned_data["from_dt"]
+            to_dt = form.cleaned_data["to_dt"]
+            interval, _ = board.group_card_movements(beginning=from_dt, end=to_dt)
+        else:
+            logger.warning("form is not valid")
+            raise Exception("Invalid form.")
+    else:
+        interval, _ = board.group_card_movements()
     data = ChartExporter.burndown_chart_c3(interval)
     response = {
         "data": data,

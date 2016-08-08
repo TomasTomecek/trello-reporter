@@ -114,7 +114,9 @@ class ChartExporter(object):
         # {"day": day, "done": int, "not_done": int}
         stats = []
         for day, v in data.items():
-            not_done = v.get(in_progress_lists[0], 0) + v.get(in_progress_lists[1], 0)
+            next_count = v.get(in_progress_lists[0], 0)
+            in_progress_count = v.get(in_progress_lists[1], 0)
+            not_done = next_count + in_progress_count
             done = v.get(completed_list, 0)
             stats.append({
                 "done": done,
