@@ -335,7 +335,6 @@ class CardAction(models.Model):
 
     @classmethod
     def from_trello_response_list(cls, board, actions):
-        cards_to_babysit = []
         logger.debug("processing %d actions", len(actions))
         for action_data in actions:
             card, _ = Card.objects.get_or_create(trello_id=action_data["data"]["card"]["id"])
@@ -366,13 +365,11 @@ class CardAction(models.Model):
 
             elif ca.action_type in ["updateCard"]:  # update = change list, close or open
                 if not previous_action:
+                    # this should not happen, it means that trello returned something
+                    # we didn't expect: let's start card history here; likely it got on the board
+                    # from other board or is now on different board
                     logger.warning("update card %s: previous state is unknown",
                                    ca.trello_card_id)
-                    # this should not happen, it means that trello returned something
-                    # we didn't expect, let's process the card separately then
-                    # FIXME: alternatively, we could start action history here
-                    cards_to_babysit.append(ca)
-                    continue
 
                 if ca.archiving:
                     ca.list = None
@@ -399,6 +396,3 @@ class CardAction(models.Model):
             if points_str is not None:
                 ca.story_points = int(points_str)
             ca.save()
-
-        # TODO
-        logger.warning("you should process now these cards: %s", cards_to_babysit)
