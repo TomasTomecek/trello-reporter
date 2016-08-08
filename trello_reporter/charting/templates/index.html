@@ -38,6 +38,7 @@
         <a href="{% url 'card-history' board.id %}">Cards history</a>
         <a href="{% url 'show-cumulative-chart' board.id %}">cumulative chart</a>
         <a href="{% url 'show-control-chart' board.id %}">control chart</a>
+        <a href="{% url 'show-burndown-chart' board.id %}">burndown chart</a>
       </li>
     {% endfor %}
     </ul>
