@@ -5,5 +5,4 @@ py-trello
 ipdb
 django-extensions
 django-debug-toolbar
-sqlparse==0.1.19
 
