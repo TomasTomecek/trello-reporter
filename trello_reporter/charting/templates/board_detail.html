@@ -1,0 +1,20 @@
+{% extends "index.html" %}
+{% block body %}
+<h1>Board "{{ board.name }}"</h1>
+<ul>
+    <li><a href="{% url 'cards-at' board.id %}">Cards at</a></li>
+    <li><a href="{% url 'card-history' board.id %}">Cards history</a></li>
+    <li><a href="{% url 'show-cumulative-chart' board.id %}">Cumulative chart</a></li>
+    <li><a href="{% url 'show-control-chart' board.id %}">Control chart</a></li>
+    <li><a href="{% url 'show-burndown-chart' board.id %}">Burndown chart</a></li>
+    <li><a href="{% url 'show-velocity-chart' board.id %}">Velocity chart</a></li>
+</ul>
+<h2>Lists</h2>
+<ul>
+    {% for list in lists %}
+        {% if list.name %}
+        <li><a href="{% url 'list-detail' list.id %}">{{ list.name }}</a></li>
+        {% endif %}
+    {% endfor %}
+</ul>
+{% endblock %}

@@ -33,13 +33,13 @@
     <ul>
     {% for board in boards %}
       <li>
-        <em>{{ board.name }}</em>
+        <a href="{% url 'board-detail' board.id %}"><em>{{ board.name }}</em></a>
         <a href="{% url 'cards-at' board.id %}">Cards at</a>
         <a href="{% url 'card-history' board.id %}">Cards history</a>
-        <a href="{% url 'show-cumulative-chart' board.id %}">cumulative chart</a>
-        <a href="{% url 'show-control-chart' board.id %}">control chart</a>
-        <a href="{% url 'show-burndown-chart' board.id %}">burndown chart</a>
-        <a href="{% url 'show-velocity-chart' board.id %}">velocity chart</a>
+        <a href="{% url 'show-cumulative-chart' board.id %}">Cumulative chart</a>
+        <a href="{% url 'show-control-chart' board.id %}">Control chart</a>
+        <a href="{% url 'show-burndown-chart' board.id %}">Burndown chart</a>
+        <a href="{% url 'show-velocity-chart' board.id %}">Velocity chart</a>
       </li>
     {% endfor %}
     </ul>

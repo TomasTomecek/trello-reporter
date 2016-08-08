@@ -156,6 +156,15 @@ class List(models.Model):
         return trello_list
 
     @classmethod
+    def get_lists(cls, board_id):
+        lists = cls.objects \
+            .filter(card_actions__board__id=board_id) \
+            .order_by('card_actions__list__name', '-card_actions__date') \
+            .distinct("card_actions__list__name") \
+            .prefetch_related("card_actions")
+        return lists
+
+    @classmethod
     def sprint_lists_for_board(cls, board_id):
         """ get lists which are used for archiving cards finished during a sprint """
         regex = r"^\s*sprint \d+( \(complete\))?$"
@@ -239,8 +248,11 @@ class CardAction(models.Model):
     action_type = models.CharField(max_length=32)
     story_points = models.IntegerField(null=True, blank=True)
 
+    previous_action = models.OneToOneField("self", related_name="next_action", null=True,
+                                           blank=True)
     # when copying cards, this is the original card, not the newly created one
     card = models.ForeignKey(Card, models.CASCADE, related_name="actions")
+    # present list
     list = models.ForeignKey(List, models.CASCADE, default=None, null=True, blank=True,
                              related_name="card_actions")
     board = models.ForeignKey(Board, models.CASCADE, related_name="card_actions")
@@ -424,4 +436,5 @@ class CardAction(models.Model):
             points_str = CardAction.get_story_points(ca.card_name)
             if points_str is not None:
                 ca.story_points = int(points_str)
+            ca.previous_action = previous_action
             ca.save()

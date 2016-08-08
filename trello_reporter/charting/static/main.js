@@ -25,6 +25,8 @@ $(function() {
       render_burndown_chart(data);
     } else if (chart_data_url.indexOf("velocity") > -1) {
       render_velocity_chart(data);
+    } else if (chart_data_url.indexOf("list-history") > -1) {
+      render_list_history_chart(data);
     }
     $.each(data["all_lists"], function(idx, value) {
       $('#workflow-1-1')
@@ -261,6 +263,38 @@ function render_velocity_chart(data) {
         label: "Sprint",
         type: "category"
       },
+    },
+  });
+}
+
+function render_list_history_chart(data) {
+  chart_data = {
+    json: data["data"],
+    keys: {
+      value: ["count", "date"],
+      x: 'date',
+    },
+    xFormat: '%Y-%m-%d %H:%M',
+    type: "line"
+  };
+
+  chart = c3.generate({
+    bindto: '#chart',
+    data: chart_data,
+    legend: {
+      show: true
+    },
+    axis: {
+      x: {
+        type: 'timeseries',
+        label: 'Time',
+        tick: {
+          format: '%Y-%m-%d %H:%M'
+        }
+      },
+      y: {
+        label: 'Count',
+      }
     },
   });
 }

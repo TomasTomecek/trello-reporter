@@ -1,0 +1,10 @@
+{% extends "index.html" %}
+{% block js %}
+<script type="text/javascript" src="/static/main.js"></script>
+{% endblock %}
+{% block body %}
+<h1>List "{{ list.name }}"</h1>
+<form id="chart-settings" action="{% url chart_url list.id %}" method="post">
+</form>
+<div id="chart" class="line-chart-pf"></div>
+{% endblock %}

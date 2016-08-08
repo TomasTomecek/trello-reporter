@@ -2,6 +2,8 @@ from __future__ import unicode_literals, print_function
 
 import logging
 
+from django.core.exceptions import ObjectDoesNotExist
+
 from trello_reporter.charting.models import CardAction
 
 logger = logging.getLogger(__name__)
@@ -148,4 +150,35 @@ class ChartExporter(object):
                 r["cards_num"] += 1
 
             response.append(r)
+        return response
+
+    @classmethod
+    def list_history_chart_c3(cls, li):
+        response = []
+        current_count = 0
+
+        # FIXME: hacky implementation, store this in rdbms when pulling data
+        history = {}  # date -> ("+" or "-", ca)
+
+        for ca in li.card_actions.order_by("date"):
+            history[ca.date] = ("+", ca)
+            try:
+                na = ca.next_action
+            except ObjectDoesNotExist:
+                pass
+            else:
+                history[na.date] = ("-", na)
+
+        for da in sorted(history.keys()):
+            event_type, _ = history[da]
+            if event_type == "+":
+                current_count += 1
+            elif event_type == "-":
+                current_count -= 1
+            r = {
+                "count": current_count,
+                "date": da.strftime("%Y-%m-%d %H:%M")
+            }
+            response.append(r)
+            logger.debug(r)
         return response

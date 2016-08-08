@@ -21,6 +21,11 @@ urlpatterns = [
     # TODO: sanitize URLs, do better namespacing
     # FIXME: API, HTML
     url(r'^admin/', admin.site.urls),
+    url(r'^board/(?P<board_id>[0-9]+)/$', views.board_detail, name='board-detail'),
+
+    url(r'^list/(?P<list_id>[0-9]+)/$',
+        views.list_detail, name='list-detail'),
+
     url(r'^chart/(?P<board_id>[0-9]+)/cards_at/$', views.cards_on_board_at, name='cards-at'),
     url(r'^chart/(?P<board_id>[0-9]+)/card_history/$', views.card_history, name='card-history'),
 
@@ -42,6 +47,9 @@ urlpatterns = [
         name='show-velocity-chart'),
     url(r'^chart/(?P<board_id>[0-9]+)/velocity-data/$', views.velocity_chart_data,
         name='velocity-chart-data'),
+
+    url(r'^chart/(?P<list_id>[0-9]+)/list-history-data/$', views.list_history_data,
+        name='list-history-chart-data'),
 
     url(r'^$', views.index, name='index'),
 ]

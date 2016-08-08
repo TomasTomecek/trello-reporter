@@ -217,3 +217,31 @@ def velocity_chart_data(request, board_id):
         "data": data
     }
     return JsonResponse(response)
+
+
+def list_history_data(request, list_id):
+    li= List.objects.get(id=list_id)
+    data = ChartExporter.list_history_chart_c3(li)
+    response = {
+        "data": data
+    }
+    return JsonResponse(response)
+
+
+def board_detail(request, board_id):
+    board = Board.objects.get(id=board_id)
+    lists = List.get_lists(board_id)
+    context = {
+        "board": board,
+        "lists": lists,
+    }
+    return render(request, "board_detail.html", context)
+
+
+def list_detail(request, list_id):
+    li = List.objects.get(id=list_id)
+    context = {
+        "list": li,
+        "chart_url": "list-history-chart-data"
+    }
+    return render(request, "list_detail.html", context)
