@@ -37,5 +37,11 @@ urlpatterns = [
         name='show-burndown-chart'),
     url(r'^chart/(?P<board_id>[0-9]+)/burndown-data/$', views.burndown_chart_data,
         name='burndown-chart-data'),
+
+    url(r'^chart/(?P<board_id>[0-9]+)/velocity/$', views.show_velocity_chart,
+        name='show-velocity-chart'),
+    url(r'^chart/(?P<board_id>[0-9]+)/velocity-data/$', views.velocity_chart_data,
+        name='velocity-chart-data'),
+
     url(r'^$', views.index, name='index'),
 ]

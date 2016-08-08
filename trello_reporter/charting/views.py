@@ -9,7 +9,7 @@ from django.http.response import JsonResponse
 from django.shortcuts import render
 
 from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm
-from trello_reporter.charting.models import Board, CardAction
+from trello_reporter.charting.models import Board, CardAction, List
 from trello_reporter.charting.processing import ChartExporter
 
 
@@ -50,6 +50,15 @@ def show_burndown_chart(request, board_id):
         "form": form,
         "board": board,
         "chart_url": "burndown-chart-data"
+    }
+    return render(request, "charting.html", context)
+
+
+def show_velocity_chart(request, board_id):
+    board = Board.objects.get_by_id(board_id)
+    context = {
+        "board": board,
+        "chart_url": "velocity-chart-data"
     }
     return render(request, "charting.html", context)
 
@@ -197,5 +206,14 @@ def burndown_chart_data(request, board_id):
     data = ChartExporter.burndown_chart_c3(interval)
     response = {
         "data": data,
+    }
+    return JsonResponse(response)
+
+
+def velocity_chart_data(request, board_id):
+    lists = List.sprint_lists_for_board(board_id)
+    data = ChartExporter.velocity_chart_c3(lists)
+    response = {
+        "data": data
     }
     return JsonResponse(response)

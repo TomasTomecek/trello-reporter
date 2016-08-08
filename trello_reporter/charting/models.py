@@ -155,10 +155,30 @@ class List(models.Model):
         trello_list.save()
         return trello_list
 
+    @classmethod
+    def sprint_lists_for_board(cls, board_id):
+        """ get lists which are used for archiving cards finished during a sprint """
+        regex = r"^\s*sprint \d+( \(complete\))?$"
+        lists = cls.objects \
+            .filter(card_actions__board__id=board_id) \
+            .filter(name__iregex=regex) \
+            .order_by('card_actions__list__name', '-card_actions__date') \
+            .distinct("card_actions__list__name") \
+            .prefetch_related("card_actions")
+        return lists
+
+    @property
+    def cards(self):
+        now = datetime.datetime.now(tz=tzutc())
+        return self.card_actions.get_cards_on_list(self.id, now)
+
 
 class CardActionQuerySet(models.QuerySet):
     def for_board(self, board_id):
         return self.filter(board__id=board_id)
+
+    def for_list(self, list_id):
+        return self.filter(list__id=list_id)
 
     def since(self, date):
         return self.filter(date__gte=date)
@@ -175,6 +195,15 @@ class CardActionManager(models.Manager):
         """ this is a time machine: shows board state in a given time """
         return self \
             .for_board(board_id) \
+            .before(date) \
+            .order_by('card', '-date') \
+            .distinct('card') \
+            .select_related("list", "card", "board")
+
+    def get_cards_on_list(self, list_id, date):
+        """ this is a time machine: shows cards on a list in a given time """
+        return self \
+            .for_list(list_id) \
             .before(date) \
             .order_by('card', '-date') \
             .distinct('card') \

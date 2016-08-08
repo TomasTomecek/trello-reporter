@@ -125,3 +125,27 @@ class ChartExporter(object):
             })
 
         return stats
+
+    @classmethod
+    def velocity_chart_c3(cls, lists):
+        response = []
+        for li in lists:
+            logger.debug("processing list %s", li)
+            r = {
+                "story_points": 0,
+                "cards_num": 0,
+                "name": li.name,
+                # "commited": 0  TODO
+            }
+            for card in li.cards:
+                logger.debug("processing card %s", card)
+                if card.is_archived or card.is_deleted:
+                    continue
+                try:
+                    r["story_points"] += card.story_points
+                except TypeError:
+                    pass  # story points are not set
+                r["cards_num"] += 1
+
+            response.append(r)
+        return response

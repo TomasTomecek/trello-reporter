@@ -23,6 +23,8 @@ $(function() {
       render_cumulative_chart(data);
     } else if (chart_data_url.indexOf("burndown") > -1) {
       render_burndown_chart(data);
+    } else if (chart_data_url.indexOf("velocity") > -1) {
+      render_velocity_chart(data);
     }
     $.each(data["all_lists"], function(idx, value) {
       $('#workflow-1-1')
@@ -229,6 +231,36 @@ function render_burndown_chart(data) {
       y: {
         label: 'hours',
       }
+    },
+  });
+}
+
+function render_velocity_chart(data) {
+  chart_data = {
+    json: data["data"],
+    keys: {
+      value: ["story_points", "cards_num"],
+      x: "name",
+    },
+    type: "bar"
+  };
+
+  chart = c3.generate({
+    bindto: '#chart',
+    data: chart_data,
+    legend: {
+      show: true
+    },
+    bar: {
+      width: {
+          ratio: 0.5
+      }
+    },
+    axis: {
+      x: {
+        label: "Sprint",
+        type: "category"
+      },
     },
   });
 }
