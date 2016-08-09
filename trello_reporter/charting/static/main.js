@@ -2,6 +2,12 @@
 var chart_data_url = null
 var chart = null;
 var chart_data = null;
+var cache = {
+  cards: {},  // card_id -> response from api
+  card_indexes: {},  // c3_index -> response from api
+  lists: {},
+  boards: {}
+ };
 
 // get current URL:
 // window.location.pathname + "cumulative/",
@@ -106,15 +112,31 @@ function on_focus_states(data) {
   }
 }
 
+function get_selected_card_id(c3, d) {
+  return c3.config.data_json[d[0].index].id;
+}
+
 function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
-  console.log(d, defaultTitleFormat, defaultValueFormat, color);
+  var card_id = get_selected_card_id(this, d)
   var tooltip = $("div#custom-chart-tooltip").html();
-  tooltip.replace("TITLE", "");
+
+  if (!(card_id in cache.cards)) {
+    $.ajax({
+      url: "/api/v0/card/" + card_id + "/",
+      dataType: "json",
+      async: false,
+    }).done(function(data) {
+      cache.cards[card_id] = data;
+      cache.card_indexes[d[0].index] = data;
+    });
+  }
+  tooltip = tooltip.replace("TITLE", cache.cards[card_id].name);
   return tooltip;
 }
 
 function on_point_click(d, element) {
-  var x;
+  var card_id = cache.card_indexes[d.index].id;  // FIXME: race for the data to get there
+  window.open('/card/' + card_id + '/', '_blank');
 }
 
 function point_size(d) {
@@ -163,9 +185,9 @@ function render_control_chart(data) {
     tooltip: {
       contents: get_tooltip
     },
-    point: {
-      r: point_size
-    }
+    // point: {
+    //   r: point_size
+    // }
   });
 }
 

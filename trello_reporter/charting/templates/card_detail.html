@@ -1,0 +1,9 @@
+{% extends "index.html" %}
+{% block body %}
+<h1>Card "{{ card.latest_action.card_name }}"</h1>
+<ul>
+{% for ca in actions %}
+  <li>{{ ca.date }} - {{ ca.action_type }} - {{ ca.list.name }}</li>
+{% endfor %}
+</ul>
+{% endblock %}

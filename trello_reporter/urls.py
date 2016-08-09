@@ -20,11 +20,14 @@ from .charting import views
 urlpatterns = [
     # TODO: sanitize URLs, do better namespacing
     # FIXME: API, HTML
+    url(r'^$', views.index, name='index'),
     url(r'^admin/', admin.site.urls),
     url(r'^board/(?P<board_id>[0-9]+)/$', views.board_detail, name='board-detail'),
 
     url(r'^list/(?P<list_id>[0-9]+)/$',
         views.list_detail, name='list-detail'),
+    url(r'^card/(?P<card_id>[0-9]+)/$',
+        views.card_detail, name='card-detail'),
 
     url(r'^chart/(?P<board_id>[0-9]+)/cards_at/$', views.cards_on_board_at, name='cards-at'),
     url(r'^chart/(?P<board_id>[0-9]+)/card_history/$', views.card_history, name='card-history'),
@@ -51,5 +54,6 @@ urlpatterns = [
     url(r'^chart/(?P<list_id>[0-9]+)/list-history-data/$', views.list_history_data,
         name='list-history-chart-data'),
 
-    url(r'^$', views.index, name='index'),
+    url(r'^api/v0/card/(?P<card_id>[0-9]+)/$', views.api_get_card,
+        name='api-get-card'),
 ]

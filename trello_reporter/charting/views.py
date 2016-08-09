@@ -5,11 +5,12 @@ import logging
 import datetime
 import re
 
+from django.core.urlresolvers import reverse
 from django.http.response import JsonResponse
 from django.shortcuts import render
 
 from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm
-from trello_reporter.charting.models import Board, CardAction, List
+from trello_reporter.charting.models import Board, CardAction, List, Card
 from trello_reporter.charting.processing import ChartExporter
 from trello_reporter.charting.sprint import find_sprints_by_completed
 
@@ -220,7 +221,7 @@ def velocity_chart_data(request, board_id):
 
 
 def list_history_data(request, list_id):
-    li= List.objects.get(id=list_id)
+    li = List.objects.get(id=list_id)
     data = ChartExporter.list_history_chart_c3(li)
     response = {
         "data": data
@@ -247,3 +248,26 @@ def list_detail(request, list_id):
         "chart_url": "list-history-chart-data"
     }
     return render(request, "list_detail.html", context)
+
+
+def card_detail(request, card_id):
+    card = Card.objects.get(id=card_id)
+    context = {
+        "card": card,
+        "actions": card.actions.order_by("date"),
+    }
+    return render(request, "card_detail.html", context)
+
+
+# API
+
+
+def api_get_card(request, card_id):
+    card = Card.objects.get(id=card_id)
+
+    response = {
+        "id": card.id,
+        "name": card.latest_action.card_name,  # TODO: store the same as for lists
+        "url": request.build_absolute_uri(reverse('card-detail', args=(card_id, ))),
+    }
+    return JsonResponse(response)
