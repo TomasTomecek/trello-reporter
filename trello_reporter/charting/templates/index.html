@@ -8,6 +8,7 @@
   {% endblock %}
   <meta name="description" content="">
   <link rel="shortcut icon" href="/static/patternfly/dist/img/favicon.ico">
+  <link rel="stylesheet" href="/static/patternfly/dist/css/patternfly.min.css">
   <link rel="stylesheet" href="/static/patternfly/dist/css/patternfly-additions.min.css">
 
   <script type="text/javascript" src="/static/jquery/dist/jquery.min.js"></script>
@@ -27,23 +28,43 @@
   {% endblock %}
 
 </head>
-
-  <body class="home">
-  {% block body %}
-    <ul>
-    {% for board in boards %}
-      <li>
-        <a href="{% url 'board-detail' board.id %}"><em>{{ board.name }}</em></a>
-        <a href="{% url 'cards-at' board.id %}">Cards at</a>
-        <a href="{% url 'card-history' board.id %}">Cards history</a>
-        <a href="{% url 'show-cumulative-chart' board.id %}">Cumulative chart</a>
-        <a href="{% url 'show-control-chart' board.id %}">Control chart</a>
-        <a href="{% url 'show-burndown-chart' board.id %}">Burndown chart</a>
-        <a href="{% url 'show-velocity-chart' board.id %}">Velocity chart</a>
-      </li>
-    {% endfor %}
-    </ul>
-  {% endblock %}
+  <body>
+    <nav class="navbar navbar-default navbar-pf" role="navigation">
+      <div class="collapse navbar-collapse navbar-collapse-1">
+        <ul class="nav navbar-nav navbar-primary">
+          <li class="active">
+            <a href="{% url 'index' %}">Home</a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+    <div class="container-fluid">
+    {% block body %}
+      <div class="list-group list-view-pf list-view-pf-view">
+      {% for board in boards %}
+        <div class="list-group-item">
+          <div class="list-view-pf-main-info">
+            <div class="list-view-pf-body">
+              <div class="list-view-pf-description">
+                <div class="list-group-item-heading">
+                  <a href="{% url 'board-detail' board.id %}">{{ board.name }}</a>
+                </div>
+                <div class="list-group-item-text">
+                  <a href="{% url 'cards-at' board.id %}">Cards at</a>
+                  <a href="{% url 'card-history' board.id %}">Cards history</a>
+                  <a href="{% url 'show-cumulative-chart' board.id %}">Cumulative chart</a>
+                  <a href="{% url 'show-control-chart' board.id %}">Control chart</a>
+                  <a href="{% url 'show-burndown-chart' board.id %}">Burndown chart</a>
+                  <a href="{% url 'show-velocity-chart' board.id %}">Velocity chart</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% endblock %}
+    </div>
   </body>
 
 </html>
