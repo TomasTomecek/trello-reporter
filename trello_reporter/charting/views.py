@@ -11,7 +11,7 @@ from django.shortcuts import render
 from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm
 from trello_reporter.charting.models import Board, CardAction, List
 from trello_reporter.charting.processing import ChartExporter
-
+from trello_reporter.charting.sprint import find_sprints_by_completed
 
 logger = logging.getLogger(__name__)
 
@@ -231,9 +231,11 @@ def list_history_data(request, list_id):
 def board_detail(request, board_id):
     board = Board.objects.get(id=board_id)
     lists = List.get_lists(board_id)
+    sprints = find_sprints_by_completed(List.get_completed_lists(board_id))
     context = {
         "board": board,
         "lists": lists,
+        "sprints": sprints,
     }
     return render(request, "board_detail.html", context)
 

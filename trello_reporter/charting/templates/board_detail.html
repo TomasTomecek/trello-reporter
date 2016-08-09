@@ -17,4 +17,10 @@
         {% endif %}
     {% endfor %}
 </ul>
+<h2>Sprints</h2>
+<ul>
+    {% for sprint in sprints %}
+    <li>{{ sprint.start_dt }} - {{ sprint.end_dt }}</li>
+    {% endfor %}
+</ul>
 {% endblock %}

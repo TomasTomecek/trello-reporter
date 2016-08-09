@@ -176,6 +176,15 @@ class List(models.Model):
             .prefetch_related("card_actions")
         return lists
 
+    @classmethod
+    def get_completed_lists(cls, board_id):
+        """ there may be multiple completed lists which are being archived continuously """
+        regex = r"^completed?$"
+        lists = cls.objects.filter(card_actions__board__id=board_id, name__iregex=regex) \
+            .distinct("card_actions__list").prefetch_related("card_actions")
+        logger.info("found completed lists: %s", lists)
+        return lists
+
     @property
     def cards(self):
         now = datetime.datetime.now(tz=tzutc())
