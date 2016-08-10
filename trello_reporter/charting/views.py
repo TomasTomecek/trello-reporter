@@ -7,12 +7,11 @@ import re
 
 from django.core.urlresolvers import reverse
 from django.http.response import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm
-from trello_reporter.charting.models import Board, CardAction, List, Card
+from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint
 from trello_reporter.charting.processing import ChartExporter
-from trello_reporter.charting.sprint import find_sprints_by_completed
 
 logger = logging.getLogger(__name__)
 
@@ -232,13 +231,19 @@ def list_history_data(request, list_id):
 def board_detail(request, board_id):
     board = Board.objects.get(id=board_id)
     lists = List.get_lists(board_id)
-    sprints = find_sprints_by_completed(List.get_completed_lists(board_id))
+    sprints = Sprint.objects.filter(board__id=board_id).order_by("start_dt")
     context = {
         "board": board,
         "lists": lists,
         "sprints": sprints,
     }
     return render(request, "board_detail.html", context)
+
+
+def board_refresh(request, board_id):
+    board = Board.objects.get(id=board_id)
+    board.ensure_actions()
+    return redirect('board-detail', board_id=board_id)
 
 
 def list_detail(request, list_id):

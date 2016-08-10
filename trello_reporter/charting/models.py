@@ -67,6 +67,7 @@ class Board(models.Model):
             actions = Harvestor.get_card_actions(self, since=latest_action.date)
 
         CardAction.from_trello_response_list(self, actions)
+        Sprint.refresh(self)
 
     def actions_for_interval(self, beginning, end):
         """
@@ -249,6 +250,53 @@ class CardActionManager(models.Manager):
             .prefetch_related(models.Prefetch("card__actions"))
 
 
+class ListStat(models.Model):
+    """
+    statistics of lists: # number of cards present in a given time
+    """
+    # list which is affected by this ca: it's possible to list != card_action.list
+    list = models.ForeignKey(List, models.CASCADE, related_name="stats")
+    # there can be 2 stats for every action: -1 for previous list, +1 for next
+    card_action = models.ForeignKey("CardAction", models.CASCADE, related_name="stats")
+    diff = models.SmallIntegerField()
+    running_total = models.IntegerField(blank=True, null=True)
+
+    def __unicode__(self):
+        return "[%s] %s (%s)" % (self.running_total, self.diff, self.card_action)
+
+    @classmethod
+    def latest_stat_for_list(cls, li):
+        return cls.objects.filter(list=li).latest("card_action__date")
+
+    @classmethod
+    def create_stat(cls, ca, list, diff, running_total):
+        o, created = cls.objects.get_or_create(
+            card_action=ca,
+            diff=diff,
+            list=list,
+        )
+        if created:
+            # FIXME: this is race-y
+            o.running_total = running_total
+            o.save()
+        else:
+            logger.error("there is already stat for action %s", ca)
+        return o
+
+    @classmethod
+    def guess_sprint_intervals(cls, board_id, since=None):
+        regex = r"^completed?$"
+        query = cls.objects.filter(
+            running_total=0,
+            card_action__board__id=board_id,
+            list__name__iregex=regex
+        )
+        if since:
+            query.filter(card_action__date__gt=since)
+        query.order_by("card_action__date").select_related("card_action")
+        return query
+
+
 class CardAction(models.Model):
     trello_id = models.CharField(max_length=32, db_index=True)
     # datetime when the event happened
@@ -383,6 +431,7 @@ class CardAction(models.Model):
         except IndexError:
             return None
 
+    # FIXME: this needs to be atomic
     @classmethod
     def from_trello_response_list(cls, board, actions):
         logger.debug("processing %d actions", len(actions))
@@ -418,8 +467,8 @@ class CardAction(models.Model):
                     # this should not happen, it means that trello returned something
                     # we didn't expect: let's start card history here; likely it got on the board
                     # from other board or is now on different board
-                    logger.warning("update card %s: previous state is unknown",
-                                   ca.trello_card_id)
+                    logger.info("update card %s: previous state is unknown",
+                                ca.trello_card_id)
 
                 if ca.archiving:
                     ca.list = None
@@ -437,8 +486,8 @@ class CardAction(models.Model):
                     ca.list = None
                     ca.is_deleted = True
                 else:
-                    logger.warning("card %s has unknown previous state",
-                                   ca.trello_card_id)
+                    logger.info("card %s has unknown previous state",
+                                ca.trello_card_id)
                     # default card?
                     continue
 
@@ -447,3 +496,59 @@ class CardAction(models.Model):
                 ca.story_points = int(points_str)
             ca.previous_action = previous_action
             ca.save()
+
+            # ListStats
+            if previous_action:
+                diff = -1
+                previous_list = previous_action.list
+                if previous_list:
+                    previous_list_stat = ListStat.latest_stat_for_list(previous_list)
+                    rt = previous_list_stat.running_total
+                    ListStat.create_stat(ca, previous_list, diff, rt + diff)
+            if ca.list:
+                diff = 1
+                try:
+                    current_list_stat = ListStat.latest_stat_for_list(ca.list)
+                    rt = current_list_stat.running_total
+                except ObjectDoesNotExist:
+                    rt = 0
+                ListStat.create_stat(ca, ca.list, diff, rt + diff)
+
+            # Sprints
+
+
+class Sprint(models.Model):
+    """
+
+    """
+    start_dt = models.DateTimeField(db_index=True)
+    end_dt = models.DateTimeField(db_index=True, blank=True, null=True)
+    board = models.ForeignKey(Board, models.CASCADE, related_name="sprints")
+    completed_list = models.OneToOneField(List, models.CASCADE, related_name="sprint",
+                                          blank=True, null=True)
+
+    @classmethod
+    def refresh(cls, board):
+        """
+        calculate sprints based on latest data
+
+        :return:
+        """
+        last_sprint = None
+        try:
+            last_sprint = cls.objects.filter(board=board).latest("start_dt")
+        except ObjectDoesNotExist:
+            dt = None
+        else:
+            dt = last_sprint.end_dt if last_sprint.end_dt else last_sprint.start_dt
+
+        for list_stat in ListStat.guess_sprint_intervals(board.id, since=dt):
+            sprint = Sprint(
+                start_dt=list_stat.card_action.date,
+                board=board
+            )
+            sprint.save()
+            if last_sprint:
+                last_sprint.end_dt = list_stat.card_action.date
+                last_sprint.save()
+            last_sprint = sprint

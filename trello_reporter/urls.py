@@ -23,6 +23,7 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'^admin/', admin.site.urls),
     url(r'^board/(?P<board_id>[0-9]+)/$', views.board_detail, name='board-detail'),
+    url(r'^board/(?P<board_id>[0-9]+)/refresh/$', views.board_refresh, name='board-refresh'),
 
     url(r'^list/(?P<list_id>[0-9]+)/$',
         views.list_detail, name='list-detail'),

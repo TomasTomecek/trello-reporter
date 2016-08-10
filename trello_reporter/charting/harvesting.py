@@ -1,6 +1,9 @@
+"""
+Module for fetching data from trello
+"""
+
 import logging
 import os
-import json
 import trello
 
 
