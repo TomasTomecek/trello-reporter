@@ -26,7 +26,7 @@ db:
    - POSTGRESQL_DATABASE=trello-reporting
    - POSTGRESQL_USER=user
    - POSTGRESQL_PASSWORD=password
-   - POSTGRESQL_CONTAINER_OPTS="assert_external_data = false ; clear_pgdata_pidfile = true"
+   - POSTGRESQL_CONTAINER_OPTS=assert_external_data = false ; clear_pgdata_pidfile = true
 # worker:
 #   build: .
 #   environment:
