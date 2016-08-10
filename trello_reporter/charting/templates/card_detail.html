@@ -1,9 +1,28 @@
 {% extends "index.html" %}
 {% block body %}
 <h1>Card "{{ card.latest_action.card_name }}"</h1>
-<ul>
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Action</th>
+      <th>What happened</th>
+    </tr>
+  </thead>
+  <tbody>
 {% for ca in actions %}
-  <li>{{ ca.date }} - {{ ca.action_type }} - {{ ca.list.name }}</li>
+  <tr>
+    <td>{{ ca.date }}</td>
+    <td>{{ ca.action_type }}</td>
+    {% if ca.is_archived %}
+    <td>Archived</td>
+    {% elif ca.is_deleted %}
+    <td>Deleted</td>
+    {% else %}
+    <td>{% if ca.previous_action %}{{ ca.previous_action.list.name }} → {% endif %}{{ ca.list.name }}</td>
+    {% endif %}
+  </tr>
 {% endfor %}
-</ul>
+  </tbody>
+</table>
 {% endblock %}
