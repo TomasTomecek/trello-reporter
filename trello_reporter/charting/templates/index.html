@@ -39,6 +39,19 @@
       </div>
     </nav>
     <div class="container-fluid">
+      <ol class="breadcrumb">
+        {% for bc in breadcrumbs %}
+        {% if forloop.last %}
+        <li class="active">
+          {{ bc.text }}
+        </li>
+        {% else %}
+        <li>
+          <a href="{{ bc.url }}">{{ bc.text }}</a>
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ol>
     {% block body %}
       <div class="list-group list-view-pf list-view-pf-view">
       {% for board in boards %}

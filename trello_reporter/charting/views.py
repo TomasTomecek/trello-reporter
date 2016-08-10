@@ -260,6 +260,15 @@ def card_detail(request, card_id):
     context = {
         "card": card,
         "actions": card.actions.order_by("date"),
+        "breadcrumbs": [
+            {
+                "url": reverse("board-detail", args=(card.latest_action.board.id, )),
+                "text": "Board \"%s\"" % card.latest_action.board.name
+            },
+            {
+                "text": "Card \"%s\"" % card.latest_action.card_name
+            },
+        ]
     }
     return render(request, "card_detail.html", context)
 
