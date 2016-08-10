@@ -1,8 +1,13 @@
+"""
+Calculate chart data
+
+TODO:
+
+ * move all queries to models.py
+"""
 from __future__ import unicode_literals, print_function
 
 import logging
-
-from django.core.exceptions import ObjectDoesNotExist
 
 from trello_reporter.charting.models import CardAction
 
@@ -133,22 +138,13 @@ class ChartExporter(object):
         response = []
         for li in lists:
             logger.debug("processing list %s", li)
+            ls = li.latest_stat
             r = {
-                "story_points": 0,
-                "cards_num": 0,
+                "story_points": li.story_points,
+                "cards_num": ls.running_total,
                 "name": li.name,
                 # "commited": 0  TODO
             }
-            for card in li.cards:
-                logger.debug("processing card %s", card)
-                if card.is_archived or card.is_deleted:
-                    continue
-                try:
-                    r["story_points"] += card.story_points
-                except TypeError:
-                    pass  # story points are not set
-                r["cards_num"] += 1
-
             response.append(r)
         return response
 

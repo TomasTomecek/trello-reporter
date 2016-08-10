@@ -149,10 +149,17 @@ class List(models.Model):
 
     @property
     def latest_action(self):
-        try:
-            return self.card_actions.first()
-        except IndexError:
-            return None
+        return self.card_actions.first()
+
+    @property
+    def latest_stat(self):
+        return self.stats.latest("card_action__date")
+
+    @property
+    def story_points(self):
+        return CardAction.objects \
+            .filter(id__in=[x.id for x in self.latest_card_actions_per_card]) \
+            .aggregate(models.Sum("story_points"))["story_points__sum"]
 
     @classmethod
     def get_or_create_list(cls, trello_list_id, list_name):
@@ -194,7 +201,7 @@ class List(models.Model):
         return lists
 
     @property
-    def cards(self):
+    def latest_card_actions_per_card(self):
         now = datetime.datetime.now(tz=tzutc())
         return self.card_actions.get_cards_on_list(self.id, now)
 
