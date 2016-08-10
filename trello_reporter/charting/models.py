@@ -147,6 +147,13 @@ class List(models.Model):
     def __str__(self):
         return "List(trello_id=%s, name=\"%s\")" % (self.trello_id, self.name)
 
+    @property
+    def latest_action(self):
+        try:
+            return self.card_actions.first()
+        except IndexError:
+            return None
+
     @classmethod
     def get_or_create_list(cls, trello_list_id, list_name):
         trello_list, _ = List.objects.get_or_create(trello_id=trello_list_id)
@@ -190,6 +197,53 @@ class List(models.Model):
     def cards(self):
         now = datetime.datetime.now(tz=tzutc())
         return self.card_actions.get_cards_on_list(self.id, now)
+
+
+class ListStat(models.Model):
+    """
+    statistics of lists: # number of cards present in a given time
+    """
+    # list which is affected by this ca: it's possible to list != card_action.list
+    list = models.ForeignKey(List, models.CASCADE, related_name="stats")
+    # there can be 2 stats for every action: -1 for previous list, +1 for next
+    card_action = models.ForeignKey("CardAction", models.CASCADE, related_name="stats")
+    diff = models.SmallIntegerField()
+    running_total = models.IntegerField(blank=True, null=True)
+
+    def __unicode__(self):
+        return "[%s] %s (%s)" % (self.running_total, self.diff, self.card_action)
+
+    @classmethod
+    def latest_stat_for_list(cls, li):
+        return cls.objects.filter(list=li).latest("card_action__date")
+
+    @classmethod
+    def create_stat(cls, ca, list, diff, running_total):
+        o, created = cls.objects.get_or_create(
+            card_action=ca,
+            diff=diff,
+            list=list,
+        )
+        if created:
+            # FIXME: this is race-y
+            o.running_total = running_total
+            o.save()
+        else:
+            logger.error("there is already stat for action %s", ca)
+        return o
+
+    @classmethod
+    def guess_sprint_intervals(cls, board_id, since=None):
+        regex = r"^completed?$"
+        query = cls.objects.filter(
+            running_total=0,
+            card_action__board__id=board_id,
+            list__name__iregex=regex
+        )
+        if since:
+            query.filter(card_action__date__gt=since)
+        query.order_by("card_action__date").select_related("card_action")
+        return query
 
 
 class CardActionQuerySet(models.QuerySet):
@@ -248,53 +302,6 @@ class CardActionManager(models.Manager):
             .ordered_desc() \
             .select_related("list", "board", "card") \
             .prefetch_related(models.Prefetch("card__actions"))
-
-
-class ListStat(models.Model):
-    """
-    statistics of lists: # number of cards present in a given time
-    """
-    # list which is affected by this ca: it's possible to list != card_action.list
-    list = models.ForeignKey(List, models.CASCADE, related_name="stats")
-    # there can be 2 stats for every action: -1 for previous list, +1 for next
-    card_action = models.ForeignKey("CardAction", models.CASCADE, related_name="stats")
-    diff = models.SmallIntegerField()
-    running_total = models.IntegerField(blank=True, null=True)
-
-    def __unicode__(self):
-        return "[%s] %s (%s)" % (self.running_total, self.diff, self.card_action)
-
-    @classmethod
-    def latest_stat_for_list(cls, li):
-        return cls.objects.filter(list=li).latest("card_action__date")
-
-    @classmethod
-    def create_stat(cls, ca, list, diff, running_total):
-        o, created = cls.objects.get_or_create(
-            card_action=ca,
-            diff=diff,
-            list=list,
-        )
-        if created:
-            # FIXME: this is race-y
-            o.running_total = running_total
-            o.save()
-        else:
-            logger.error("there is already stat for action %s", ca)
-        return o
-
-    @classmethod
-    def guess_sprint_intervals(cls, board_id, since=None):
-        regex = r"^completed?$"
-        query = cls.objects.filter(
-            running_total=0,
-            card_action__board__id=board_id,
-            list__name__iregex=regex
-        )
-        if since:
-            query.filter(card_action__date__gt=since)
-        query.order_by("card_action__date").select_related("card_action")
-        return query
 
 
 class CardAction(models.Model):

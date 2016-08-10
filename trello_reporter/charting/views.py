@@ -250,7 +250,16 @@ def list_detail(request, list_id):
     li = List.objects.get(id=list_id)
     context = {
         "list": li,
-        "chart_url": "list-history-chart-data"
+        "chart_url": "list-history-chart-data",
+        "breadcrumbs": [
+            {
+                "url": reverse("board-detail", args=(li.latest_action.board.id, )),
+                "text": "Board \"%s\"" % li.latest_action.board.name
+            },
+            {
+                "text": "List \"%s\"" % li.name
+            },
+        ]
     }
     return render(request, "list_detail.html", context)
 
