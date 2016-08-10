@@ -80,47 +80,6 @@ class Board(models.Model):
         self.ensure_actions()
         return self.card_actions.filter(date__range=(beginning, end)).order_by("date")
 
-    def group_card_movements(self, beginning=None, end=None, time_span=None):
-        """
-        load all card actions during the interval and transform it into specific format
-
-        :return: dict, list; list of list names in the interval
-        {
-          day: {
-            list_name: #number_of_movements
-            listname2: ...
-          }
-        }
-        """
-        # TODO: add option to show/hide card archivals
-        now = datetime.datetime.now(tz=tzutc())
-        if beginning is None:
-            beginning = now - datetime.timedelta(days=30)
-        if time_span is None:
-            time_span = datetime.timedelta(days=1)
-        if end is None:
-            end = now
-
-        response = collections.OrderedDict()
-
-        # TODO: do this async
-        self.ensure_actions()
-
-        lists = set()
-
-        n = beginning
-        while True:
-            n2 = n + time_span
-
-            list_stats = CardAction.objects.get_cards_per_list(self.id, n)
-            lists.update(list_stats.keys())
-            response[n.date()] = list_stats
-
-            n = n2
-            if n > end:
-                break
-        return response, list(lists)  # this is converted to list b/c set can't be json-serialized
-
 
 class Card(models.Model):
     """
@@ -171,13 +130,18 @@ class List(models.Model):
         return trello_list
 
     @classmethod
-    def get_lists(cls, board_id):
-        lists = cls.objects \
-            .filter(card_actions__board__id=board_id) \
-            .order_by('card_actions__list__name', '-card_actions__date') \
-            .distinct("card_actions__list__name") \
-            .prefetch_related("card_actions")
-        return lists
+    def get_lists(cls, board_id, f=None):
+        query = cls.objects.filter(card_actions__board__id=board_id).distinct("name")
+
+        if f:
+            logger.debug("limiting lists to %s", f)
+            query = query.filter(name__in=f)
+        query = query.prefetch_related("card_actions")
+        return query
+
+    @classmethod
+    def get_all_listnames_for_board(cls, board_id):
+        return list(cls.get_lists(board_id).values_list("name", flat=True))
 
     @classmethod
     def sprint_lists_for_board(cls, board_id):
@@ -223,6 +187,22 @@ class ListStat(models.Model):
     @classmethod
     def latest_stat_for_list(cls, li):
         return cls.objects.filter(list=li).latest("card_action__date")
+
+    @classmethod
+    def stats_for_lists_in(cls, list_ids, beginning, end):
+        return cls.objects \
+            .filter(list__id__in=list_ids) \
+            .filter(card_action__date__gt=beginning, card_action__date__lt=end) \
+            .select_related("list", "card_action")
+
+    @classmethod
+    def stats_for_lists_before(cls, list_ids, before):
+        return cls.objects \
+            .filter(list__id__in=list_ids) \
+            .filter(card_action__date__lt=before) \
+            .order_by('list', '-card_action__date') \
+            .distinct('list') \
+            .select_related("list", "card_action")
 
     @classmethod
     def create_stat(cls, ca, list, diff, running_total):
@@ -288,21 +268,6 @@ class CardActionManager(models.Manager):
             .order_by('card', '-date') \
             .distinct('card') \
             .select_related("list", "card", "board")
-
-    def get_cards_per_list(self, board_id, date):
-        # list_name -> # of cards
-        response = {}
-        # FIXME how to do this with SQL?
-        #   NotImplementedError: annotate() + distinct(fields) is not implemented.
-        #  on the other hand this could work:
-        #   .annotate(max_date=Max('student__score__date')).filter(date=F('max_date'))
-        #  but we would have to query cards, not CAs
-        for ca in self.get_cards_at(board_id, date):
-            if ca.is_deleted or ca.is_archived:
-                continue
-            response.setdefault(ca.list.name, 0)
-            response[ca.list.name] += 1
-        return response
 
     def actions_for_board(self, board_id):
         return self.for_board(board_id) \

@@ -5,6 +5,7 @@ import logging
 import datetime
 import re
 
+from dateutil.tz import tzutc
 from django.core.urlresolvers import reverse
 from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
@@ -136,13 +137,19 @@ def control_chart(request, board_id):
 
 
 def cumulative_chart(request, board_id):
-    board = Board.objects.get(id=board_id)
-    workflow = None
+    now = datetime.datetime.now(tz=tzutc())
+    beginning = now - datetime.timedelta(days=30)
+    delta = datetime.timedelta(days=1)
+    end = now
+
+    order = []
+    all_lists = List.get_all_listnames_for_board(board_id)
+
     if request.method == "POST":
         form = Workflow(request.POST)
         if form.is_valid():
-            from_dt = form.cleaned_data["from_dt"]
-            to_dt = form.cleaned_data["to_dt"]
+            beginning = form.cleaned_data["from_dt"]
+            end = form.cleaned_data["to_dt"]
             count = form.cleaned_data["count"]
             time_type = form.cleaned_data["time_type"]
 
@@ -155,37 +162,35 @@ def cumulative_chart(request, board_id):
             else:
                 raise Exception("Invalid time measure.")
 
-            # idx -> { idx -> list-name }
-            workflow = {}
-            regex = re.compile(r"^workflow-(\d+)-(\d+)$")
-            for key, value in request.POST.items():
-                # it's easy to send empty input
-                value = value.strip()
-                if value and key.startswith("workflow"):
-                    try:
-                        checkpoint, idx = regex.findall(key)[0]
-                    except IndexError:
-                        logger.warning("starts with workflow, but doesn't match regex: %s", key)
-                        continue
-                    checkpoint_int = int(checkpoint)
-                    workflow.setdefault(checkpoint_int, {})
-                    workflow[checkpoint_int][int(idx)] = value
+            idx = 1
+            while True:
+                wf_key = "workflow-%d" % idx
+                try:
+                    value = request.POST[wf_key].strip()
+                except KeyError:
+                    logger.info("workflow key %s not found", wf_key)
+                    break
+                if value not in all_lists:
+                    raise Exception("List %s is not in board" % value)
+                order.append(value)
+                idx += 1
 
-            interval, lists = board.group_card_movements(
-                beginning=from_dt,
-                end=to_dt,
-                time_span=delta,
-            )
+            lists = List.get_lists(board_id, f=order)
         else:
             logger.warning("form is not valid")
             raise Exception("Invalid form.")
     else:
-        interval, lists = board.group_card_movements()
-    data, order = ChartExporter.cumulative_chart_c3(interval, lists, workflow=workflow)
+        lists = List.get_lists(board_id)
+        order = all_lists
+
+    logger.debug("lists = %s", lists)
+    list_ids = [l.id for l in lists]
+    data = ChartExporter.cumulative_chart_c3(list_ids, beginning, end, delta)
+
     response = {
         "data": data,
         "order": order,
-        "all_lists": lists
+        "all_lists": all_lists
     }
     return JsonResponse(response)
 

@@ -1,6 +1,7 @@
 // global variables, hold current state
-var chart_data_url = null
+var chart_data_url = null;
 var chart = null;
+var previous_values = null;
 var chart_data = null;
 var cache = {
   cards: {},  // card_id -> response from api
@@ -35,7 +36,7 @@ $(function() {
       render_list_history_chart(data);
     }
     $.each(data["all_lists"], function(idx, value) {
-      $('#workflow-1-1')
+      $('#workflow-1')
           .append($("<option></option>")
           .attr("value", value)
           .text(value)
@@ -52,10 +53,7 @@ $(function() {
         if (chart_data_url.indexOf("control") > -1) {
           alert("not implemented yet");
         } else if (chart_data_url.indexOf("cumulative") > -1) {
-          chart_data["columns"] = data["data"];
-          chart_data["unload"] = chart.columns;
-          chart_data["groups"] = data["order"];
-          chart.load(chart_data);
+          reload_cumulative_chart(data);
         } else if (chart_data_url.indexOf("burndown") > -1) {
           reload_burndown_chart(data);
         }
@@ -93,13 +91,13 @@ function on_focus_states(data) {
   // should we add another checkpoint?
   if ($("#chart-workflow div").last().children("select").find(":selected").length > 0) {
     var root_div = parent_div.parent("div#chart-workflow");
-    root_div.append("<div class=\"chart-settings-state-column\"></div>");
-    var new_div = root_div.children("div").last();
-    var new_select = parent_div
-        .children("select")
-        .first()
+    var new_div = root_div
+        .children("div.chart-settings-state-column")
+        .last()
         .clone()
-        .appendTo(new_div)
+        .appendTo(root_div)
+    var new_select = new_div
+        .children("select")
         .val("")
         .attr("id", function(i, oldVal) {
             return oldVal.replace(/\d+/, function(m) {
@@ -151,9 +149,9 @@ function render_control_chart(data) {
   chart_data = {
     json: data["data"],
     keys: {
-      value: ["date", "hours"]
+      value: ["date", "hours"],
+      x: 'date',
     },
-    x: 'date',
     xFormat: '%Y-%m-%d',
     type: 'scatter',
     onclick: on_point_click,
@@ -191,12 +189,25 @@ function render_control_chart(data) {
   });
 }
 
+function reload_cumulative_chart(data) {
+  chart_data["json"] = data["data"];
+  chart_data["keys"]["value"] = data["order"];
+  chart_data["groups"] = [data["order"]];
+  chart_data["unload"] = previous_values;
+  chart.load(chart_data);
+  previous_values = data["order"];
+}
+
 function render_cumulative_chart(data) {
+  previous_values = data["order"];
   chart_data = {
-    columns: data["data"],
-    x: 'x',
-    xFormat: '%Y-%m-%d',
-    type: 'area-spline',
+    json: data["data"],
+    keys: {
+      value: data["order"],
+      x: 'date',
+    },
+    xFormat: '%Y-%m-%d %H:%M:%S',
+    type: 'area-step',
     groups: [data["order"]],
     order: null
   };
@@ -209,12 +220,15 @@ function render_cumulative_chart(data) {
       x: {
         type: 'timeseries',
         tick: {
-          format: '%Y-%m-%d'
+          fit: true
         }
       }
     },
     legend: {
       show: true
+    },
+    line: {
+      connectNull: true
     }
   });
 }

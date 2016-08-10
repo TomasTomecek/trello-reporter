@@ -9,7 +9,7 @@ from __future__ import unicode_literals, print_function
 
 import logging
 
-from trello_reporter.charting.models import CardAction
+from trello_reporter.charting.models import CardAction, ListStat
 
 logger = logging.getLogger(__name__)
 
@@ -20,77 +20,41 @@ class ChartExporter(object):
     """
 
     @classmethod
-    def cumulative_chart_c3(cls, data, lists, workflow=None):
+    def cumulative_chart_c3(cls, list_ids, beginning, end, delta):
         """
         area diagram which shows number of cards in a given list per day
 
-        :param data: dict: {day -> {list -> count}}
         :param lists: list of str, name of lists in specific interval
-        :param workflow: dict, mapping between checkpoints and a set of states which belongs to
-                         this checkpoint
-                         idx -> { idx -> list-name }
-
-        :return:
-        c3 requires output like this:
-
-        [["x", "2016-01-01", ...],
-        ["New", 4, 5, 6, ...],
-        ["In Progress", 3, 6, 0, ...],
         """
-        if workflow:
-            logger.debug("workflow = %s", workflow)
-            order = []
-            idx = 1
-            while True:
-                try:
-                    val = workflow[idx]
-                except KeyError:
-                    break
-                else:
-                    idx_in = 1
-                    while True:
-                        try:
-                            val_in = val[idx_in]
-                        except KeyError:
-                            break
-                        else:
-                            order.append(val_in)
-                            idx_in += 1
-                    idx += 1
-            order.reverse()
 
-            logger.info(order)
-            lists_filter = set(order)
-            lists_set = set(lists)
-            stats = {x: [] for x in lists_set.intersection(lists_filter)}
-            diff = lists_filter.difference(lists_set)
-            if diff:
-                raise Exception("filter contains unknown lists: %s" % diff)
-        else:
-            # list_name -> [val, val, val]
-            stats = {x: [] for x in lists}
-            lists_filter = []
-            order = lists
+        response = []
 
-        for day, v in data.items():
-            # TODO: don't display consecutive zeros
-            for state in stats.keys():
-                if workflow:
-                    if state not in lists_filter:
-                        continue
-                try:
-                    stats[state].append(v[state])
-                except KeyError:
-                    stats[state].append(0)
+        # initial data, left-most
+        stats = ListStat.stats_for_lists_before(list_ids, beginning)
+        for s in stats:
+            tick = {
+                "date": beginning.strftime("%Y-%m-%d %H:%M:%S"),
+                s.list.name: s.running_total
+            }
+            response.append(tick)
+        # whole interval
+        stats = ListStat.stats_for_lists_in(list_ids, beginning, end)
+        for s in stats:
+            tick = {
+                "date": s.card_action.date.strftime("%Y-%m-%d %H:%M:%S"),
+                s.list.name: s.running_total
+            }
+            response.append(tick)
+        # right-most
+        stats = ListStat.stats_for_lists_before(list_ids, end)
+        for s in stats:
+            tick = {
+                "date": end.strftime("%Y-%m-%d %H:%M:%S"),
+                s.list.name: s.running_total
+            }
+            response.append(tick)
 
-        response = [["x"] + [day.strftime("%Y-%m-%d") for day in data.keys()]]
-        if workflow:
-            for state in order:
-                response.append([state] + stats[state])
-        else:
-            for state, counts in stats.items():
-                response.append([state] + counts)
-        return response, order
+        return response
 
     @classmethod
     def control_flow_c3(cls, board):
