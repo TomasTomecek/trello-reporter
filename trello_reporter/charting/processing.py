@@ -20,40 +20,51 @@ class ChartExporter(object):
     """
 
     @classmethod
-    def cumulative_chart_c3(cls, list_ids, beginning, end, delta):
+    def cumulative_chart_c3(cls, lists_filter, beginning, end, delta):
         """
         area diagram which shows number of cards in a given list per day
-
-        :param lists: list of str, name of lists in specific interval
         """
 
         response = []
 
-        # initial data, left-most
-        stats = ListStat.stats_for_lists_before(list_ids, beginning)
-        for s in stats:
-            tick = {
-                "date": beginning.strftime("%Y-%m-%d %H:%M:%S"),
-                s.list.name: s.running_total
-            }
-            response.append(tick)
-        # whole interval
-        stats = ListStat.stats_for_lists_in(list_ids, beginning, end)
-        for s in stats:
-            tick = {
-                "date": s.card_action.date.strftime("%Y-%m-%d %H:%M:%S"),
-                s.list.name: s.running_total
-            }
-            response.append(tick)
-        # right-most
-        stats = ListStat.stats_for_lists_before(list_ids, end)
-        for s in stats:
-            tick = {
-                "date": end.strftime("%Y-%m-%d %H:%M:%S"),
-                s.list.name: s.running_total
-            }
-            response.append(tick)
+        # # c3 doesn't handle this implementation: it can't stack disconnected area segments
+        # # initial data, left-most
+        # stats = ListStat.stats_for_lists_before(list_ids, beginning)
+        # for s in stats:
+        #     tick = {
+        #         "date": beginning.strftime("%Y-%m-%d %H:%M:%S"),
+        #         s.list.name: s.running_total
+        #     }
+        #     response.append(tick)
+        # # whole interval
+        # stats = ListStat.stats_for_lists_in(list_ids, beginning, end)
+        # for s in stats:
+        #     tick = {
+        #         "date": s.card_action.date.strftime("%Y-%m-%d %H:%M:%S"),
+        #         s.list.name: s.running_total
+        #     }
+        #     response.append(tick)
+        # # right-most
+        # stats = ListStat.stats_for_lists_before(list_ids, end)
+        # for s in stats:
+        #     tick = {
+        #         "date": end.strftime("%Y-%m-%d %H:%M:%S"),
+        #         s.list.name: s.running_total
+        #     }
+        #     response.append(tick)
 
+        d = beginning
+        while True:
+            if d > end:
+                break
+            stats = ListStat.stats_for_lists_before(lists_filter, d)
+            tick = {
+                "date": d.strftime("%Y-%m-%d %H:%M"),
+            }
+            for s in stats:
+                tick[s.list.name] = s.running_total
+            response.append(tick)
+            d += delta
         return response
 
     @classmethod

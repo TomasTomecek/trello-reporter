@@ -190,28 +190,27 @@ function render_control_chart(data) {
 }
 
 function reload_cumulative_chart(data) {
-  chart_data["json"] = data["data"];
-  chart_data["keys"]["value"] = data["order"];
-  chart_data["groups"] = [data["order"]];
-  chart_data["unload"] = previous_values;
+  chart_data.json = data.data;
+  chart_data.keys.value = data.order;
+  chart_data.groups = data.order
+  chart_data.unload = previous_values;
   chart.load(chart_data);
-  previous_values = data["order"];
+  previous_values = data.order;
 }
 
 function render_cumulative_chart(data) {
-  previous_values = data["order"];
+  previous_values = data.order;
   chart_data = {
     json: data["data"],
     keys: {
       value: data["order"],
       x: 'date',
     },
-    xFormat: '%Y-%m-%d %H:%M:%S',
-    type: 'area-step',
-    groups: [data["order"]],
+    xFormat: '%Y-%m-%d %H:%M',
+    type: 'area',  // area, area-spline, area-step
+    groups: [data.order],
     order: null
   };
-  console.log(chart_data)
 
   chart = c3.generate({
     bindto: '#chart',
@@ -219,9 +218,6 @@ function render_cumulative_chart(data) {
     axis: {
       x: {
         type: 'timeseries',
-        tick: {
-          fit: true
-        }
       }
     },
     legend: {

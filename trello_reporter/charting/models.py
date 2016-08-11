@@ -101,7 +101,7 @@ class Card(models.Model):
 
 class List(models.Model):
     trello_id = models.CharField(max_length=32, unique=True, db_index=True)
-    name = models.CharField(max_length=255, blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
 
     def __str__(self):
         return "List(trello_id=%s, name=\"%s\")" % (self.trello_id, self.name)
@@ -196,9 +196,9 @@ class ListStat(models.Model):
             .select_related("list", "card_action")
 
     @classmethod
-    def stats_for_lists_before(cls, list_ids, before):
+    def stats_for_lists_before(cls, list_names, before):
         return cls.objects \
-            .filter(list__id__in=list_ids) \
+            .filter(list__name__in=list_names) \
             .filter(card_action__date__lt=before) \
             .order_by('list', '-card_action__date') \
             .distinct('list') \
@@ -503,6 +503,7 @@ class Sprint(models.Model):
     start_dt = models.DateTimeField(db_index=True)
     end_dt = models.DateTimeField(db_index=True, blank=True, null=True)
     board = models.ForeignKey(Board, models.CASCADE, related_name="sprints")
+    # list with completed cards for the sprint
     completed_list = models.OneToOneField(List, models.CASCADE, related_name="sprint",
                                           blank=True, null=True)
 

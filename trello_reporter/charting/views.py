@@ -184,9 +184,9 @@ def cumulative_chart(request, board_id):
         order = all_lists
 
     logger.debug("lists = %s", lists)
-    list_ids = [l.id for l in lists]
-    data = ChartExporter.cumulative_chart_c3(list_ids, beginning, end, delta)
-
+    # we can't filter by list IDs because there may be multiple lists with the same name
+    data = ChartExporter.cumulative_chart_c3(order, beginning, end, delta)
+    order.sort(reverse=True)  # c3 wants it the other way around: first one is the bottom one
     response = {
         "data": data,
         "order": order,
