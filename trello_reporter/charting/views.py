@@ -189,7 +189,7 @@ def cumulative_chart(request, board_id):
 
     # c3 wants it the other way around: first one is the bottom one
     order = list(reversed(order))  # order may not be list, force it to be one
-    
+
     response = {
         "data": data,
         "order": order,
