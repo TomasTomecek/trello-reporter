@@ -242,7 +242,7 @@ function render_burndown_chart(data) {
       value: ["done", "not_done", "date"]
     },
     x: 'date',
-    xFormat: '%Y-%m-%d',
+    xFormat: '%Y-%m-%d %H:%M',
     types: {
       "done": "line",
       "not_done": "line",

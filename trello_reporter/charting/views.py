@@ -196,19 +196,18 @@ def cumulative_chart(request, board_id):
 
 
 def burndown_chart_data(request, board_id):
-    board = Board.objects.get(id=board_id)
+    now = datetime.datetime.now(tz=tzutc())
+    beginning = now - datetime.timedelta(days=30)
+    end = now
     if request.method == "POST":
         form = BurndownForm(request.POST)
         if form.is_valid():
-            from_dt = form.cleaned_data["from_dt"]
-            to_dt = form.cleaned_data["to_dt"]
-            interval, _ = board.group_card_movements(beginning=from_dt, end=to_dt)
+            beginning = form.cleaned_data["from_dt"]
+            end = form.cleaned_data["to_dt"]
         else:
             logger.warning("form is not valid")
             raise Exception("Invalid form.")
-    else:
-        interval, _ = board.group_card_movements()
-    data = ChartExporter.burndown_chart_c3(interval)
+    data = ChartExporter.burndown_chart_c3(beginning, end)
     response = {
         "data": data,
     }

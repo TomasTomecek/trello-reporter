@@ -9,6 +9,8 @@ from __future__ import unicode_literals, print_function
 
 import logging
 
+import datetime
+
 from trello_reporter.charting.models import CardAction, ListStat
 
 logger = logging.getLogger(__name__)
@@ -89,24 +91,27 @@ class ChartExporter(object):
         return cards
 
     @classmethod
-    def burndown_chart_c3(cls, data):
+    def burndown_chart_c3(cls, beginning, end):
         in_progress_lists = ["Next", "In Progress"]
         completed_list = "Complete"
 
-        # {"day": day, "done": int, "not_done": int}
-        stats = []
-        for day, v in data.items():
-            next_count = v.get(in_progress_lists[0], 0)
-            in_progress_count = v.get(in_progress_lists[1], 0)
-            not_done = next_count + in_progress_count
-            done = v.get(completed_list, 0)
-            stats.append({
-                "done": done,
-                "not_done": not_done,
-                "date": day.strftime("%Y-%m-%d")
-            })
-
-        return stats
+        response = []
+        delta = datetime.timedelta(days=1)
+        d = beginning
+        while True:
+            if d > end:
+                break
+            compl_s = ListStat.stats_for_lists_before([completed_list], d).latest("card_action__date")
+            logger.debug(compl_s)
+            in_progress_s = ListStat.stats_for_lists_before(in_progress_lists, d)
+            tick = {
+                "date": d.strftime("%Y-%m-%d %H:%M"),
+                "done": compl_s.running_total,
+                "not_done": in_progress_s[0].running_total + in_progress_s[1].running_total,
+            }
+            response.append(tick)
+            d += delta
+        return response
 
     @classmethod
     def velocity_chart_c3(cls, lists):
