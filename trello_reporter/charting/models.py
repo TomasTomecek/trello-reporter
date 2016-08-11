@@ -522,6 +522,7 @@ class Sprint(models.Model):
             dt = last_sprint.end_dt if last_sprint.end_dt else last_sprint.start_dt
 
         for list_stat in ListStat.guess_sprint_intervals(board.id, since=dt):
+            # FIXME: is there already such sprint?
             sprint = Sprint(
                 start_dt=list_stat.card_action.date,
                 board=board
