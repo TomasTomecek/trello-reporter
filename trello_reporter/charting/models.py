@@ -136,6 +136,8 @@ class List(models.Model):
         if f:
             logger.debug("limiting lists to %s", f)
             query = query.filter(name__in=f)
+        else:
+            query = query.filter(name__isnull=False)
         query = query.prefetch_related("card_actions")
         return query
 
