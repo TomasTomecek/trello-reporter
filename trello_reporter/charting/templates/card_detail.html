@@ -6,6 +6,7 @@
       <th>Date</th>
       <th>Action</th>
       <th>What happened</th>
+      <th>Story Points</th>
     </tr>
   </thead>
   <tbody>
@@ -20,6 +21,7 @@
     {% else %}
     <td>{% if ca.previous_action %}{{ ca.previous_action.list.name }} → {% endif %}{{ ca.list.name }}</td>
     {% endif %}
+    <td>{{ ca.story_points }}</td>
   </tr>
 {% endfor %}
   </tbody>
