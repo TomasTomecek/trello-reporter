@@ -87,9 +87,11 @@ class Card(models.Model):
     we have actions for
     """
     trello_id = models.CharField(max_length=32)
+    name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    # due_dt = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return str(self.trello_id)
+        return "%s: %s" % (self.trello_id, self.name)
 
     @property
     def latest_action(self):
@@ -294,7 +296,7 @@ class CardAction(models.Model):
     list = models.ForeignKey(List, models.CASCADE, default=None, null=True, blank=True,
                              related_name="card_actions")
     board = models.ForeignKey(Board, models.CASCADE, related_name="card_actions")
-    
+
     is_archived = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 
@@ -328,7 +330,7 @@ class CardAction(models.Model):
 
     class Meta:
         get_latest_by = "date"
-        ordering = ["-date", ]
+        ordering = ["-date", ]  # FIXME (optimisation): remove this
 
     def __unicode__(self):
         return "[%s] %s (%s) %s" % (self.action_type, self.card, self.card_name, self.date)
@@ -397,7 +399,10 @@ class CardAction(models.Model):
 
     @property
     def card_name(self):
-        return self.data["data"]["card"]["name"]
+        try:
+            return self.data["data"]["card"]["name"]
+        except KeyError:
+            return None
 
     @classmethod
     def get_story_points(cls, card_name):
@@ -429,6 +434,10 @@ class CardAction(models.Model):
                 board=board
             )
 
+            if ca.card_name and card.name != ca.card_name:
+                card.name = ca.card_name[:255]  # some users are just fun
+                card.save()
+
             previous_action = card.latest_action
 
             # figure out list_name, archivals, removals and unicorns
@@ -448,8 +457,8 @@ class CardAction(models.Model):
                     # this should not happen, it means that trello returned something
                     # we didn't expect: let's start card history here; likely it got on the board
                     # from other board or is now on different board
-                    logger.info("update card %s: previous state is unknown",
-                                ca.trello_card_id)
+                    logger.info("update card %s (%s): previous state is unknown",
+                                ca.trello_card_id, ca.card_name)
 
                 if ca.archiving:
                     ca.list = None
@@ -467,8 +476,8 @@ class CardAction(models.Model):
                     ca.list = None
                     ca.is_deleted = True
                 else:
-                    logger.info("card %s has unknown previous state",
-                                ca.trello_card_id)
+                    logger.info("card %s (%s) has unknown previous state",
+                                ca.trello_card_id, ca.card_name)
                     # default card?
                     continue
 
@@ -502,17 +511,62 @@ class Sprint(models.Model):
     """
 
     """
-    start_dt = models.DateTimeField(db_index=True)
+    start_dt = models.DateTimeField(db_index=True, blank=True, null=True)
     end_dt = models.DateTimeField(db_index=True, blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
+    sprint_number = models.IntegerField(db_index=True, blank=True, null=True)
     board = models.ForeignKey(Board, models.CASCADE, related_name="sprints")
     # list with completed cards for the sprint
     completed_list = models.OneToOneField(List, models.CASCADE, related_name="sprint",
                                           blank=True, null=True)
+    due_card = models.OneToOneField(Card, models.CASCADE, related_name="sprint",
+                                    blank=True, null=True)
 
     @classmethod
     def refresh(cls, board):
         """
-        calculate sprints based on latest data
+        calculate sprints based on "Sprint \d+" card
+        :param board:
+        :return:
+        """
+        # TODO (optimisation)
+        # TODO incremental search
+        regex = r"^\s*sprint \d+$"
+        cards = CardAction.objects \
+            .filter(board=board) \
+            .filter(card__name__iregex=regex) \
+            .order_by("card", "-date") \
+            .distinct("card") \
+            .values_list("card__trello_id", flat=True)
+
+        due_dict = Harvestor.get_due_of_cards(cards)
+
+        sprint_number_re = re.compile(r"(\d+)")
+
+        for card_id, due in due_dict.items():
+            sprint, created = cls.objects.get_or_create(board=board, end_dt=due)
+            if created:
+                first = CardAction.objects.filter(card__trello_id=card_id).earliest()
+                last = CardAction.objects.filter(card__trello_id=card_id).latest()
+                sprint.start_dt = first.date
+                sprint.name = last.card_name
+                sprint.due_card = last.card
+                sprint.sprint_number = sprint_number_re.findall(last.card_name)[0]
+                sprint.save()
+
+    @classmethod
+    def set_completed_list(cls):
+        """
+        find completed list and assign it to correct sprint
+        """
+        # TODO
+
+    @classmethod
+    def _old_refresh(cls, board):
+        """
+        DEPRECATED
+
+        calculate sprints based on completed list, whenever it has 0 cards
 
         :return:
         """

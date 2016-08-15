@@ -66,6 +66,19 @@ class Harvestor:
         boards = client.list_boards()
         return boards
 
+    @classmethod
+    def get_due_of_cards(cls, trello_card_ids):
+        """
+
+        :param trello_card_ids: list of str
+        :return:
+        """
+        response = {}
+        for card_id in trello_card_ids:
+            response[card_id] = client.fetch_json('/cards/' + card_id,
+                                                  query_params={"fields": "due"})["due"]
+        return response
+
 # list_names = {
 #     li["id"]: li["name"]
 #     for li in client.fetch_json(
