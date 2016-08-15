@@ -1,0 +1,31 @@
+{% extends "index.html" %}
+{% block body %}
+<h2>Info</h2>
+<ul>
+  <li>Start: {{ sprint.start_dt }}</li>
+  <li>End: {{ sprint.end_dt }}</li>
+  <li>Sprint number: {{ sprint.sprint_number }}</li>
+  <li>Completed list: {{ sprint.completed_list.name }}</li>
+</ul>
+<h2>Cards</h2>
+<table class="table table-striped table-bordered">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Story points</th>
+      <th>Column</th>
+      <th>Date</th>
+    </tr>
+  </thead>
+  <tbody>
+{% for ca in card_actions %}
+  <tr>
+    <td><a href="{% url 'card-detail' ca.card.id %}">{{ ca.card_name }}</a></td>
+    <td>{{ ca.story_points }}</td>
+    <td>{{ ca.list.name }}</td>
+    <td>{{ ca.date }}</td>
+  </tr>
+{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

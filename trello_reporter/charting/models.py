@@ -280,19 +280,26 @@ class CardActionQuerySet(models.QuerySet):
 
 
 class CardActionManager(models.Manager):
-    def get_card_actions_on_board_in(self, board, date):
+    def get_card_actions_on_board_in(self, board, date=None):
         """ this is a time machine: shows board state in a given time """
-        return self \
+        query = self \
             .for_board(board) \
-            .before(date) \
             .order_by('card', '-date') \
-            .distinct('card') \
-            .select_related("list", "card", "board")
+            .distinct('card')
+        if date:
+            query = query.before(date)
+        return query.select_related("list", "card", "board")
 
-    def safe_card_actions_on_list_in(self, board, li, date):
-        """ aggregate + distinct is not implemented """
+    def card_actions_on_list_names_in(self, board, list_names, date):
         cas = self.get_card_actions_on_board_in(board, date)
-        return self.filter(list=li, id__in=[x.id for x in cas])
+        return self.filter(id__in=[x.id for x in cas], list__name__in=list_names).select_related(
+            "list", "card", "board"
+        )
+
+    def safe_card_actions_on_list_in(self, board, li, date=None):
+        """ aggregate + distinct is not implemented """
+        cas = self.get_card_actions_on_board_in(board, date=date)
+        return self.filter(id__in=[x.id for x in cas], list=li)
 
     def story_points_on_list_in(self, board, li, date):
         return self.safe_card_actions_on_list_in(board, li, date) \

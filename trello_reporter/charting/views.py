@@ -255,6 +255,36 @@ def board_refresh(request, board_id):
     return redirect('board-detail', board_id=board_id)
 
 
+def sprint_detail(request, sprint_id):
+    sprint = Sprint.objects.get(id=sprint_id)
+    if sprint.completed_list is not None:
+        # don't supply date, we want latest stuff
+        card_actions = CardAction.objects.safe_card_actions_on_list_in(
+            sprint.board,
+            sprint.completed_list,
+        )
+    else:
+        card_actions = CardAction.objects.card_actions_on_list_names_in(
+            sprint.board,
+            ["Next", "In progress", "Complete"],
+            sprint.end_dt
+        )
+    context = {
+        "sprint": sprint,
+        "card_actions": card_actions,
+        "breadcrumbs": [
+            {
+                "url": reverse("board-detail", args=(sprint.board.id, )),
+                "text": "Board \"%s\"" % sprint.board.name
+            },
+            {
+                "text": "Sprint \"%s\"" % sprint.name
+            },
+        ]
+    }
+    return render(request, "sprint_detail.html", context)
+
+
 def list_detail(request, list_id):
     li = List.objects.get(id=list_id)
     context = {

@@ -21,7 +21,7 @@
 <h2>Sprints</h2>
 <ul>
     {% for sprint in sprints %}
-    <li>{{ sprint.start_dt }} - {{ sprint.end_dt }}</li>
+    <li><a href="{% url 'sprint-detail' sprint.id %}">{{ sprint }}</a></li>
     {% endfor %}
 </ul>
 {% endblock %}
