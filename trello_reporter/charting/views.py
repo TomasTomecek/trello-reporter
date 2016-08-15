@@ -137,6 +137,7 @@ def control_chart(request, board_id):
 
 
 def cumulative_chart(request, board_id):
+    board = Board.objects.get(id=board_id)
     now = datetime.datetime.now(tz=tzutc())
     beginning = now - datetime.timedelta(days=30)
     delta = datetime.timedelta(days=1)
@@ -185,7 +186,7 @@ def cumulative_chart(request, board_id):
 
     logger.debug("lists = %s", lists)
     # we can't filter by list IDs because there may be multiple lists with the same name
-    data = ChartExporter.cumulative_chart_c3(order, beginning, end, delta)
+    data = ChartExporter.cumulative_chart_c3(board, order, beginning, end, delta)
 
     # c3 wants it the other way around: first one is the bottom one
     order = list(reversed(order))  # order may not be list, force it to be one
@@ -199,6 +200,7 @@ def cumulative_chart(request, board_id):
 
 
 def burndown_chart_data(request, board_id):
+    board = Board.objects.get(id=board_id)
     now = datetime.datetime.now(tz=tzutc())
     beginning = now - datetime.timedelta(days=30)
     end = now
@@ -210,7 +212,7 @@ def burndown_chart_data(request, board_id):
         else:
             logger.warning("form is not valid")
             raise Exception("Invalid form.")
-    data = ChartExporter.burndown_chart_c3(beginning, end)
+    data = ChartExporter.burndown_chart_c3(board, beginning, end)
     response = {
         "data": data,
     }

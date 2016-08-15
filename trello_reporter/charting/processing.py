@@ -22,7 +22,7 @@ class ChartExporter(object):
     """
 
     @classmethod
-    def cumulative_chart_c3(cls, lists_filter, beginning, end, delta):
+    def cumulative_chart_c3(cls, board, lists_filter, beginning, end, delta):
         """
         area diagram which shows number of cards in a given list per day
         """
@@ -59,7 +59,7 @@ class ChartExporter(object):
         while True:
             if d > end:
                 break
-            stats = ListStat.stats_for_lists_before(lists_filter, d)
+            stats = ListStat.objects.stats_for_lists_before(board, lists_filter, d)
             tick = {
                 "date": d.strftime("%Y-%m-%d %H:%M"),
             }
@@ -91,9 +91,9 @@ class ChartExporter(object):
         return cards
 
     @classmethod
-    def burndown_chart_c3(cls, beginning, end):
+    def burndown_chart_c3(cls, board, beginning, end):
         in_progress_lists = ["Next", "In Progress"]
-        completed_list = "Complete"
+        completed_lists = ["Complete", "Completed"]
 
         response = []
         delta = datetime.timedelta(days=1)
@@ -101,13 +101,12 @@ class ChartExporter(object):
         while True:
             if d > end:
                 break
-            compl_s = ListStat.stats_for_lists_before([completed_list], d).latest("card_action__date")
-            logger.debug(compl_s)
-            in_progress_s = ListStat.stats_for_lists_before(in_progress_lists, d)
+            compl = ListStat.objects.sum_stats_for_lists_before(board, completed_lists, d)
+            in_progress = ListStat.objects.sum_stats_for_lists_before(board, in_progress_lists, d)
             tick = {
                 "date": d.strftime("%Y-%m-%d %H:%M"),
-                "done": compl_s.running_total,
-                "not_done": in_progress_s[0].running_total + in_progress_s[1].running_total,
+                "done": compl,
+                "not_done": in_progress,
             }
             response.append(tick)
             d += delta

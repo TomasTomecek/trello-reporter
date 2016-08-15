@@ -9,7 +9,6 @@ from __future__ import unicode_literals
 
 import logging
 import datetime
-import collections
 import re
 
 from dateutil import parser as dateparser
@@ -47,7 +46,7 @@ class Board(models.Model):
 
         :return: boards query
         """
-        boards = Harvestor.list_boards()
+        boards = Harvestor.list_boards()  # FIXME: decouple
         for board in boards:
             b, c = Board.objects.get_or_create(trello_id=board.id)
             b.name = board.name
@@ -175,6 +174,53 @@ class List(models.Model):
         return self.card_actions.get_cards_on_list(self.id, now)
 
 
+class ListStatQuerySet(models.QuerySet):
+    def for_board(self, board):
+        return self.filter(card_action__board=board)
+
+    def for_list(self, li):
+        return self.filter(list=li)
+
+    def for_lists(self, list_ids):
+        return self.filter(list__id__in=list_ids)
+
+    def for_list_names(self, list_names):
+        return self.filter(list__name__in=list_names)
+
+    def in_range(self, beginning, end):
+        return self.filter(card_action__range=(beginning, end))
+
+    def before(self, date):
+        return self.filter(card_action__date__lt=date)
+
+    def unique_list(self):
+        """ don't duplicate lists """
+        return self.order_by('list', '-card_action__date').distinct('list')
+
+
+class ListStatManager(models.Manager):
+    def latest_stat_for_list(self, li):
+        return self.for_list(li).latest("card_action__date")
+
+    def stats_for_lists_in_range(self, list_ids, beginning, end):
+        return self \
+            .for_lists(list_ids) \
+            .in_range(beginning, end) \
+            .select_related("list", "card_action")
+
+    def stats_for_lists_before(self, board, list_names, before):
+        return self \
+           .for_board(board) \
+           .for_list_names(list_names) \
+           .before(before) \
+           .unique_list()
+
+    def sum_stats_for_lists_before(self, board, list_names, before):
+        # NotImplementedError: aggregate() + distinct(fields) not implemented.
+        return sum([x.running_total for x in self.stats_for_lists_before(
+            board, list_names, before)])
+
+
 class ListStat(models.Model):
     """
     statistics of lists: # number of cards present in a given time
@@ -186,56 +232,25 @@ class ListStat(models.Model):
     diff = models.SmallIntegerField()
     running_total = models.IntegerField(blank=True, null=True)
 
+    objects = ListStatManager.from_queryset(ListStatQuerySet)()
+
     def __unicode__(self):
         return "[%s] %s (%s)" % (self.running_total, self.diff, self.card_action)
 
     @classmethod
-    def latest_stat_for_list(cls, li):
-        return cls.objects.filter(list=li).latest("card_action__date")
-
-    @classmethod
-    def stats_for_lists_in(cls, list_ids, beginning, end):
-        return cls.objects \
-            .filter(list__id__in=list_ids) \
-            .filter(card_action__date__gt=beginning, card_action__date__lt=end) \
-            .select_related("list", "card_action")
-
-    @classmethod
-    def stats_for_lists_before(cls, list_names, before):
-        return cls.objects \
-            .filter(list__name__in=list_names) \
-            .filter(card_action__date__lt=before) \
-            .order_by('list', '-card_action__date') \
-            .distinct('list') \
-            .select_related("list", "card_action")
-
-    @classmethod
     def create_stat(cls, ca, list, diff, running_total):
+        # TODO atomic
         o, created = cls.objects.get_or_create(
             card_action=ca,
             diff=diff,
             list=list,
         )
         if created:
-            # FIXME: this is race-y
             o.running_total = running_total
             o.save()
         else:
             logger.error("there is already stat for action %s", ca)
         return o
-
-    @classmethod
-    def guess_sprint_intervals(cls, board_id, since=None):
-        regex = r"^completed?$"
-        query = cls.objects.filter(
-            running_total=0,
-            card_action__board__id=board_id,
-            list__name__iregex=regex
-        )
-        if since:
-            query.filter(card_action__date__gt=since)
-        query.order_by("card_action__date").select_related("card_action")
-        return query
 
 
 class CardActionQuerySet(models.QuerySet):
@@ -564,32 +579,3 @@ class Sprint(models.Model):
         find completed list and assign it to correct sprint
         """
         # TODO
-
-    @classmethod
-    def _old_refresh(cls, board):
-        """
-        DEPRECATED
-
-        calculate sprints based on completed list, whenever it has 0 cards
-
-        :return:
-        """
-        last_sprint = None
-        try:
-            last_sprint = cls.objects.filter(board=board).latest("start_dt")
-        except ObjectDoesNotExist:
-            dt = None
-        else:
-            dt = last_sprint.end_dt if last_sprint.end_dt else last_sprint.start_dt
-
-        for list_stat in ListStat.guess_sprint_intervals(board.id, since=dt):
-            # FIXME: is there already such sprint?
-            sprint = Sprint(
-                start_dt=list_stat.card_action.date,
-                board=board
-            )
-            sprint.save()
-            if last_sprint:
-                last_sprint.end_dt = list_stat.card_action.date
-                last_sprint.save()
-            last_sprint = sprint
