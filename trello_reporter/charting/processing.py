@@ -59,7 +59,7 @@ class ChartExporter(object):
         while True:
             if d > end:
                 break
-            stats = ListStat.objects.stats_for_lists_before(board, lists_filter, d)
+            stats = ListStat.objects.sum_sp_for_lists_before(board, lists_filter, d)
             tick = {
                 "date": d.strftime("%Y-%m-%d %H:%M"),
             }
@@ -101,8 +101,8 @@ class ChartExporter(object):
         while True:
             if d > end:
                 break
-            compl = ListStat.objects.sum_stats_for_lists_before(board, completed_lists, d)
-            in_progress = ListStat.objects.sum_stats_for_lists_before(board, in_progress_lists, d)
+            compl = ListStat.objects.sum_sp_for_lists_before(board, completed_lists, d)
+            in_progress = ListStat.objects.sum_sp_for_lists_before(board, in_progress_lists, d)
             tick = {
                 "date": d.strftime("%Y-%m-%d %H:%M"),
                 "done": compl,
@@ -119,8 +119,8 @@ class ChartExporter(object):
             logger.debug("processing list %s", li)
             ls = li.latest_stat
             r = {
-                "story_points": li.story_points,
-                "cards_num": ls.running_total,
+                "story_points": ls.story_points_rt,
+                "cards_num": ls.cards_rt,
                 "name": li.name,
                 # "commited": 0  TODO
             }
@@ -132,7 +132,8 @@ class ChartExporter(object):
         response = []
         for ls in li.stats.select_related("card_action").order_by("card_action__date"):
             r = {
-                "count": ls.running_total,
+                "cards": ls.cards_rt,
+                "story_points": ls.story_points_rt,
                 "date": ls.card_action.date.strftime("%Y-%m-%d %H:%M")
             }
             response.append(r)

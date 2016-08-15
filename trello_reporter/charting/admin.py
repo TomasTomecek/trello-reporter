@@ -5,12 +5,12 @@ from trello_reporter.charting.models import Board, CardAction, Card, List, Sprin
 
 @admin.register(Board)
 class BoardAdmin(admin.ModelAdmin):
-    pass
+    list_display = ["trello_id", "name"]
 
 
 @admin.register(Card)
 class CardAdmin(admin.ModelAdmin):
-    pass
+    list_display = ["trello_id", "name"]
 
 
 @admin.register(List)
@@ -30,4 +30,4 @@ class SprintAdmin(admin.ModelAdmin):
 
 @admin.register(ListStat)
 class ListStatAdmin(admin.ModelAdmin):
-    list_display = ["id", "card_action", "diff", "running_total"]
+    list_display = ["id", "card_action", "diff", "cards_rt", "story_points_rt"]

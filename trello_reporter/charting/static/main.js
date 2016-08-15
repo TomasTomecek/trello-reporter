@@ -303,7 +303,7 @@ function render_list_history_chart(data) {
   chart_data = {
     json: data["data"],
     keys: {
-      value: ["count", "date"],
+      value: ["cards", "story_points", "date"],
       x: 'date',
     },
     xFormat: '%Y-%m-%d %H:%M',

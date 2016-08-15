@@ -91,7 +91,7 @@ class Card(models.Model):
     # due_dt = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
-        return "%s: %s" % (self.trello_id, self.name)
+        return "%s (%s)" % (self.trello_id, self.name)
 
     @property
     def latest_action(self):
@@ -118,9 +118,7 @@ class List(models.Model):
 
     @property
     def story_points(self):
-        return CardAction.objects \
-            .filter(id__in=[x.id for x in self.latest_card_actions_per_card]) \
-            .aggregate(models.Sum("story_points"))["story_points__sum"]
+        return ListStat.objects.latest_stat_for_list(self).story_points_rt
 
     @classmethod
     def get_or_create_list(cls, trello_list_id, list_name):
@@ -215,10 +213,15 @@ class ListStatManager(models.Manager):
            .before(before) \
            .unique_list()
 
-    def sum_stats_for_lists_before(self, board, list_names, before):
+    def sum_cards_for_lists_before(self, board, list_names, before):
         # NotImplementedError: aggregate() + distinct(fields) not implemented.
-        return sum([x.running_total for x in self.stats_for_lists_before(
+        return sum([x.cards_rt for x in self.stats_for_lists_before(
             board, list_names, before)])
+
+    def sum_sp_for_lists_before(self, board, list_names, before):
+        # NotImplementedError: aggregate() + distinct(fields) not implemented.
+        return sum(filter(None, [x.story_points_rt for x in self.stats_for_lists_before(
+            board, list_names, before)]))
 
 
 class ListStat(models.Model):
@@ -230,15 +233,24 @@ class ListStat(models.Model):
     # there can be 2 stats for every action: -1 for previous list, +1 for next
     card_action = models.ForeignKey("CardAction", models.CASCADE, related_name="stats")
     diff = models.SmallIntegerField()
-    running_total = models.IntegerField(blank=True, null=True)
+    # running total of cards count
+    cards_rt = models.IntegerField(blank=True, null=True)
+    # we can't store story points in database atm, b/c we are not watching events for changing card
+    # name
 
     objects = ListStatManager.from_queryset(ListStatQuerySet)()
 
     def __unicode__(self):
-        return "[%s] %s (%s)" % (self.running_total, self.diff, self.card_action)
+        return "[c=%s sp=%s] %s (%s)" % (self.cards_rt, self.story_points_rt,
+                                         self.diff, self.card_action)
+
+    @property
+    def story_points_rt(self):  # ideally store this in database
+        return CardAction.objects.story_points_on_list_in(self.card_action.board,
+                                                          self.list, self.card_action.date)
 
     @classmethod
-    def create_stat(cls, ca, list, diff, running_total):
+    def create_stat(cls, ca, list, diff, cards_rt, sp_rt):
         # TODO atomic
         o, created = cls.objects.get_or_create(
             card_action=ca,
@@ -246,7 +258,8 @@ class ListStat(models.Model):
             list=list,
         )
         if created:
-            o.running_total = running_total
+            o.cards_rt = cards_rt
+            o.story_points_rt = sp_rt
             o.save()
         else:
             logger.error("there is already stat for action %s", ca)
@@ -254,11 +267,11 @@ class ListStat(models.Model):
 
 
 class CardActionQuerySet(models.QuerySet):
-    def for_board(self, board_id):
-        return self.filter(board__id=board_id)
+    def for_board(self, board):
+        return self.filter(board=board)
 
-    def for_list(self, list_id):
-        return self.filter(list__id=list_id)
+    def for_list(self, li):
+        return self.filter(list=li)
 
     def since(self, date):
         return self.filter(date__gte=date)
@@ -271,23 +284,23 @@ class CardActionQuerySet(models.QuerySet):
 
 
 class CardActionManager(models.Manager):
-    def get_cards_at(self, board_id, date):
+    def get_card_actions_on_board_in(self, board, date):
         """ this is a time machine: shows board state in a given time """
         return self \
-            .for_board(board_id) \
+            .for_board(board) \
             .before(date) \
             .order_by('card', '-date') \
             .distinct('card') \
             .select_related("list", "card", "board")
 
-    def get_cards_on_list(self, list_id, date):
-        """ this is a time machine: shows cards on a list in a given time """
-        return self \
-            .for_list(list_id) \
-            .before(date) \
-            .order_by('card', '-date') \
-            .distinct('card') \
-            .select_related("list", "card", "board")
+    def safe_card_actions_on_list_in(self, board, li, date):
+        """ aggregate + distinct is not implemented """
+        cas = self.get_card_actions_on_board_in(board, date)
+        return self.filter(list=li, id__in=[x.id for x in cas])
+
+    def story_points_on_list_in(self, board, li, date):
+        return self.safe_card_actions_on_list_in(board, li, date) \
+            .aggregate(models.Sum("story_points"))["story_points__sum"]
 
     def actions_for_board(self, board_id):
         return self.for_board(board_id) \
@@ -302,7 +315,7 @@ class CardAction(models.Model):
     date = models.DateTimeField(db_index=True)
     # type of actions displayed as string
     action_type = models.CharField(max_length=32)
-    story_points = models.IntegerField(null=True, blank=True)
+    story_points = models.IntegerField(null=True, default=0)
 
     previous_action = models.OneToOneField("self", related_name="next_action", null=True,
                                            blank=True)
@@ -349,7 +362,7 @@ class CardAction(models.Model):
         ordering = ["-date", ]  # FIXME (optimisation): remove this
 
     def __unicode__(self):
-        return "[%s] %s (%s) %s" % (self.action_type, self.card, self.card_name, self.date)
+        return "[%s] %s %s" % (self.action_type, self.card, self.date)
 
     @property
     def trello_card_id(self):
@@ -508,17 +521,22 @@ class CardAction(models.Model):
                 diff = -1
                 previous_list = previous_action.list
                 if previous_list:
-                    previous_list_stat = ListStat.latest_stat_for_list(previous_list)
-                    rt = previous_list_stat.running_total
-                    ListStat.create_stat(ca, previous_list, diff, rt + diff)
+                    previous_list_stat = ListStat.objects.latest_stat_for_list(previous_list)
+                    cards_rt = previous_list_stat.cards_rt
+                    sp_rt = previous_list_stat.story_points_rt
+                    ListStat.create_stat(ca, previous_list, diff, cards_rt + diff,
+                                         sp_rt + (diff * ca.story_points))
             if ca.list:
                 diff = 1
                 try:
-                    current_list_stat = ListStat.latest_stat_for_list(ca.list)
-                    rt = current_list_stat.running_total
+                    current_list_stat = ListStat.objects.latest_stat_for_list(ca.list)
+                    cards_rt = current_list_stat.cards_rt
+                    sp_rt = current_list_stat.story_points_rt
                 except ObjectDoesNotExist:
-                    rt = 0
-                ListStat.create_stat(ca, ca.list, diff, rt + diff)
+                    cards_rt = 0
+                    sp_rt = 0
+                ListStat.create_stat(ca, ca.list, diff, cards_rt + diff,
+                                     sp_rt + (diff * ca.story_points))
 
             # Sprints
 
