@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 notes:
 
@@ -521,6 +522,9 @@ class Sprint(models.Model):
                                           blank=True, null=True)
     due_card = models.OneToOneField(Card, models.CASCADE, related_name="sprint",
                                     blank=True, null=True)
+
+    def __unicode__(self):
+        return "[%s] %s → %s" % (self.sprint_number, self.start_dt, self.end_dt)
 
     @classmethod
     def refresh(cls, board):

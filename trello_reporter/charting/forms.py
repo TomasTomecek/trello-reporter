@@ -4,6 +4,8 @@ import logging
 
 from django import forms
 
+from trello_reporter.charting.models import Sprint
+
 
 logger = logging.getLogger(__name__)
 
@@ -32,5 +34,19 @@ class DateForm(forms.Form):
 
 
 class BurndownForm(forms.Form):
-    from_dt = forms.DateTimeField()
-    to_dt = forms.DateTimeField()
+    from_dt = forms.DateTimeField(required=False)
+    to_dt = forms.DateTimeField(required=False)
+    sprint = forms.ModelChoiceField(queryset=Sprint.objects.none(), required=False)
+
+    def clean(self):
+        cleaned_data = super(BurndownForm, self).clean()
+
+        f = cleaned_data.get("from_dt")
+        t = cleaned_data.get("to_dt")
+        s = cleaned_data.get("sprint")
+
+        if f and t and s:
+            raise forms.ValidationError('Either pick sprint, or specify interval, not both')
+
+        if not s and not (f and t):
+            raise forms.ValidationError('Both "from" and "to" has to be filled.')
