@@ -233,21 +233,16 @@ class ListStat(models.Model):
     # there can be 2 stats for every action: -1 for previous list, +1 for next
     card_action = models.ForeignKey("CardAction", models.CASCADE, related_name="stats")
     diff = models.SmallIntegerField()
-    # running total of cards count
+    # running total of cards count on a list
     cards_rt = models.IntegerField(blank=True, null=True)
-    # we can't store story points in database atm, b/c we are not watching events for changing card
-    # name
+    # running total of story points on a list
+    story_points_rt = models.IntegerField(blank=True, null=True)
 
     objects = ListStatManager.from_queryset(ListStatQuerySet)()
 
     def __unicode__(self):
         return "[c=%s sp=%s] %s (%s)" % (self.cards_rt, self.story_points_rt,
                                          self.diff, self.card_action)
-
-    @property
-    def story_points_rt(self):  # ideally store this in database
-        return CardAction.objects.story_points_on_list_in(self.card_action.board,
-                                                          self.list, self.card_action.date)
 
     @classmethod
     def create_stat(cls, ca, list, diff, cards_rt, sp_rt):
@@ -406,6 +401,15 @@ class CardAction(models.Model):
         return self.data["data"]["listAfter"]["name"]
 
     @property
+    def rename(self):
+        try:
+            self.data["data"]["old"]["name"]
+        except KeyError:
+            return False
+        else:
+            return True
+
+    @property
     def opening(self):
         """ does this action opens (sends to board) the card? """
         try:
@@ -492,7 +496,7 @@ class CardAction(models.Model):
                 if ca.archiving:
                     ca.list = None
                     ca.is_archived = True
-                elif ca.opening:
+                elif ca.opening or ca.rename:
                     # card is opened again
                     trello_list_id, list_name = ca.list_id_and_name
                     ca.list = List.get_or_create_list(trello_list_id, list_name)

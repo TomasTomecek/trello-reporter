@@ -36,6 +36,7 @@ class Harvestor:
             "createCard",
             "updateCard:idList",
             "updateCard:closed",
+            "updateCard:name",             # change story points, possibly
             "moveCardToBoard",
             "moveCardFromBoard",           # = delete card (?)
             "deleteCard",
