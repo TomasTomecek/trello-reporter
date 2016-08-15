@@ -13,6 +13,7 @@ import re
 
 from dateutil import parser as dateparser
 from dateutil.tz import tzutc
+from twisted.persisted.aot import _classOfMethod
 
 from trello_reporter.charting.harvesting import Harvestor
 
@@ -87,9 +88,10 @@ class Card(models.Model):
     we have actions for
     """
     trello_id = models.CharField(max_length=32)
+    name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
 
     def __str__(self):
-        return str(self.trello_id)
+        return "%s: %s" % (self.trello_id, self.name)
 
     @property
     def latest_action(self):
@@ -294,7 +296,7 @@ class CardAction(models.Model):
     list = models.ForeignKey(List, models.CASCADE, default=None, null=True, blank=True,
                              related_name="card_actions")
     board = models.ForeignKey(Board, models.CASCADE, related_name="card_actions")
-    
+
     is_archived = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 
@@ -502,8 +504,10 @@ class Sprint(models.Model):
     """
 
     """
-    start_dt = models.DateTimeField(db_index=True)
+    start_dt = models.DateTimeField(db_index=True, blank=True, null=True)
     end_dt = models.DateTimeField(db_index=True, blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
+    sprint_number = models.IntegerField(db_index=True)
     board = models.ForeignKey(Board, models.CASCADE, related_name="sprints")
     # list with completed cards for the sprint
     completed_list = models.OneToOneField(List, models.CASCADE, related_name="sprint",
@@ -512,6 +516,20 @@ class Sprint(models.Model):
     @classmethod
     def refresh(cls, board):
         """
+        calculate sprints based on "Sprint \d+" card
+        :param board:
+        :return:
+        """
+        regex = r"^\s*sprint \d+$"
+        lists = cls.objects \
+            .filter(card_actions__board__id=board_id) \
+            .filter(name__iregex=regex)
+
+    @classmethod
+    def _old_refresh(cls, board):
+        """
+        DEPRECATED
+
         calculate sprints based on latest data
 
         :return:
