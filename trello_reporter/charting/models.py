@@ -68,6 +68,7 @@ class Board(models.Model):
 
         CardAction.from_trello_response_list(self, actions)
         Sprint.refresh(self)
+        Sprint.set_completed_list(self)
 
     def actions_for_interval(self, beginning, end):
         """
@@ -596,8 +597,17 @@ class Sprint(models.Model):
                 sprint.save()
 
     @classmethod
-    def set_completed_list(cls):
+    def set_completed_list(cls, board):
         """
         find completed list and assign it to correct sprint
         """
-        # TODO
+        for sprint in Sprint.objects.filter(board=board, completed_list__isnull=True):
+            regex = r"^\s*sprint %d" % sprint.sprint_number
+            try:
+                li = List.objects.filter(card_actions__board=board, name__iregex=regex).latest("card_actions__date")
+            except ObjectDoesNotExist:
+                logger.debug("it seems that sprint %s has not finished yet", sprint)
+                continue
+            sprint.completed_list = li
+            logger.info("sprint %s cards are in list %s", sprint, li)
+            sprint.save()
