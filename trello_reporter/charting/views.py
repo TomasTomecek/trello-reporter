@@ -12,7 +12,7 @@ from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
 
 from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm
-from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint
+from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 
 logger = logging.getLogger(__name__)
@@ -302,6 +302,7 @@ def list_detail(request, list_id):
     context = {
         "list": li,
         "chart_url": "list-history-chart-data",
+        "list_stats": ListStat.objects.for_list_order_by_date(li),
         "breadcrumbs": [
             {
                 "url": reverse("board-detail", args=(li.latest_action.board.id, )),

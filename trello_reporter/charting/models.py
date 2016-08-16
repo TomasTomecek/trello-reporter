@@ -209,6 +209,9 @@ class ListStatManager(models.Manager):
     def latest_stat_for_list(self, li):
         return self.for_list(li).latest()
 
+    def for_list_order_by_date(self, li):
+        return self.for_list(li).order_by("-card_action__date").select_related("card_action", "card_action__card")
+
     def stats_for_lists_in_range(self, list_ids, beginning, end):
         return self \
             .for_lists(list_ids) \

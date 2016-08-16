@@ -6,4 +6,28 @@
 <form id="chart-settings" action="{% url chart_url list.id %}" method="post">
 </form>
 <div id="chart" class="line-chart-pf"></div>
+<table>
+  <thead>
+    <tr>
+      <td>Card</td>
+      <td>Last action</td>
+      <td>Date</td>
+      <td>Diff</td>
+      <td># cards</td>
+      <td># story points</td>
+    </tr>
+  </thead>
+  <tbody>
+  {% for ls in list_stats %}
+    <tr>
+      <td><a href="{% url 'card-detail' ls.card_action.card.id %}">{{ ls.card_action.card_name }}</a></td>
+      <td>{{ ls.card_action.action_type }}</td>
+      <td>{{ ls.card_action.date }}</td>
+      <td>{{ ls.diff }}</td>
+      <td>{{ ls.cards_rt }}</td>
+      <td>{{ ls.story_points_rt }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
