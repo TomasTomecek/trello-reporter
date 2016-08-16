@@ -472,6 +472,7 @@ class CardAction(models.Model):
             return None
 
     # FIXME: this needs to be atomic
+    # TODO: this takes minutes!!! move it to a different module and do only a single query
     @classmethod
     def from_trello_response_list(cls, board, actions):
         logger.debug("processing %d actions", len(actions))
@@ -493,6 +494,11 @@ class CardAction(models.Model):
                 card.save()
 
             previous_action = card.latest_action
+            story_points_str = CardAction.get_story_points(ca.card_name)
+            story_points_int = 0
+            if story_points_str is not None:
+                story_points_int = int(story_points_str)
+                ca.story_points = story_points_int
 
             # figure out list_name, archivals, removals and unicorns
             if ca.action_type in ["createCard", "moveCardToBoard",
@@ -520,7 +526,14 @@ class CardAction(models.Model):
                 elif ca.opening or ca.rename:
                     # card is opened again
                     trello_list_id, list_name = ca.list_id_and_name
+                    if not trello_list_id:
+                        # cards without lists are useless to us; srsly trello?!
+                        continue
                     ca.list = List.get_or_create_list(trello_list_id, list_name)
+                    if ca.rename:
+                        if previous_action and ca.story_points == previous_action.story_points:
+                            # just name update, we don't care about that
+                            continue
                 else:
                     trello_list_id, list_name = ca.target_list_id_and_name
                     ca.list = List.get_or_create_list(trello_list_id, list_name)
@@ -535,24 +548,12 @@ class CardAction(models.Model):
                     # default card?
                     continue
 
-            points_str = CardAction.get_story_points(ca.card_name)
-            if points_str is not None:
-                ca.story_points = int(points_str)
             ca.previous_action = previous_action
             ca.save()
 
             # ListStats
-            if previous_action:
-                diff = -1
-                previous_list = previous_action.list
-                if previous_list:
-                    previous_list_stat = ListStat.objects.latest_stat_for_list(previous_list)
-                    cards_rt = previous_list_stat.cards_rt
-                    sp_rt = previous_list_stat.story_points_rt
-                    ListStat.create_stat(ca, previous_list, diff, cards_rt + diff,
-                                         sp_rt + (diff * ca.story_points))
-            if ca.list:
-                diff = 1
+            if ca.rename:
+                diff = 0
                 try:
                     current_list_stat = ListStat.objects.latest_stat_for_list(ca.list)
                     cards_rt = current_list_stat.cards_rt
@@ -560,10 +561,30 @@ class CardAction(models.Model):
                 except ObjectDoesNotExist:
                     cards_rt = 0
                     sp_rt = 0
-                ListStat.create_stat(ca, ca.list, diff, cards_rt + diff,
-                                     sp_rt + (diff * ca.story_points))
-
-            # Sprints
+                previous_points = getattr(previous_action, "story_points", 0)
+                ListStat.create_stat(ca, ca.list, diff, cards_rt,
+                                     sp_rt - previous_points + story_points_int)
+            else:
+                if previous_action:
+                    diff = -1
+                    previous_list = previous_action.list
+                    if previous_list:
+                        previous_list_stat = ListStat.objects.latest_stat_for_list(previous_list)
+                        cards_rt = previous_list_stat.cards_rt
+                        sp_rt = previous_list_stat.story_points_rt
+                        ListStat.create_stat(ca, previous_list, diff, cards_rt + diff,
+                                             sp_rt - previous_action.story_points)
+                if ca.list:
+                    diff = 1
+                    try:
+                        current_list_stat = ListStat.objects.latest_stat_for_list(ca.list)
+                        cards_rt = current_list_stat.cards_rt
+                        sp_rt = current_list_stat.story_points_rt
+                    except ObjectDoesNotExist:
+                        cards_rt = 0
+                        sp_rt = 0
+                    ListStat.create_stat(ca, ca.list, diff, cards_rt + diff,
+                                         sp_rt + story_points_int)
 
 
 class Sprint(models.Model):
