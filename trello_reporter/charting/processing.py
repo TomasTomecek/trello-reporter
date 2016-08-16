@@ -59,12 +59,12 @@ class ChartExporter(object):
         while True:
             if d > end:
                 break
-            stats = ListStat.objects.sum_sp_for_lists_before(board, lists_filter, d)
+            stats = ListStat.objects.stats_for_lists_before(board, lists_filter, d)
             tick = {
                 "date": d.strftime("%Y-%m-%d %H:%M"),
             }
             for s in stats:
-                tick[s.list.name] = s.running_total
+                tick[s.list.name] = s.story_points_rt
             response.append(tick)
             d += delta
         return response

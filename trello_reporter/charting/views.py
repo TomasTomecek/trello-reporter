@@ -34,13 +34,13 @@ def show_control_chart(request, board_id):
         "time_type": "m"
     }
     form = Workflow(initial=initial)
-    board = Board.objects.get_by_id(board_id)
+    board = Board.objects.by_id(board_id)
     return render(request, "charting.html",
                   {"board": board, "form": form, "chart_url": "control-chart-data"})
 
 
 def show_burndown_chart(request, board_id):
-    board = Board.objects.get_by_id(board_id)
+    board = Board.objects.by_id(board_id)
     n = datetime.datetime.now()
     from_dt = n - datetime.timedelta(days=30)
     initial = {
@@ -57,7 +57,7 @@ def show_burndown_chart(request, board_id):
 
 
 def show_velocity_chart(request, board_id):
-    board = Board.objects.get_by_id(board_id)
+    board = Board.objects.by_id(board_id)
     context = {
         "board": board,
         "chart_url": "velocity-chart-data"
@@ -82,7 +82,7 @@ def show_cumulative_chart(request, board_id):
 
 
 def card_history(request, board_id):
-    board = Board.objects.get_by_id(board_id)
+    board = Board.objects.by_id(board_id)
     card_actions = CardAction.objects.actions_for_board(board_id)
     # card -> [action, action]
     response = {}
@@ -145,7 +145,7 @@ def cumulative_chart(request, board_id):
     end = now
 
     order = []
-    all_lists = List.get_all_listnames_for_board(board_id)
+    all_lists = List.objects.get_all_listnames_for_board(board)
 
     if request.method == "POST":
         form = Workflow(request.POST)
@@ -177,12 +177,12 @@ def cumulative_chart(request, board_id):
                 order.append(value)
                 idx += 1
 
-            lists = List.get_lists(board_id, f=order)
+            lists = List.objects.filter_lists_for_board(board, f=order)
         else:
             logger.warning("form is not valid")
             raise Exception("Invalid form.")
     else:
-        lists = List.get_lists(board_id)
+        lists = List.objects.filter_lists_for_board(board)
         order = all_lists
 
     logger.debug("lists = %s", lists)
@@ -227,7 +227,8 @@ def burndown_chart_data(request, board_id):
 
 
 def velocity_chart_data(request, board_id):
-    lists = List.sprint_lists_for_board(board_id)
+    board = Board.objects.by_id(board_id)
+    lists = List.objects.sprint_archiving_lists_for_board(board)
     data = ChartExporter.velocity_chart_c3(lists)
     response = {
         "data": data
@@ -245,8 +246,9 @@ def list_history_data(request, list_id):
 
 
 def board_detail(request, board_id):
-    board = Board.objects.get(id=board_id)
-    lists = List.get_lists(board_id)
+    board = Board.objects.by_id(board_id)
+    # TODO: order by name, in python
+    lists = List.objects.filter_lists_for_board(board)
     sprints = Sprint.objects.filter(board__id=board_id).order_by("start_dt")
     context = {
         "board": board,
@@ -257,7 +259,7 @@ def board_detail(request, board_id):
 
 
 def board_refresh(request, board_id):
-    board = Board.objects.get(id=board_id)
+    board = Board.objects.by_id(board_id)
     board.ensure_actions()
     return redirect('board-detail', board_id=board_id)
 

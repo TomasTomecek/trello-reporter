@@ -8,13 +8,12 @@ notes:
 from __future__ import unicode_literals
 
 import logging
-import datetime
 import re
+
+from trello_reporter.charting.harvesting import Harvestor
 
 from dateutil import parser as dateparser
 from dateutil.tz import tzutc
-
-from trello_reporter.charting.harvesting import Harvestor
 
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
@@ -24,9 +23,15 @@ from django.contrib.postgres.fields import JSONField
 logger = logging.getLogger(__name__)
 
 
+class BoardQuerySet(models.QuerySet):
+    pass
+
+
 class BoardManager(models.Manager):
-    def get_by_id(self, board_id):
-        # return self.get(id=board_id)
+    def by_id(self, board_id):
+        return self.get(id=board_id)
+
+    def by_id_cached(self, board_id):
         return self.filter(id=board_id).prefetch_related("card_actions")[0]
 
 
@@ -34,10 +39,10 @@ class Board(models.Model):
     trello_id = models.CharField(max_length=32, db_index=True)
     name = models.CharField(max_length=255, null=True)
 
-    objects = BoardManager()
+    objects = BoardManager.from_queryset(BoardQuerySet)()
 
-    def __str__(self):
-        return self.name
+    def __unicode__(self):
+        return "%s (%s)" % (self.trello_id, self.name)
 
     @classmethod
     def list_boards(cls):
@@ -70,17 +75,6 @@ class Board(models.Model):
         Sprint.refresh(self)
         Sprint.set_completed_list(self)
 
-    def actions_for_interval(self, beginning, end):
-        """
-        get list of card actions in specific interval
-
-        :param beginning: datetime
-        :param end: datetime
-        :return: query of card actions
-        """
-        self.ensure_actions()
-        return self.card_actions.filter(date__range=(beginning, end)).order_by("date")
-
 
 class Card(models.Model):
     """
@@ -91,31 +85,87 @@ class Card(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     # due_dt = models.DateTimeField(blank=True, null=True)
 
-    def __str__(self):
+    def __unicode__(self):
         return "%s (%s)" % (self.trello_id, self.name)
 
     @property
     def latest_action(self):
         try:
-            return self.actions.first()
+            return self.actions.latest()
         except IndexError:
             return None
+
+
+class ListQuerySet(models.QuerySet):
+    def for_board(self, board):
+        return self.filter(card_actions__board=board)
+
+    def name_matches_re(self, regex):
+        return self.filter(name__iregex=regex)
+
+    def name_is_in(self, f):
+        return self.filter(name__in=f)
+
+    def distinct_list(self):
+        return self.distinct("card_actions__list")
+
+
+class ListManager(models.Manager):
+    def filter_lists_for_board(self, board, f=None, order_by=None):
+        """
+        filter lists for board
+
+        :param board:
+        :param f: list of str or None
+        :param order_by: tuple of str or None
+        """
+        query = self.for_board(board)
+
+        if f:
+            logger.debug("limiting lists to %s", f)
+            query = query.name_is_in(f)
+        else:
+            query = query.filter(name__isnull=False)
+        if order_by:
+            query = query.order_by(*order_by)
+        query = query.distinct_list().prefetch_related("card_actions")
+        return query
+
+    def get_all_listnames_for_board(self, board):
+        return list(self.filter_lists_for_board(board).values_list("name", flat=True))
+
+    def lists_for_board_match_regex(self, board, regex):
+        # distinct is important; it returns one entry per card action
+        lists = self.for_board(board).name_matches_re(regex).distinct_list()
+        return lists
+
+    def sprint_archiving_lists_for_board(self, board):
+        """ get lists which are used for archiving cards finished during a sprint """
+        regex = r"^\s*sprint \d+( \(completed?\))?$"
+        return self.lists_for_board_match_regex(board, regex)
+
+    def completed_lists(self, board):
+        """ there may be multiple completed lists which are being archived continuously """
+        regex = r"^completed?$"
+        return self.lists_for_board_match_regex(board, regex)
 
 
 class List(models.Model):
     trello_id = models.CharField(max_length=32, unique=True, db_index=True)
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
 
-    def __str__(self):
-        return "List(trello_id=%s, name=\"%s\")" % (self.trello_id, self.name)
+    objects = ListManager.from_queryset(ListQuerySet)()
+
+    def __unicode__(self):
+        return "%s (%s)" % (self.trello_id, self.name)
 
     @property
     def latest_action(self):
-        return self.card_actions.first()
+        return self.card_actions.latest()
 
     @property
     def latest_stat(self):
-        return self.stats.latest("card_action__date")
+        return self.stats.latest()
 
     @property
     def story_points(self):
@@ -129,48 +179,6 @@ class List(models.Model):
             trello_list.name = list_name
         trello_list.save()
         return trello_list
-
-    @classmethod
-    def get_lists(cls, board_id, f=None):
-        query = cls.objects.filter(card_actions__board__id=board_id).distinct("name")
-
-        if f:
-            logger.debug("limiting lists to %s", f)
-            query = query.filter(name__in=f)
-        else:
-            query = query.filter(name__isnull=False)
-        query = query.prefetch_related("card_actions")
-        return query
-
-    @classmethod
-    def get_all_listnames_for_board(cls, board_id):
-        return list(cls.get_lists(board_id).values_list("name", flat=True))
-
-    @classmethod
-    def sprint_lists_for_board(cls, board_id):
-        """ get lists which are used for archiving cards finished during a sprint """
-        regex = r"^\s*sprint \d+( \(complete\))?$"
-        lists = cls.objects \
-            .filter(card_actions__board__id=board_id) \
-            .filter(name__iregex=regex) \
-            .order_by('card_actions__list__name', '-card_actions__date') \
-            .distinct("card_actions__list__name") \
-            .prefetch_related("card_actions")
-        return lists
-
-    @classmethod
-    def get_completed_lists(cls, board_id):
-        """ there may be multiple completed lists which are being archived continuously """
-        regex = r"^completed?$"
-        lists = cls.objects.filter(card_actions__board__id=board_id, name__iregex=regex) \
-            .distinct("card_actions__list").prefetch_related("card_actions")
-        logger.info("found completed lists: %s", lists)
-        return lists
-
-    @property
-    def latest_card_actions_per_card(self):
-        now = datetime.datetime.now(tz=tzutc())
-        return self.card_actions.get_cards_on_list(self.id, now)
 
 
 class ListStatQuerySet(models.QuerySet):
@@ -199,7 +207,7 @@ class ListStatQuerySet(models.QuerySet):
 
 class ListStatManager(models.Manager):
     def latest_stat_for_list(self, li):
-        return self.for_list(li).latest("card_action__date")
+        return self.for_list(li).latest()
 
     def stats_for_lists_in_range(self, list_ids, beginning, end):
         return self \
@@ -240,6 +248,9 @@ class ListStat(models.Model):
     story_points_rt = models.IntegerField(blank=True, null=True)
 
     objects = ListStatManager.from_queryset(ListStatQuerySet)()
+
+    class Meta:
+        get_latest_by = "card_action__date"
 
     def __unicode__(self):
         return "[c=%s sp=%s] %s (%s)" % (self.cards_rt, self.story_points_rt,
@@ -362,7 +373,6 @@ class CardAction(models.Model):
 
     class Meta:
         get_latest_by = "date"
-        ordering = ["-date", ]  # FIXME (optimisation): remove this
 
     def __unicode__(self):
         return "[%s] %s %s" % (self.action_type, self.card, self.date)
