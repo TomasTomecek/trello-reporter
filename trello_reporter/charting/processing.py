@@ -108,8 +108,11 @@ class ChartExporter(object):
                 "done": compl,
                 "not_done": in_progress,
             }
+            if len(response) == 0:
+                tick["ideal"] = ListStat.objects.sum_sp_for_lists_before(board, ["Next"], beginning)
             response.append(tick)
             d += delta
+        response[-1]["ideal"] = 0
         return response
 
     @classmethod

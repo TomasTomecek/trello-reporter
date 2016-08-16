@@ -46,7 +46,8 @@ urlpatterns = [
 
     url(r'^chart/(?P<board_id>[0-9]+)/burndown/$', views.show_burndown_chart,
         name='show-burndown-chart'),
-    url(r'^chart/(?P<board_id>[0-9]+)/burndown-data/$', views.burndown_chart_data,
+    url(r'^chart/(?P<board_id>[0-9]+)/burndown-data/$',
+        views.burndown_chart_data,
         name='burndown-chart-data'),
 
     url(r'^chart/(?P<board_id>[0-9]+)/velocity/$', views.show_velocity_chart,

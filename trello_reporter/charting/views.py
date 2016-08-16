@@ -4,6 +4,7 @@ import logging
 
 import datetime
 import re
+from urllib import urlencode
 
 from dateutil.tz import tzutc
 from django.core.urlresolvers import reverse
@@ -200,10 +201,16 @@ def cumulative_chart(request, board_id):
 
 
 def burndown_chart_data(request, board_id):
-    board = Board.objects.get(id=board_id)
+    sprint_id = request.GET.get("spint_id", None)
     now = datetime.datetime.now(tz=tzutc())
-    beginning = now - datetime.timedelta(days=30)
-    end = now
+    if sprint_id:
+        sprint = Sprint.objects.get(id=sprint_id)
+        beginning = sprint.start_dt
+        end = sprint.end_dt
+    else:
+        beginning = now - datetime.timedelta(days=30)
+        end = now
+    board = Board.objects.get(id=board_id)
     if request.method == "POST":
         form = BurndownForm(request.POST)
         if form.is_valid():
@@ -269,9 +276,12 @@ def sprint_detail(request, sprint_id):
             ["Next", "In progress", "Complete"],
             sprint.end_dt
         )
+    chart_url = reverse("burndown-chart-data", args=(sprint.board.id, ), )
+    chart_url += "?" + urlencode({"sprint_id": sprint.id})
     context = {
         "sprint": sprint,
         "card_actions": card_actions,
+        "chart_url": chart_url,
         "breadcrumbs": [
             {
                 "url": reverse("board-detail", args=(sprint.board.id, )),
@@ -280,7 +290,7 @@ def sprint_detail(request, sprint_id):
             {
                 "text": "Sprint \"%s\"" % sprint.name
             },
-        ]
+        ],
     }
     return render(request, "sprint_detail.html", context)
 

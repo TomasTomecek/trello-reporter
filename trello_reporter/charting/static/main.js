@@ -16,7 +16,11 @@ var cache = {
 // DOM is ready, let's start the show
 $(function() {
   // load URL for getting data for chart
-  chart_data_url = $("#chart-settings").attr('action');
+  var chart_data_url = $("#chart-settings").attr('action');
+  if (chart_data_url === undefined) {
+    // FIXME: hack, let the url be on a single place
+    chart_data_url = $("#chart").attr('data-chart-url');
+  }
 
   // load chart data
   $.ajax({
@@ -239,13 +243,14 @@ function render_burndown_chart(data) {
   chart_data = {
     json: data["data"],
     keys: {
-      value: ["done", "not_done", "date"]
+      value: ["done", "not_done", "date", "ideal"]
     },
     x: 'date',
     xFormat: '%Y-%m-%d %H:%M',
     types: {
       "done": "line",
       "not_done": "line",
+      "ideal": "line",
     }
   };
 
@@ -266,6 +271,9 @@ function render_burndown_chart(data) {
         label: 'hours',
       }
     },
+    line: {
+      connectNull: true
+    }
   });
 }
 
