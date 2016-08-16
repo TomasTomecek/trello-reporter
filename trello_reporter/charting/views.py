@@ -113,7 +113,7 @@ def cards_on_board_at(request, board_id):
         form = DateForm(initial={"date": date})
 
     board = Board.objects.get(id=board_id)
-    card_actions = CardAction.objects.get_cards_at(board_id, date)
+    card_actions = CardAction.objects.get_card_actions_on_board_in(board, date)
     # it's already ordered in sql, we can't order again
     card_actions = sorted(card_actions, key=lambda x: x.date, reverse=True)
 

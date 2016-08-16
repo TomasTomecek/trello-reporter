@@ -92,7 +92,7 @@ class Card(models.Model):
     def latest_action(self):
         try:
             return self.actions.latest()
-        except IndexError:
+        except ObjectDoesNotExist:
             return None
 
 
@@ -461,10 +461,13 @@ class CardAction(models.Model):
     @classmethod
     def get_story_points(cls, card_name):
         """
+        find number of story points in a card name; the name usually starts with it: "(7)..."
 
-        :param card_name:
-        :return:
+        :param card_name: str
+        :return: str
         """
+        if not card_name:
+            return
         regex = r"^\s*\((\d+)\)"
         try:
             return re.findall(regex, card_name)[0]
