@@ -11,6 +11,8 @@ import logging
 
 import datetime
 
+from dateutil.tz import tzutc
+
 from trello_reporter.charting.models import CardAction, ListStat
 
 logger = logging.getLogger(__name__)
@@ -59,7 +61,7 @@ class ChartExporter(object):
         while True:
             if d > end:
                 break
-            stats = ListStat.objects.stats_for_lists_before(board, lists_filter, d)
+            stats = ListStat.objects.stats_for_list_names_before(board, lists_filter, d)
             tick = {
                 "date": d.strftime("%Y-%m-%d %H:%M"),
             }
@@ -94,6 +96,7 @@ class ChartExporter(object):
     def burndown_chart_c3(cls, board, beginning, end):
         in_progress_lists = ["Next", "In Progress"]
         completed_lists = ["Complete", "Completed"]
+        now = datetime.datetime.now(tz=tzutc())
 
         response = []
         delta = datetime.timedelta(days=1)
@@ -101,15 +104,23 @@ class ChartExporter(object):
         while True:
             if d > end:
                 break
-            compl = ListStat.objects.sum_sp_for_lists_before(board, completed_lists, d)
-            in_progress = ListStat.objects.sum_sp_for_lists_before(board, in_progress_lists, d)
+            if d > now:
+                response.append({"date": end.strftime("%Y-%m-%d %H:%M"), "ideal": 0})
+                break
+            prev = d - delta
+            compl = ListStat.objects.sum_sp_for_list_names_in_interval(
+                board, completed_lists, prev, d)
+            logger.debug("%s - %s: %d", prev, d, compl)
+            in_progress = ListStat.objects.sum_sp_for_list_names_before(
+                board, in_progress_lists, d)
             tick = {
                 "date": d.strftime("%Y-%m-%d %H:%M"),
                 "done": compl,
                 "not_done": in_progress,
             }
             if len(response) == 0:
-                tick["ideal"] = ListStat.objects.sum_sp_for_lists_before(board, ["Next"], beginning)
+                tick["ideal"] = ListStat.objects.sum_sp_for_list_names_before(
+                    board, in_progress_lists, beginning)
             response.append(tick)
             d += delta
         response[-1]["ideal"] = 0

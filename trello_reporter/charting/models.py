@@ -195,7 +195,7 @@ class ListStatQuerySet(models.QuerySet):
         return self.filter(list__name__in=list_names)
 
     def in_range(self, beginning, end):
-        return self.filter(card_action__range=(beginning, end))
+        return self.filter(card_action__date__range=(beginning, end))
 
     def before(self, date):
         return self.filter(card_action__date__lt=date)
@@ -210,7 +210,8 @@ class ListStatManager(models.Manager):
         return self.for_list(li).latest()
 
     def for_list_order_by_date(self, li):
-        return self.for_list(li).order_by("-card_action__date").select_related("card_action", "card_action__card")
+        return self.for_list(li).order_by("-card_action__date").select_related(
+            "card_action", "card_action__card")
 
     def stats_for_lists_in_range(self, list_ids, beginning, end):
         return self \
@@ -218,22 +219,46 @@ class ListStatManager(models.Manager):
             .in_range(beginning, end) \
             .select_related("list", "card_action")
 
-    def stats_for_lists_before(self, board, list_names, before):
+    def stats_for_list_names_in_range(self, board, list_names, beginning, end):
+        q = self \
+            .for_board(board) \
+            .for_list_names(list_names) \
+            .in_range(beginning, end) \
+            .select_related("list", "card_action")
+        logger.debug(q)
+        return q
+
+    def stats_for_list_names_before(self, board, list_names, before):
         return self \
            .for_board(board) \
            .for_list_names(list_names) \
            .before(before) \
            .unique_list()
 
-    def sum_cards_for_lists_before(self, board, list_names, before):
+    def sum_cards_for_list_names_before(self, board, list_names, before):
         # NotImplementedError: aggregate() + distinct(fields) not implemented.
-        return sum([x.cards_rt for x in self.stats_for_lists_before(
+        return sum([x.cards_rt for x in self.stats_for_list_names_before(
             board, list_names, before)])
 
-    def sum_sp_for_lists_before(self, board, list_names, before):
+    def sum_sp_for_list_names_before(self, board, list_names, before):
+        """ if you want to aggregate from multiple lists, e.g. in progress + next """
         # NotImplementedError: aggregate() + distinct(fields) not implemented.
-        return sum(filter(None, [x.story_points_rt for x in self.stats_for_lists_before(
+        return sum(filter(None, [x.story_points_rt for x in self.stats_for_list_names_before(
             board, list_names, before)]))
+
+    def latest_sp_for_list_names_before(self, board, list_names, before):
+        """
+        # of story points on a list in a given time - specified as a array of names - it works
+        for lists duplicate lists
+        """
+        return self.stats_for_list_names_before(board, list_names, before).latest().story_poits_rt
+
+    def sum_sp_for_list_names_in_interval(self, board, list_names, beginning, end):
+        """ sum of story points in"""
+        # NotImplementedError: aggregate() + distinct(fields) not implemented.
+        return sum(filter(None,
+            [x.card_action.story_points for x in self.stats_for_list_names_in_range(
+            board, list_names, beginning, end)]))
 
 
 class ListStat(models.Model):

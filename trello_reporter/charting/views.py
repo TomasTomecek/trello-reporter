@@ -201,7 +201,7 @@ def cumulative_chart(request, board_id):
 
 
 def burndown_chart_data(request, board_id):
-    sprint_id = request.GET.get("spint_id", None)
+    sprint_id = request.GET.get("sprint_id", None)
     now = datetime.datetime.now(tz=tzutc())
     if sprint_id:
         sprint = Sprint.objects.get(id=sprint_id)
