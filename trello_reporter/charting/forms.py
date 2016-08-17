@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+TODO:
+ * do inheritance for DRY
+"""
 
 import logging
 
@@ -50,3 +54,10 @@ class BurndownForm(forms.Form):
 
         if not s and not (f and t):
             raise forms.ValidationError('Both "from" and "to" has to be filled.')
+
+
+class ControlChartForm(BurndownForm):
+    pass
+
+
+

@@ -72,27 +72,45 @@ class ChartExporter(object):
         return response
 
     @classmethod
-    def control_flow_c3(cls, board):
-        card_actions = CardAction.objects.actions_for_board(board.id)
-        # card -> [action, action]
+    def control_flow_c3(cls, board, lists_filter, beginning, end):
+        logger.debug("rendering control chart for board %s, workflow %s, range %s - %s",
+                     board, lists_filter, beginning, end)
+        card_actions = CardAction.objects.card_actions_on_list_names_in_interval_order_desc(
+            board, lists_filter, beginning, end)
+        # card -> {
+        #  visited_idx: 3
+        #  data: [ca, ca, ...]
+        # }
         card_history = {}
-
-        logger.debug("board has %d actions", card_actions.count())
+        lists_filter_len = len(lists_filter)
 
         for ca in card_actions:
-            card_history.setdefault(ca.card, [])
-            card_history[ca.card].insert(0, ca)
+            card = ca.card
+
+            card_history.setdefault(card, {"visited_idx": lists_filter_len - 1, "data": []})
+            card_data = card_history[card]
+            if card_data["visited_idx"] == -1:
+                continue
+            needed_state = lists_filter[card_data["visited_idx"]]
+            if ca.list.name == needed_state:
+                card_data["visited_idx"] -= 1
+                card_data["data"].insert(0, ca)
+
         cards = []
-        for card, actions in card_history.items():
-            if len(actions) <= 1:
+        for card, card_data in card_history.items():
+            if card_data["visited_idx"] > -1:
+                # not fulfilled
                 continue
             else:
-                hours = int((actions[-1].date - actions[0].date).total_seconds() / 3600)
-                date = actions[-1].date.strftime("%Y-%m-%d")
+                first_action = card_data["data"][0]
+                last_action = card_data["data"][-1]
+                hours = int((last_action.date - first_action.date).total_seconds() / 3600)
+                logger.debug("%s - %s = %d", last_action, first_action, hours)
+                date = last_action.date.strftime("%Y-%m-%d %H:%M")
                 cards.append({
                     "hours": hours,
                     "id": card.id,
-                    "size": actions[-1].story_points,
+                    "size": last_action.story_points,
                     "label": "Hours",
                     "date": date
                 })

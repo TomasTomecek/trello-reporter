@@ -308,11 +308,17 @@ class CardActionQuerySet(models.QuerySet):
     def for_list(self, li):
         return self.filter(list=li)
 
+    def for_list_names(self, list_names):
+        return self.filter(list__name__in=list_names)
+
     def since(self, date):
         return self.filter(date__gte=date)
 
     def before(self, date):
         return self.filter(date__lte=date)
+
+    def in_range(self, beginning, end):
+        return self.filter(date__range=(beginning, end))
 
     def ordered_desc(self):
         return self.order_by("-date")
@@ -329,11 +335,26 @@ class CardActionManager(models.Manager):
             query = query.before(date)
         return query.select_related("list", "card", "board")
 
+    def actions_on_board_in_range(self, board, beginning, end):
+        """ this is a time machine: shows board state in a given time """
+        query = self \
+            .for_board(board) \
+            .in_range(beginning, end)
+        return query.select_related("list", "card", "board")
+
     def card_actions_on_list_names_in(self, board, list_names, date):
         cas = self.get_card_actions_on_board_in(board, date)
         return self.filter(id__in=[x.id for x in cas], list__name__in=list_names).select_related(
             "list", "card", "board"
         )
+
+    def card_actions_on_list_names_in_interval(self, board, list_names, beginning, end):
+        cas = self.actions_on_board_in_range(board, beginning, end)
+        return cas.for_list_names(list_names)
+
+    def card_actions_on_list_names_in_interval_order_desc(self, board, list_names, beginning, end):
+        return self.card_actions_on_list_names_in_interval(board, list_names, beginning, end) \
+            .order_by("-date")
 
     def safe_card_actions_on_list_in(self, board, li, date=None):
         """ aggregate + distinct is not implemented """
@@ -344,8 +365,8 @@ class CardActionManager(models.Manager):
         return self.safe_card_actions_on_list_in(board, li, date) \
             .aggregate(models.Sum("story_points"))["story_points__sum"]
 
-    def actions_for_board(self, board_id):
-        return self.for_board(board_id) \
+    def actions_for_board(self, board):
+        return self.for_board(board) \
             .ordered_desc() \
             .select_related("list", "board", "card") \
             .prefetch_related(models.Prefetch("card__actions"))

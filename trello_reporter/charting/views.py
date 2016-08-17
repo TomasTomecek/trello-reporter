@@ -1,9 +1,7 @@
 from __future__ import unicode_literals
 
 import logging
-
 import datetime
-import re
 from urllib import urlencode
 
 from dateutil.tz import tzutc
@@ -11,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
 
-from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm
+from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm, ControlChartForm
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 
@@ -24,19 +22,18 @@ def index(request):
 
 
 def show_control_chart(request, board_id):
-    n = datetime.datetime.now()
-    from_dt = n - datetime.timedelta(days=30)
-    # TODO [DRY]: use exactly same variables for charting
-    initial = {
-        "from_dt": from_dt,
-        "to_dt": n,
-        "count": 1,
-        "time_type": "m"
-    }
-    form = Workflow(initial=initial)
     board = Board.objects.by_id(board_id)
-    return render(request, "charting.html",
-                  {"board": board, "form": form, "chart_url": "control-chart-data"})
+    initial = {
+        "sprint": Sprint.objects.latest_for_board(board)
+    }
+    form = ControlChartForm(initial=initial)
+    form.fields['sprint'].queryset = Sprint.objects.for_board_by_end_date(board)
+    context = {
+        "board": board,
+        "form": form,
+        "chart_url": "control-chart-data"
+    }
+    return render(request, "charting.html", context)
 
 
 def show_burndown_chart(request, board_id):
@@ -127,10 +124,46 @@ def cards_on_board_at(request, board_id):
 
 
 def control_chart(request, board_id):
-    board = Board.objects.get(id=board_id)
-    data = ChartExporter.control_flow_c3(board)
+    board = Board.objects.by_id(board_id)
+    all_lists = List.objects.get_all_listnames_for_board(board)
+
+    if request.method == "POST":
+        form = ControlChartForm(request.POST)
+        if form.is_valid():
+            sprint = form.cleaned_data["sprint"]
+            if sprint:
+                beginning = sprint.start_dt
+                end = sprint.end_dt
+            else:
+                beginning = form.cleaned_data["from_dt"]
+                end = form.cleaned_data["to_dt"]
+            idx = 1
+            lists_filter = []
+            while True:
+                wf_key = "workflow-%d" % idx
+                try:
+                    value = request.POST[wf_key].strip()
+                except KeyError:
+                    logger.info("workflow key %s not found", wf_key)
+                    break
+                if value not in all_lists:
+                    raise Exception("List %s is not in board" % value)
+                lists_filter.append(value)
+                idx += 1
+        else:
+            # TODO: show errors
+            logger.warning("form is not valid: %s", form.errors.as_json())
+            raise Exception("Invalid form.")
+    else:
+        sprint = Sprint.objects.latest_for_board(board)
+        beginning = sprint.start_dt
+        end = sprint.end_dt
+        lists_filter = ["Next", "Complete"]
+    board = Board.objects.by_id(board_id)
+    data = ChartExporter.control_flow_c3(board, lists_filter, beginning, end)
     response = {
         "data": data,
+        "all_lists": all_lists
     }
     return JsonResponse(response)
 

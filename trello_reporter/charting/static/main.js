@@ -55,7 +55,7 @@ $(function() {
       $('#chart-settings').serialize(),
       function(data) {
         if (chart_data_url.indexOf("control") > -1) {
-          alert("not implemented yet");
+          reload_control_chart(data);
         } else if (chart_data_url.indexOf("cumulative") > -1) {
           reload_cumulative_chart(data);
         } else if (chart_data_url.indexOf("burndown") > -1) {
@@ -114,12 +114,21 @@ function on_focus_states(data) {
   }
 }
 
-function get_selected_card_id(c3, d) {
-  return c3.config.data_json[d[0].index].id;
-}
-
 function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
-  var card_id = get_selected_card_id(this, d)
+  var card_id;
+  var titleFormat = this.config.tooltip_format_title || defaultTitleFormat;
+  var title = titleFormat ? titleFormat(d[0].x) : d[0].x;
+
+  var valueFormat = this.config.tooltip_format_value || defaultValueFormat;
+  var value = valueFormat(d[0].value, d[0].ratio, d[0].id, d[0].index, d);
+
+  this.config.data_json.forEach(function(item) {
+    // this is absolutely retarded but the only way to find card_id
+    if (item.hours == d[0].value && title == item.date) {
+      card_id = item.id;
+    }
+  });
+
   var tooltip = $("div#custom-chart-tooltip").html();
 
   if (!(card_id in cache.cards)) {
@@ -134,6 +143,8 @@ function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
     });
   }
   tooltip = tooltip.replace("TITLE", cache.cards[card_id].name);
+  tooltip = tooltip.replace("DATE", title);
+  tooltip = tooltip.replace("HOURS", value);
   return tooltip;
 }
 
@@ -143,8 +154,16 @@ function on_point_click(d, element) {
 }
 
 function point_size(d) {
+  return 4;
+  // this doesn't work when you reload chart, b/c data_json is NOT reloaded
   var sizes={0:2, 1:2, 2:3, 3:4, 5:5, 8:6, 13:7};
-  var point_size=this.data_json[d.index].size;
+  var point_size;
+  this.data_json.forEach(function(item) {
+    // this is absolutely retarded but the only way to find card_id
+    if (item.hours == d.value) {
+      point_size = item.size;
+    }
+  });
   for (var s in sizes) {
     if (s >= point_size) {
       return sizes[s];
@@ -156,6 +175,12 @@ function get_point_color(color, d) {
   return "#006";
 }
 
+function reload_control_chart(data) {
+  chart_data.json = data.data;
+  chart_data.unload = chart.columns;
+  chart.load(chart_data);
+}
+
 function render_control_chart(data) {
   chart_data = {
     json: data["data"],
@@ -163,14 +188,14 @@ function render_control_chart(data) {
       value: ["date", "hours"],
       x: 'date',
     },
-    xFormat: '%Y-%m-%d',
+    xFormat: '%Y-%m-%d %H:%M',
     type: 'scatter',
     onclick: on_point_click,
-    color: get_point_color,
-    colors: {
-      hours: '#ff0000',
-      date: '#00ff00'
-    }
+    // color: get_point_color,
+    // colors: {
+    //   hours: '#ff0000',
+    //   date: '#00ff00'
+    // }
   };
 
   chart = c3.generate({
@@ -183,12 +208,12 @@ function render_control_chart(data) {
       x: {
         type: 'timeseries',
         tick: {
-          fit: true,
-          format: '%Y-%m-%d'
+          // fit: true,
+          format: '%Y-%m-%d %H:%M'
         }
       },
       y: {
-        label: 'hours',
+        label: 'Hours',
       }
     },
     tooltip: {
@@ -198,7 +223,7 @@ function render_control_chart(data) {
       r: point_size,
       focus: {
         expand: {
-          enabled: true
+          enabled: false
         }
       }
     }
