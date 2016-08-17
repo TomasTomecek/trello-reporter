@@ -123,7 +123,8 @@ class ChartExporter(object):
                     board, in_progress_lists, beginning)
             response.append(tick)
             d += delta
-        response[-1]["ideal"] = 0
+        if response:
+            response[-1]["ideal"] = 0
         return response
 
     @classmethod

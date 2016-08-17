@@ -615,6 +615,19 @@ class CardAction(models.Model):
                                          sp_rt + story_points_int)
 
 
+class SprintQuerySet(models.QuerySet):
+    def for_board(self, board):
+        return self.filter(board=board)
+
+
+class SprintManager(models.Manager):
+    def for_board_by_end_date(self, board):
+        return self.for_board(board).order_by("-end_dt")
+
+    def latest_for_board(self, board):
+        return self.for_board(board).latest()
+
+
 class Sprint(models.Model):
     """
 
@@ -629,6 +642,11 @@ class Sprint(models.Model):
                                           blank=True, null=True)
     due_card = models.OneToOneField(Card, models.CASCADE, related_name="sprint",
                                     blank=True, null=True)
+
+    objects = SprintManager.from_queryset(SprintQuerySet)()
+
+    class Meta:
+        get_latest_by = "end_dt"
 
     def __unicode__(self):
         return "[%s] %s → %s" % (self.sprint_number, self.start_dt, self.end_dt)

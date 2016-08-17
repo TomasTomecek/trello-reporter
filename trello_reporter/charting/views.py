@@ -41,13 +41,11 @@ def show_control_chart(request, board_id):
 
 def show_burndown_chart(request, board_id):
     board = Board.objects.by_id(board_id)
-    n = datetime.datetime.now()
-    from_dt = n - datetime.timedelta(days=30)
     initial = {
-        "from_dt": from_dt,
-        "to_dt": n,
+        "sprint": Sprint.objects.latest_for_board(board)
     }
     form = BurndownForm(initial=initial)
+    form.fields['sprint'].queryset = Sprint.objects.for_board_by_end_date(board)
     context = {
         "form": form,
         "board": board,
@@ -201,24 +199,31 @@ def cumulative_chart(request, board_id):
 
 
 def burndown_chart_data(request, board_id):
-    sprint_id = request.GET.get("sprint_id", None)
-    now = datetime.datetime.now(tz=tzutc())
-    if sprint_id:
-        sprint = Sprint.objects.get(id=sprint_id)
-        beginning = sprint.start_dt
-        end = sprint.end_dt
-    else:
-        beginning = now - datetime.timedelta(days=30)
-        end = now
-    board = Board.objects.get(id=board_id)
+    board = Board.objects.by_id(board_id)
+
     if request.method == "POST":
         form = BurndownForm(request.POST)
         if form.is_valid():
-            beginning = form.cleaned_data["from_dt"]
-            end = form.cleaned_data["to_dt"]
+            sprint = form.cleaned_data["sprint"]
+            if sprint:
+                beginning = sprint.start_dt
+                end = sprint.end_dt
+            else:
+                beginning = form.cleaned_data["from_dt"]
+                end = form.cleaned_data["to_dt"]
         else:
-            logger.warning("form is not valid")
+            # TODO: show errors
+            logger.warning("form is not valid: %s", form.errors.as_json())
             raise Exception("Invalid form.")
+    else:
+        sprint_id = request.GET.get("sprint_id", None)
+        if sprint_id:
+            sprint = Sprint.objects.get(id=sprint_id)
+        else:
+            sprint = Sprint.objects.latest_for_board(board)
+        beginning = sprint.start_dt
+        end = sprint.end_dt
+
     data = ChartExporter.burndown_chart_c3(board, beginning, end)
     response = {
         "data": data,

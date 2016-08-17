@@ -36,7 +36,7 @@ class DateForm(forms.Form):
 class BurndownForm(forms.Form):
     from_dt = forms.DateTimeField(required=False)
     to_dt = forms.DateTimeField(required=False)
-    sprint = forms.ModelChoiceField(queryset=Sprint.objects.none(), required=False)
+    sprint = forms.ModelChoiceField(queryset=Sprint.objects.all(), required=False)
 
     def clean(self):
         cleaned_data = super(BurndownForm, self).clean()
