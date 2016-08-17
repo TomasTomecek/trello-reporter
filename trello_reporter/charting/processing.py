@@ -89,7 +89,13 @@ class ChartExporter(object):
             else:
                 hours = int((actions[-1].date - actions[0].date).total_seconds() / 3600)
                 date = actions[-1].date.strftime("%Y-%m-%d")
-                cards.append({"hours": hours, "id": card.id, "label": "Hours", "date": date})
+                cards.append({
+                    "hours": hours,
+                    "id": card.id,
+                    "size": actions[-1].story_points,
+                    "label": "Hours",
+                    "date": date
+                })
         return cards
 
     @classmethod

@@ -142,7 +142,13 @@ function on_point_click(d, element) {
 }
 
 function point_size(d) {
-  return Math.random() * 5;
+  var sizes={0:2, 1:2, 2:3, 3:4, 5:5, 8:6, 13:7};
+  var point_size=this.data_json[d.index].size;
+  for (var s in sizes) {
+    if (s >= point_size) {
+      return sizes[s];
+    }
+  }
 }
 
 function get_point_color(color, d) {
@@ -187,9 +193,14 @@ function render_control_chart(data) {
     tooltip: {
       contents: get_tooltip
     },
-    // point: {
-    //   r: point_size
-    // }
+    point: {
+      r: point_size,
+      focus: {
+        expand: {
+          enabled: true
+        }
+      }
+    }
   });
 }
 
