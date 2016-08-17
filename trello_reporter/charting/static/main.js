@@ -123,6 +123,7 @@ function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
   var tooltip = $("div#custom-chart-tooltip").html();
 
   if (!(card_id in cache.cards)) {
+    // TODO: eventually we could provide all tooltips with chart data
     $.ajax({
       url: "/api/v0/card/" + card_id + "/",
       dataType: "json",
