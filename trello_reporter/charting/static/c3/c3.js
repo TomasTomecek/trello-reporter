@@ -2097,6 +2097,7 @@
             });
             data = $$.convertColumnsToData(new_rows);
         }
+        // $$.config.data_json = json;  // save json in case of $$.load()
         return data;
     };
     c3_chart_internal_fn.findValueInJson = function (object, path) {
@@ -2217,7 +2218,14 @@
 
         // finish targets
         targets.forEach(function (t) {
-            var i;
+            var i = 0;
+            // index values by index in input data, e.g. json
+            // this is very useful in callbacks so you can access source data use those
+            // in the callbacks
+            t.values.forEach(function (v) {
+                v.source_index = i++;
+            });
+
             // sort values by its x
             if (config.data_xSort) {
                 t.values = t.values.sort(function (v1, v2) {
@@ -6313,6 +6321,10 @@
         if ('cacheIds' in args && $$.hasCaches(args.cacheIds)) {
             $$.load($$.getCaches(args.cacheIds), args.done);
             return;
+        }
+        // update json if exists
+        if ('json' in args) {
+            config.data_json = args.json;
         }
         // unload if needed
         if ('unload' in args) {

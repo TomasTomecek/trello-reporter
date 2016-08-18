@@ -115,24 +115,17 @@ function on_focus_states(data) {
 }
 
 function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
-  var card_id;
+  var card_id = this.config.data_json[d[0].source_index].id
   var titleFormat = this.config.tooltip_format_title || defaultTitleFormat;
   var title = titleFormat ? titleFormat(d[0].x) : d[0].x;
 
   var valueFormat = this.config.tooltip_format_value || defaultValueFormat;
   var value = valueFormat(d[0].value, d[0].ratio, d[0].id, d[0].index, d);
 
-  this.config.data_json.forEach(function(item) {
-    // this is absolutely retarded but the only way to find card_id
-    if (item.hours == d[0].value && title == item.date) {
-      card_id = item.id;
-    }
-  });
-
   var tooltip = $("div#custom-chart-tooltip").html();
 
   if (!(card_id in cache.cards)) {
-    // TODO: eventually we could provide all tooltips with chart data
+    // TODO: provide all tooltips with chart data
     $.ajax({
       url: "/api/v0/card/" + card_id + "/",
       dataType: "json",
@@ -154,16 +147,8 @@ function on_point_click(d, element) {
 }
 
 function point_size(d) {
-  return 4;
-  // this doesn't work when you reload chart, b/c data_json is NOT reloaded
   var sizes={0:2, 1:2, 2:3, 3:4, 5:5, 8:6, 13:7};
-  var point_size;
-  this.data_json.forEach(function(item) {
-    // this is absolutely retarded but the only way to find card_id
-    if (item.hours == d.value) {
-      point_size = item.size;
-    }
-  });
+  var point_size = this.data_json[d.source_index].size;
   for (var s in sizes) {
     if (s >= point_size) {
       return sizes[s];
