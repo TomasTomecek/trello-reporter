@@ -7,6 +7,7 @@
       <th>Action</th>
       <th>What happened</th>
       <th>Story Points</th>
+      <th>Board</th>
     </tr>
   </thead>
   <tbody>
@@ -22,6 +23,7 @@
     <td>{% if previous_action %}{{ previous_action.list.name }} → {% endif %}{{ ca.list.name }}</td>
     {% endif %}
     <td>{{ ca.story_points }}</td>
+    <td>{{ ca.board.name }}</td>
   </tr>
 {% endfor %}
   </tbody>
