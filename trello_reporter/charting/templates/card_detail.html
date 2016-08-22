@@ -10,7 +10,7 @@
     </tr>
   </thead>
   <tbody>
-{% for ca in actions %}
+{% for previous_action, ca in actions %}
   <tr>
     <td>{{ ca.date }}</td>
     <td>{{ ca.action_type }}</td>
@@ -19,7 +19,7 @@
     {% elif ca.is_deleted %}
     <td>Deleted</td>
     {% else %}
-    <td>{% if ca.previous_action %}{{ ca.previous_action.list.name }} → {% endif %}{{ ca.list.name }}</td>
+    <td>{% if previous_action %}{{ previous_action.list.name }} → {% endif %}{{ ca.list.name }}</td>
     {% endif %}
     <td>{{ ca.story_points }}</td>
   </tr>

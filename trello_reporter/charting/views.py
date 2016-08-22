@@ -356,9 +356,12 @@ def list_detail(request, list_id):
 
 def card_detail(request, card_id):
     card = Card.objects.get(id=card_id)
+    # (previous_action, action)
+    action_list = list(card.actions.order_by("date"))
+    actions = zip([None] + action_list[:-1], action_list)
     context = {
         "card": card,
-        "actions": card.actions.order_by("date"),
+        "actions": actions,
         "breadcrumbs": [
             {
                 "url": reverse("board-detail", args=(card.latest_action.board.id, )),
