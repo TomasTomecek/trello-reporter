@@ -305,6 +305,9 @@ class CardActionQuerySet(models.QuerySet):
     def for_board(self, board):
         return self.filter(board=board)
 
+    def for_trello_card_id(self, trello_card_id):
+        return self.filter(card__trello_id=trello_card_id)
+
     def for_list(self, li):
         return self.filter(list=li)
 
@@ -370,6 +373,22 @@ class CardActionManager(models.Manager):
             .ordered_desc() \
             .select_related("list", "board", "card") \
             .prefetch_related(models.Prefetch("card__actions"))
+
+    def for_trello_card_id_on_list_names(self, trello_card_id, list_names):
+        return self.for_trello_card_id(trello_card_id).for_list_names(list_names)
+
+    def get_sprint_trello_card_ids(self, board, since=None):
+        """ returns list of trello card IDs which set sprint boundaries """
+        regex = r"^\s*sprint \d+$"
+        query = CardAction.objects \
+            .filter(board=board) \
+            .filter(card__name__iregex=regex) \
+            .order_by("card", "-date") \
+            .distinct("card") \
+            .values_list("card__trello_id", flat=True)
+        if since:
+            query = query.since(since)
+        return query
 
 
 class CardAction(models.Model):
@@ -640,13 +659,25 @@ class SprintQuerySet(models.QuerySet):
     def for_board(self, board):
         return self.filter(board=board)
 
+    def completed(self):
+        return self.filter(completed_list__isnull=False)
+
 
 class SprintManager(models.Manager):
     def for_board_by_end_date(self, board):
         return self.for_board(board).order_by("-end_dt")
 
     def latest_for_board(self, board):
-        return self.for_board(board).latest()
+        try:
+            return self.for_board(board).latest()
+        except ObjectDoesNotExist:
+            return None
+
+    def latest_completed(self, board):
+        try:
+            return self.for_board(board).completed().latest()
+        except ObjectDoesNotExist:
+            return None
 
 
 class Sprint(models.Model):
@@ -656,7 +687,7 @@ class Sprint(models.Model):
     start_dt = models.DateTimeField(db_index=True, blank=True, null=True)
     end_dt = models.DateTimeField(db_index=True, blank=True, null=True)
     name = models.CharField(max_length=255, blank=True, null=True)
-    sprint_number = models.IntegerField(db_index=True, blank=True, null=True)
+    sprint_number = models.IntegerField(db_index=True, blank=True, null=True)  # TODO: require this
     board = models.ForeignKey(Board, models.CASCADE, related_name="sprints")
     # list with completed cards for the sprint
     completed_list = models.OneToOneField(List, models.CASCADE, related_name="sprint",
@@ -680,29 +711,43 @@ class Sprint(models.Model):
         :return:
         """
         # TODO (optimisation)
-        # TODO incremental search
-        regex = r"^\s*sprint \d+$"
-        cards = CardAction.objects \
-            .filter(board=board) \
-            .filter(card__name__iregex=regex) \
-            .order_by("card", "-date") \
-            .distinct("card") \
-            .values_list("card__trello_id", flat=True)
+
+        since = None
+        latest_sprint = cls.objects.latest_completed(board)
+        if latest_sprint:
+            since = latest_sprint.end_dt
+
+        cards = CardAction.objects.get_sprint_trello_card_ids(board, since=since)
 
         due_dict = Harvestor.get_due_of_cards(cards)
 
         sprint_number_re = re.compile(r"(\d+)")
 
-        for card_id, due in due_dict.items():
-            sprint, created = cls.objects.get_or_create(board=board, end_dt=due)
-            if created:
-                first = CardAction.objects.filter(card__trello_id=card_id).earliest()
-                last = CardAction.objects.filter(card__trello_id=card_id).latest()
-                sprint.start_dt = first.date
-                sprint.name = last.card_name
-                sprint.due_card = last.card
-                sprint.sprint_number = sprint_number_re.findall(last.card_name)[0]
-                sprint.save()
+        # we want to process actions in order as they happened so they can potentially overwrite
+        # previous values: make sure this is ordered correctly!
+        for card_id in cards:
+            due = due_dict[card_id]
+            try:
+                first = CardAction.objects.for_trello_card_id_on_list_names(
+                    card_id, ["In Progress", "Next"]).latest()
+            except ObjectDoesNotExist:
+                logger.info("card %s never reached In Progress", card_id)
+                continue
+            last = CardAction.objects.filter(card__trello_id=card_id).latest()
+
+            logger.debug("processing: %s -> %s", first, last)
+
+            sprint_number = sprint_number_re.findall(last.card_name)[0]
+            sprint, created = cls.objects.get_or_create(board=board, sprint_number=sprint_number)
+
+            # update or set
+            sprint.start_dt = first.date
+            sprint.end_dt = due
+            sprint.name = last.card_name
+            sprint.due_card = last.card
+            sprint.save()
+
+            logger.debug("%s", sprint)
 
     @classmethod
     def set_completed_list(cls, board):
