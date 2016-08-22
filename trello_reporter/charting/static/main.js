@@ -316,10 +316,14 @@ function render_velocity_chart(data) {
   chart_data = {
     json: data["data"],
     keys: {
-      value: ["story_points", "cards_num"],
+      value: ["done", "committed", "average"],
       x: "name",
     },
-    type: "bar"
+    types: {
+      "done": "bar",
+      "committed": "bar",
+      "average": "area",
+    }
   };
 
   chart = c3.generate({
@@ -338,6 +342,9 @@ function render_velocity_chart(data) {
         label: "Sprint",
         type: "category"
       },
+      y: {
+        label: "Story points"
+      }
     },
   });
 }

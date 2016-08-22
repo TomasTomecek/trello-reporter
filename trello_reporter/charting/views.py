@@ -9,7 +9,8 @@ from django.core.urlresolvers import reverse
 from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
 
-from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm, ControlChartForm
+from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm, ControlChartForm, \
+    RangeForm
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 
@@ -53,9 +54,11 @@ def show_burndown_chart(request, board_id):
 
 def show_velocity_chart(request, board_id):
     board = Board.objects.by_id(board_id)
+    form = RangeForm()
     context = {
         "board": board,
-        "chart_url": "velocity-chart-data"
+        "chart_url": "velocity-chart-data",
+        "form": form
     }
     return render(request, "charting.html", context)
 
@@ -266,8 +269,22 @@ def burndown_chart_data(request, board_id):
 
 def velocity_chart_data(request, board_id):
     board = Board.objects.by_id(board_id)
-    lists = List.objects.sprint_archiving_lists_for_board(board)
-    data = ChartExporter.velocity_chart_c3(lists)
+
+    if request.method == "POST":
+        form = RangeForm(request.POST)
+        if form.is_valid():
+            beginning = form.cleaned_data["from_dt"]
+            end = form.cleaned_data["to_dt"]
+            sprints = Sprint.objects.for_board_in_range_by_end_date(
+                board, beginning, end)
+        else:
+            # TODO: show errors
+            logger.warning("form is not valid: %s", form.errors.as_json())
+            raise Exception("Invalid form.")
+    else:
+        sprints = Sprint.objects.for_board_by_end_date(board)[:5]
+
+    data = ChartExporter.velocity_chart_c3(sprints)
     response = {
         "data": data
     }

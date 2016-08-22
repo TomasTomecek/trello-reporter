@@ -153,18 +153,27 @@ class ChartExporter(object):
         return response
 
     @classmethod
-    def velocity_chart_c3(cls, lists):
+    def velocity_chart_c3(cls, sprints):
         response = []
-        for li in lists:
-            logger.debug("processing list %s", li)
-            ls = li.latest_stat
+        response_len = 0
+        for sprint in reversed(sprints):
+            logger.debug("processing sprint %s", sprint)
+            done = sprint.story_points_done
             r = {
-                "story_points": ls.story_points_rt,
-                "cards_num": ls.cards_rt,
-                "name": li.name,
-                # "commited": 0  TODO
+                "done": done,
+                "committed": sprint.story_points_committed,
+                "name": sprint.name,
             }
+            # http://math.stackexchange.com/a/106314
+            if response_len == 0:
+                r["average"] = done
+            else:
+                r["average"] = (
+                    ((float(response_len) * response[-1]["average"]) + done)
+                    /
+                    float(response_len + 1))
             response.append(r)
+            response_len += 1
         return response
 
     @classmethod

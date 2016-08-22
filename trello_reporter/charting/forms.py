@@ -37,9 +37,12 @@ class DateForm(forms.Form):
     date = forms.DateTimeField()
 
 
-class BurndownForm(forms.Form):
+class RangeForm(forms.Form):
     from_dt = forms.DateTimeField(required=False)
     to_dt = forms.DateTimeField(required=False)
+
+
+class BurndownForm(RangeForm):
     sprint = forms.ModelChoiceField(queryset=Sprint.objects.all(), required=False)
 
     def clean(self):
@@ -58,6 +61,3 @@ class BurndownForm(forms.Form):
 
 class ControlChartForm(BurndownForm):
     pass
-
-
-

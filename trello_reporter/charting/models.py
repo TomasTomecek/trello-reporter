@@ -660,10 +660,16 @@ class SprintQuerySet(models.QuerySet):
     def completed(self):
         return self.filter(completed_list__isnull=False)
 
+    def in_range(self, beginning, end):
+        return self.filter(start_dt__gt=beginning, end_dt__lt=end)
+
 
 class SprintManager(models.Manager):
     def for_board_by_end_date(self, board):
         return self.for_board(board).order_by("-end_dt")
+
+    def for_board_in_range_by_end_date(self, board, beginning, end):
+        return self.for_board_by_end_date(board).in_range(beginning, end)
 
     def latest_for_board(self, board):
         try:
@@ -700,6 +706,17 @@ class Sprint(models.Model):
 
     def __unicode__(self):
         return "[%s] %s → %s" % (self.sprint_number, self.start_dt, self.end_dt)
+
+    @property
+    def story_points_committed(self):
+        return ListStat.objects.sum_sp_for_list_names_before(
+            self.board, ["Next", "In Progress"], self.start_dt)
+
+    @property
+    def story_points_done(self):
+        if not self.completed_list:
+            return 0
+        return self.completed_list.story_points
 
     @classmethod
     def refresh(cls, board):
