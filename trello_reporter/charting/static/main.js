@@ -9,6 +9,10 @@ var cache = {
   lists: {},
   boards: {}
  };
+var constants = {
+  datetime_format: '%Y-%m-%d %H:%M',
+  day_format: '%Y-%m-%d',
+};
 
 // get current URL:
 // window.location.pathname + "cumulative/",
@@ -170,10 +174,10 @@ function render_control_chart(data) {
   chart_data = {
     json: data["data"],
     keys: {
-      value: ["date", "hours"],
+      value: ["date", "days"],
       x: 'date',
     },
-    xFormat: '%Y-%m-%d %H:%M',
+    xFormat: constants.datetime_format,
     type: 'scatter',
     onclick: on_point_click,
     // color: get_point_color,
@@ -194,11 +198,12 @@ function render_control_chart(data) {
         type: 'timeseries',
         tick: {
           // fit: true,
-          format: '%Y-%m-%d %H:%M'
+          format: constants.day_format,
+          label: "Date"
         }
       },
       y: {
-        label: 'Hours',
+        label: 'Days',
       }
     },
     tooltip: {
@@ -232,7 +237,7 @@ function render_cumulative_chart(data) {
       value: data["order"],
       x: 'date',
     },
-    xFormat: '%Y-%m-%d %H:%M',
+    xFormat: constants.datetime_format,
     type: 'area',  // area, area-spline, area-step
     groups: [data.order],
     order: null
@@ -244,6 +249,13 @@ function render_cumulative_chart(data) {
     axis: {
       x: {
         type: 'timeseries',
+        label: 'Date',
+        tick: {
+          format: constants.day_format
+        }
+      },
+      y: {
+        label: '# cards',
       }
     },
     legend: {
@@ -268,7 +280,7 @@ function render_burndown_chart(data) {
       value: ["done", "not_done", "date", "ideal"]
     },
     x: 'date',
-    xFormat: '%Y-%m-%d %H:%M',
+    xFormat: constants.datetime_format,
     types: {
       "done": "bar",
       "not_done": "line",
@@ -285,12 +297,13 @@ function render_burndown_chart(data) {
     axis: {
       x: {
         type: 'timeseries',
+        label: 'Date',
         tick: {
-          format: '%Y-%m-%d'
+          format: constants.day_format
         }
       },
       y: {
-        label: 'hours',
+        label: 'Story points',
       }
     },
     line: {
@@ -336,7 +349,7 @@ function render_list_history_chart(data) {
       value: ["cards", "story_points", "date"],
       x: 'date',
     },
-    xFormat: '%Y-%m-%d %H:%M',
+    xFormat: constants.datetime_format,
     type: "line"
   };
 
@@ -351,7 +364,7 @@ function render_list_history_chart(data) {
         type: 'timeseries',
         label: 'Time',
         tick: {
-          format: '%Y-%m-%d %H:%M'
+          format: constants.day_format
         }
       },
       y: {

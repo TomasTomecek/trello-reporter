@@ -77,6 +77,7 @@ class ChartExporter(object):
                      board, lists_filter, beginning, end)
         card_actions = CardAction.objects.card_actions_on_list_names_in_interval_order_desc(
             board, lists_filter, beginning, end)
+
         # card -> {
         #  visited_idx: 3
         #  data: [ca, ca, ...]
@@ -104,11 +105,11 @@ class ChartExporter(object):
             else:
                 first_action = card_data["data"][0]
                 last_action = card_data["data"][-1]
-                hours = int((last_action.date - first_action.date).total_seconds() / 3600)
-                logger.debug("%s - %s = %d", last_action, first_action, hours)
+                days = (last_action.date - first_action.date).days
+                logger.debug("%s - %s = %d days", last_action, first_action, days)
                 date = last_action.date.strftime("%Y-%m-%d %H:%M")
                 cards.append({
-                    "hours": hours,
+                    "days": days,
                     "id": card.id,
                     "size": last_action.story_points,
                     "label": "Hours",
