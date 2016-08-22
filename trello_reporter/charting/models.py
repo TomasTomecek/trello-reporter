@@ -433,6 +433,7 @@ class CardAction(models.Model):
     #                      u'initials': u'TT',
     #                      u'username': u'tomastomecek1'},
     #   u'type': u'updateCard'},
+    # TODO: store this in a new table, store every action trello sent!
     data = JSONField()
 
     objects = CardActionManager.from_queryset(CardActionQuerySet)()
@@ -552,7 +553,7 @@ class CardAction(models.Model):
                     action_type=action_data["type"],
                     data=action_data,
                     card=card,
-                    board=board
+                    board=board  # TODO: use board from action_data
                 )
 
                 if ca.card_name and card.name != ca.card_name:
