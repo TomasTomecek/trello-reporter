@@ -14,9 +14,6 @@ var constants = {
   day_format: '%Y-%m-%d',
 };
 
-// get current URL:
-// window.location.pathname + "cumulative/",
-
 // DOM is ready, let's start the show
 $(function() {
   // load URL for getting data for chart

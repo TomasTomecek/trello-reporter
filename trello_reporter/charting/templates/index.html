@@ -30,7 +30,21 @@
 </head>
   <body>
     <nav class="navbar navbar-default navbar-pf" role="navigation">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/">
+          Trello Reporter
+        </a>
+      </div>
       <div class="collapse navbar-collapse navbar-collapse-1">
+        <ul class="nav navbar-nav navbar-utility">
+          <li>
+            {% if request.user.is_authenticated %}
+              <a><span class="pficon pficon-user">{{ request.user.full_name }}</span></a>
+            {% else %}
+              <a><span class="pficon pficon-user">Log in</span></a>
+            {% endif %}
+          </li>
+        </ul>
         <ul class="nav navbar-nav navbar-primary">
           <li class="active">
             <a href="{% url 'index' %}">Home</a>

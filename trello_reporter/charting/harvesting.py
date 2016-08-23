@@ -80,6 +80,14 @@ class Harvestor:
                                                   query_params={"fields": "due"})["due"]
         return response
 
+    @classmethod
+    def get_token_info(cls, token):
+        return client.fetch_json('/tokens/' + token)
+
+    @classmethod
+    def get_member_info_by_token(cls, token):
+        return client.fetch_json('/tokens/' + token + '/member')
+
 # list_names = {
 #     li["id"]: li["name"]
 #     for li in client.fetch_json(
