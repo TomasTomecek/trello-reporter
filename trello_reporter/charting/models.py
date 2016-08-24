@@ -16,10 +16,10 @@ from trello_reporter.harvesting.harvestor import Harvestor
 from dateutil import parser as dateparser
 from dateutil.tz import tzutc
 
-from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 
+from trello_reporter.harvesting.models import CardActionEvent
 
 logger = logging.getLogger(__name__)
 
@@ -436,32 +436,7 @@ class CardAction(models.Model):
     is_archived = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
 
-    # complete response from trello API
-    #
-    # [{u'data': {u'board': {u'id': u'5783a02a78cd8946ec84572a',
-    #                        u'name': u'Trello Reports',
-    #                        u'shortLink': u'S4m1yrfb'},
-    #             u'card': {u'id': u'5783b90cea9ad4c54ce998ff',
-    #                       u'idList': u'5784d533c273958ad9c1a895',
-    #                       u'idShort': 19,
-    #                       u'name': u'Control chart',
-    #                       u'shortLink': u'wHX1jFVZ'},
-    #             u'listAfter': {u'id': u'5784d533c273958ad9c1a895',
-    #                            u'name': u'Blocked'},
-    #             u'listBefore': {u'id': u'5783a02a78cd8946ec84572d',
-    #                             u'name': u'Next'},
-    #             u'old': {u'idList': u'5783a02a78cd8946ec84572d'}},
-    #   u'date': u'2016-07-12T11:32:14.696Z',
-    #   u'id': u'5784d53e6238494254e0c964',
-    #   u'idMemberCreator': u'54647c122edb0742214c751c',
-    #   u'memberCreator': {u'avatarHash': u'b7f6d38057d04b49609572f7fea7d203',
-    #                      u'fullName': u'Tomas Tomecek',
-    #                      u'id': u'54647c122edb0742214c751c',
-    #                      u'initials': u'TT',
-    #                      u'username': u'tomastomecek1'},
-    #   u'type': u'updateCard'},
-    # TODO: store this in a new table, store every action trello sent!
-    data = JSONField()
+    event = models.OneToOneField(CardActionEvent, models.CASCADE, related_name="card_action")
 
     objects = CardActionManager.from_queryset(CardActionQuerySet)()
 
@@ -482,6 +457,11 @@ class CardAction(models.Model):
     @property
     def trello_board_id(self):
         return self.board.trello_id
+
+    @property
+    def data(self):
+        """ backwards compat """
+        return self.event.data
 
     @property
     def list_id_and_name(self):
@@ -574,12 +554,14 @@ class CardAction(models.Model):
                 card, _ = Card.objects.get_or_create(trello_id=action_data["data"]["card"]["id"])
                 card.save()
 
+                event = CardActionEvent(data=action_data)
+                event.save()
                 ca = CardAction(
                     trello_id=action_data["id"],
                     date=dateparser.parse(action_data["date"], tzinfos=tzutc),
                     action_type=action_data["type"],
-                    data=action_data,
                     card=card,
+                    event=event,
                     board=board  # TODO: use board from action_data
                 )
 
@@ -642,6 +624,8 @@ class CardAction(models.Model):
                         # default card?
                         continue
 
+                event.processed_well = True
+                event.save()
                 ca.save()
 
                 # ListStats
