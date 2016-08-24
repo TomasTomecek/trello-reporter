@@ -310,6 +310,11 @@ def board_detail(request, board_id):
         "board": board,
         "lists": lists,
         "sprints": sprints,
+        "breadcrumbs": [
+            {
+                "text": "Board \"%s\"" % board.name
+            }
+        ],
     }
     return render(request, "board_detail.html", context)
 
