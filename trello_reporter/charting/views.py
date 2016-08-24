@@ -401,7 +401,7 @@ def api_get_card(request, card_id):
 
     response = {
         "id": card.id,
-        "name": card.latest_action.card_name,  # TODO: store the same as for lists
+        "name": card.name,
         "url": request.build_absolute_uri(reverse('card-detail', args=(card_id, ))),
     }
     return JsonResponse(response)
