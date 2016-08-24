@@ -23,7 +23,7 @@
     <tbody>
     {% for ca in card_actions %}
     <tr>
-        <td><a href="{% url 'card-detail' ca.card.id %}">{{ ca.card_name }}</a></td>
+        <td><a href="{% url 'card-detail' ca.card.id %}">{{ ca.card.name }}</a></td>
         <td>{{ ca.list.name }}</td>
         <td>{{ ca.action_type }}</td>
         <td>{{ ca.date }}</td>
