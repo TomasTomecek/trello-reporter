@@ -8,12 +8,13 @@ https://api.trello.com/1/cards/4eea503d91e31d174600008f?fields=name,idList&membe
 
 """
 
-import os
 import urllib
 import logging
 import urlparse
 
 import requests
+
+from django.conf import settings
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,9 @@ API_VERSION = "1"
 
 class Harvestor(object):
 
-    def __init__(self, token, api_key=os.environ["API_KEY"]):
+    def __init__(self, token, api_key=None):
+        if api_key is None:
+            api_key = settings.API_KEY
         self.token = token
         self.api_key = api_key
         self.params = {"token": token, "key": api_key}

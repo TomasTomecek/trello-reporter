@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+from django.core.exceptions import ImproperlyConfigured
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -144,3 +146,14 @@ LOGGING = {
         }
     },
 }
+
+# Application settings
+
+try:
+    API_KEY = os.environ["API_KEY"]
+except KeyError:
+    raise ImproperlyConfigured(
+        "Developer API key not found, please obtain it from:\n"
+        "https://trello.com/app-key\n"
+        "and set it as environment variable 'API_KEY'"
+    )
