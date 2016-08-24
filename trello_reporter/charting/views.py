@@ -35,7 +35,16 @@ def show_control_chart(request, board_id):
     context = {
         "board": board,
         "form": form,
-        "chart_url": "control-chart-data"
+        "chart_url": "control-chart-data",
+        "breadcrumbs": [
+            {
+                "url": reverse("board-detail", args=(board.id, )),
+                "text": "Board \"%s\"" % board.name
+            },
+            {
+                "text": "Control chart"
+            },
+        ],
     }
     return render(request, "charting.html", context)
 
@@ -50,7 +59,16 @@ def show_burndown_chart(request, board_id):
     context = {
         "form": form,
         "board": board,
-        "chart_url": "burndown-chart-data"
+        "chart_url": "burndown-chart-data",
+        "breadcrumbs": [
+            {
+                "url": reverse("board-detail", args=(board.id, )),
+                "text": "Board \"%s\"" % board.name
+            },
+            {
+                "text": "Burndown chart"
+            },
+        ],
     }
     return render(request, "charting.html", context)
 
@@ -61,7 +79,16 @@ def show_velocity_chart(request, board_id):
     context = {
         "board": board,
         "chart_url": "velocity-chart-data",
-        "form": form
+        "form": form,
+        "breadcrumbs": [
+            {
+                "url": reverse("board-detail", args=(board.id, )),
+                "text": "Board \"%s\"" % board.name
+            },
+            {
+                "text": "Velocity chart"
+            },
+        ],
     }
     return render(request, "charting.html", context)
 
@@ -78,8 +105,20 @@ def show_cumulative_chart(request, board_id):
     }
     form = Workflow(initial=initial)
     board = Board.objects.get(id=board_id)
-    return render(request, "charting.html",
-                  {"board": board, "form": form, "chart_url": "cumulative-chart-data"})
+    return render(request, "charting.html", {
+        "board": board,
+        "form": form,
+        "chart_url": "cumulative-chart-data",
+        "breadcrumbs": [
+            {
+                "url": reverse("board-detail", args=(board.id, )),
+                "text": "Board \"%s\"" % board.name
+            },
+            {
+                "text": "Cumulative flow chart"
+            },
+        ],
+    })
 
 
 def card_history(request, board_id):
