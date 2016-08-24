@@ -15,9 +15,6 @@ web:
    - POSTGRESQL_USER=user
    - POSTGRESQL_PASSWORD=password
    - API_KEY
-   - API_SECRET
-   - OAUTH_TOKEN
-   - OAUTH_SECRET
 db:
   image: praiskup/postgresql:APIv1.0.1-fedora23
 #  volumes:
