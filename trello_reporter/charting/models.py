@@ -10,6 +10,7 @@ from __future__ import unicode_literals
 import logging
 import re
 
+from trello_reporter.authentication.models import TrelloUser
 from trello_reporter.charting.harvesting import Harvestor
 
 from dateutil import parser as dateparser
@@ -74,6 +75,15 @@ class Board(models.Model):
         CardAction.from_trello_response_list(self, actions)
         Sprint.refresh(self)
         Sprint.set_completed_list(self)
+
+
+class BoardUserMapping(models.Model):
+    """ M:N mapping between users and boards """
+    board = models.ForeignKey(Board, models.CASCADE)
+    user = models.ForeignKey(TrelloUser, models.CASCADE)
+
+    def __unicode__(self):
+        return "%s <-> %s" % (self.board, self.user)
 
 
 class Card(models.Model):
