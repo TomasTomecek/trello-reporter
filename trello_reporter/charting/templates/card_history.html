@@ -4,7 +4,7 @@
 <ul>
     {% for card, card_actions in response.items %}
     <li>
-        {{ card.latest_action.card_name }}
+        <a href="{% url 'card-detail' card.id %}">{{ card.name }}</a>
         {% for ca in card_actions %}
             ->
             {% if ca.is_archived %}
