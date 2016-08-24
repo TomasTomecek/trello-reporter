@@ -14,11 +14,12 @@ from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm, Con
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 
+
 logger = logging.getLogger(__name__)
 
 
 def index(request):
-    boards = Board.list_boards()
+    boards = Board.list_boards(request.user, request.COOKIES["token"])
     return render(request, "index.html", {"boards": boards})
 
 
@@ -315,7 +316,7 @@ def board_detail(request, board_id):
 
 def board_refresh(request, board_id):
     board = Board.objects.by_id(board_id)
-    board.ensure_actions()
+    board.ensure_actions(request.COOKIES["token"])
     return redirect('board-detail', board_id=board_id)
 
 

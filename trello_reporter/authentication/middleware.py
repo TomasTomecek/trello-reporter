@@ -5,9 +5,11 @@ import os
 import logging
 from urllib import urlencode
 
+import datetime
 from django.contrib.auth import authenticate, login
 from django.http.response import HttpResponseRedirect
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 
 url = "https://trello.com/1/authorize"
@@ -36,10 +38,8 @@ class TrelloAuthMiddleware(object):
         self.ignore_list = ["/api/v0/authenticate/", self.redirect_url]
 
     def __call__(self, request):
-        # Code to be executed for each request before
-        # the view (and later middleware) are called.
+        token = None
         if "token" in request.GET:
-            # TODO: create cookie with token
             logger.info("token received")
             token_chain = request.GET.get("token", None)
             if token_chain is not None:
@@ -50,7 +50,7 @@ class TrelloAuthMiddleware(object):
                 request.user = user
                 login(request, user)
                 logger.info("user logged in: %s", user)
-        if request.user.is_authenticated:
+        if request.user.is_authenticated and "token" in request.COOKIES:
             logger.info("user %s is authenticated", request.user)
             response = self.get_response(request)
         elif request.path in self.ignore_list:
@@ -62,5 +62,11 @@ class TrelloAuthMiddleware(object):
             redirect_url = form_authorize_url(full_path)
             logger.info("redirect to trello authorization")
             return HttpResponseRedirect(redirect_url)
+        if token:
+            # in 30 days
+            logger.debug("setting token cookie")
+            expires = datetime.datetime.utcnow() + datetime.timedelta(days=30)
+            response.set_cookie("token", token, expires=expires, secure=not settings.DEBUG)
+            logger.debug(response.cookies)
 
         return response

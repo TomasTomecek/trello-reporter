@@ -11,14 +11,14 @@ import logging
 import re
 
 from trello_reporter.authentication.models import TrelloUser
-from trello_reporter.charting.harvesting import Harvestor
+from trello_reporter.harvesting.harvestor import Harvestor
 
 from dateutil import parser as dateparser
 from dateutil.tz import tzutc
 
-from django.db import models, transaction
-from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.postgres.fields import JSONField
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import models, transaction
 
 
 logger = logging.getLogger(__name__)
@@ -46,20 +46,30 @@ class Board(models.Model):
         return "%s (%s)" % (self.id, self.name)
 
     @classmethod
-    def list_boards(cls):
+    def list_boards(cls, user, token):
         """
         list boards for currently logged in user
 
         :return: boards query
         """
-        boards = Harvestor.list_boards()  # FIXME: decouple
-        for board in boards:
-            b, c = Board.objects.get_or_create(trello_id=board.id)
-            b.name = board.name
-            b.save()
-        return Board.objects.all()
+        response = []
+        # FIXME: decouple
+        boards_json = Harvestor(token).list_boards()
+        for board_json in boards_json:
+            board = cls.get_or_create_board(board_json["id"], name=board_json["name"])
+            BoardUserMapping.get_or_create(board, user)
+            response.append(board)
+        return response
 
-    def ensure_actions(self):
+    @classmethod
+    def get_or_create_board(cls, trello_id, name=None):
+        obj, created = cls.objects.get_or_create(trello_id=trello_id)
+        if name and obj.name != name:
+            obj.name = name
+        obj.save()
+        return obj
+
+    def ensure_actions(self, token):
         """
         ensure that card actions were fetched and loaded inside database; if not, load them
         """
@@ -67,13 +77,13 @@ class Board(models.Model):
             latest_action = self.card_actions.latest()
         except ObjectDoesNotExist:
             logger.info("fetching all card actions")
-            actions = Harvestor.get_card_actions(self)
+            actions = Harvestor(token).get_card_actions(self.trello_id)
         else:
             logger.info("fetching card actions since %s", latest_action.date)
-            actions = Harvestor.get_card_actions(self, since=latest_action.date)
+            actions = Harvestor(token).get_card_actions(self.trello_id, since=latest_action.date)
 
         CardAction.from_trello_response_list(self, actions)
-        Sprint.refresh(self)
+        Sprint.refresh(self, token)
         Sprint.set_completed_list(self)
 
 
@@ -84,6 +94,13 @@ class BoardUserMapping(models.Model):
 
     def __unicode__(self):
         return "%s <-> %s" % (self.board, self.user)
+
+    @classmethod
+    def get_or_create(cls, board, user):
+        obj, created = cls.objects.get_or_create(board=board, user=user)
+        if created:
+            obj.save()
+        return obj
 
 
 class Card(models.Model):
@@ -729,7 +746,7 @@ class Sprint(models.Model):
         return self.completed_list.story_points
 
     @classmethod
-    def refresh(cls, board):
+    def refresh(cls, board, token):
         """
         calculate sprints based on "Sprint \d+" card
         :param board:
@@ -744,7 +761,7 @@ class Sprint(models.Model):
 
         cards = CardAction.objects.get_sprint_trello_card_ids(board, since=since)
 
-        due_dict = Harvestor.get_due_of_cards(cards)
+        due_dict = Harvestor(token).get_due_of_cards(cards)
 
         sprint_number_re = re.compile(r"(\d+)")
 

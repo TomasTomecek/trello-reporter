@@ -1,7 +1,4 @@
-Django>=1.9.7
-psycopg2
-requests
-
+pytest-django
 ipdb
 django-extensions
 django-debug-toolbar

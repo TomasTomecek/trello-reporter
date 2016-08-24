@@ -11,6 +11,8 @@ class TrelloUser(models.Model):
     # we DO NOT store user's token persistently, ever
 
     last_login = models.DateTimeField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=True)  # FIXME: in prod
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = ["trello_id"]
@@ -34,6 +36,12 @@ class TrelloUser(models.Model):
         Always return True. This is a way to tell if the user has been
         authenticated in templates.
         """
+        return True
+
+    def has_module_perms(self, app_label):
+        return True
+
+    def has_perm(self, perm):
         return True
 
     @classmethod

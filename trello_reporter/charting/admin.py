@@ -1,11 +1,17 @@
 from django.contrib import admin
 
-from trello_reporter.charting.models import Board, CardAction, Card, List, Sprint, ListStat
+from trello_reporter.charting.models import Board, CardAction, Card, List, Sprint, ListStat, \
+    BoardUserMapping
 
 
 @admin.register(Board)
 class BoardAdmin(admin.ModelAdmin):
     list_display = ["trello_id", "name"]
+
+
+@admin.register(BoardUserMapping)
+class BoardUserMappingAdmin(admin.ModelAdmin):
+    list_display = ["board", "user"]
 
 
 @admin.register(Card)

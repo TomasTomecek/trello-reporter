@@ -3,7 +3,7 @@ import logging
 from django.core.exceptions import ObjectDoesNotExist
 
 from trello_reporter.authentication.models import TrelloUser
-from trello_reporter.charting.harvesting import Harvestor
+from trello_reporter.harvesting.harvestor import Harvestor
 
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,8 @@ class TrelloAuthBackend(object):
             return None
 
     def authenticate(self, token):
-        member_info = Harvestor.get_member_info_by_token(token)
+        h = Harvestor(token)
+        member_info = h.get_member_info_by_token(token)
 
         username = member_info["username"]
         full_name = member_info["fullName"]

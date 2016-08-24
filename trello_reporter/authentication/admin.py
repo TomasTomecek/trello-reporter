@@ -1,3 +1,8 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import TrelloUser
+
+
+@admin.register(TrelloUser)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ["trello_id", "username", "full_name"]
