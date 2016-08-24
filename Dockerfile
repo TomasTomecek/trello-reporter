@@ -6,9 +6,9 @@ RUN mkdir -p /opt/app
 WORKDIR /opt/app
 
 COPY ./requirements.txt /opt/app/
+RUN pip install --user -r ./requirements.txt
 COPY ./requirements-devel.txt /opt/app/
-RUN pip install --user -r ./requirements.txt && \
-    pip install --user -r ./requirements-devel.txt
+RUN  pip install --user -r ./requirements-devel.txt
 
 # XXX: development version of dockerfile, we're mounting sources inside
 # COPY . /opt/app/

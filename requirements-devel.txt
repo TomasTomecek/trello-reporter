@@ -1,4 +1,4 @@
 pytest-django
 ipdb
 django-extensions
-django-debug-toolbar
+git+git://github.com/jazzband/django-debug-toolbar.git@e7a9ed0c3de1c8635f7e8c83349cb77cef42489f

@@ -25,9 +25,9 @@ SECRET_KEY = '5n_v*opwlu_u@i1nw=rdheam4#hr+1$x93_qj2go5jhb5u&q-7'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-INTERNAL_IPS = ['172.17.0.1']
-
-ALLOWED_HOSTS = ['172.17.0.1']
+INTERNAL_IPS = ['172.17.0.1', '127.0.0.1', '::1']
+ALLOWED_HOSTS = ['172.17.0.1', '127.0.0.1']
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 AUTH_USER_MODEL = "authentication.TrelloUser"
 AUTHENTICATION_BACKENDS = (
@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -57,7 +58,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'trello_reporter.authentication.middleware.TrelloAuthMiddleware'
+    'trello_reporter.authentication.middleware.TrelloAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'trello_reporter.urls'

@@ -1,7 +1,4 @@
-Django>=1.9.7
+Django==1.10
 psycopg2
 requests
-
-ipdb
-django-extensions
-django-debug-toolbar
+python-dateutil
