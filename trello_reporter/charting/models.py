@@ -313,18 +313,18 @@ class ListStat(models.Model):
 
     @classmethod
     def create_stat(cls, ca, list, diff, cards_rt, sp_rt):
-        # TODO atomic
-        o, created = cls.objects.get_or_create(
-            card_action=ca,
-            diff=diff,
-            list=list,
-        )
-        if created:
-            o.cards_rt = cards_rt
-            o.story_points_rt = sp_rt
-            o.save()
-        else:
-            logger.error("there is already stat for action %s", ca)
+        with transaction.atomic():
+            o, created = cls.objects.get_or_create(
+                card_action=ca,
+                diff=diff,
+                list=list,
+            )
+            if created:
+                o.cards_rt = cards_rt
+                o.story_points_rt = sp_rt
+                o.save()
+            else:
+                logger.error("there is already stat for action %s", ca)
         return o
 
 
