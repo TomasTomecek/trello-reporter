@@ -1,13 +1,17 @@
 {% extends "index.html" %}
 {% block body %}
 <h1>Board "{{ board.name }}"</h1>
+<h2>Charts</h2>
 <ul>
-    <li><a href="{% url 'cards-at' board.id %}">Cards at</a></li>
-    <li><a href="{% url 'card-history' board.id %}">Cards history</a></li>
     <li><a href="{% url 'show-cumulative-chart' board.id %}">Cumulative chart</a></li>
     <li><a href="{% url 'show-control-chart' board.id %}">Control chart</a></li>
     <li><a href="{% url 'show-burndown-chart' board.id %}">Burndown chart</a></li>
     <li><a href="{% url 'show-velocity-chart' board.id %}">Velocity chart</a></li>
+</ul>
+<h2>Actions</h2>
+<ul>
+    <li><a href="{% url 'cards-at' board.id %}">Cards at</a></li>
+    <li><a href="{% url 'card-history' board.id %}">Cards history</a></li>
     <li><a href="{% url 'board-refresh' board.id %}">Refresh</a></li>
 </ul>
 <h2>Lists</h2>

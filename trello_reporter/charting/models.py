@@ -159,7 +159,7 @@ class ListManager(models.Manager):
         return query
 
     def get_all_listnames_for_board(self, board):
-        return list(self.filter_lists_for_board(board).values_list("name", flat=True))
+        return sorted(set(self.filter_lists_for_board(board).values_list("name", flat=True)))
 
     def lists_for_board_match_regex(self, board, regex):
         # distinct is important; it returns one entry per card action

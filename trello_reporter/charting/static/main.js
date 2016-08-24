@@ -138,7 +138,7 @@ function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
   }
   tooltip = tooltip.replace("TITLE", cache.cards[card_id].name);
   tooltip = tooltip.replace("DATE", title);
-  tooltip = tooltip.replace("HOURS", value);
+  tooltip = tooltip.replace("DAYS", value);
   return tooltip;
 }
 

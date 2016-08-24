@@ -20,7 +20,7 @@
   <tbody>
   {% for ls in list_stats %}
     <tr>
-      <td><a href="{% url 'card-detail' ls.card_action.card.id %}">{{ ls.card_action.card_name }}</a></td>
+      <td><a href="{% url 'card-detail' ls.card_action.card.id %}">{{ ls.card_action.card.name }}</a></td>
       <td>{{ ls.card_action.action_type }}</td>
       <td>{{ ls.card_action.date }}</td>
       <td>{{ ls.diff }}</td>

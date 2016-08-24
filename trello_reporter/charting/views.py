@@ -303,8 +303,8 @@ def list_history_data(request, list_id):
 
 def board_detail(request, board_id):
     board = Board.objects.by_id(board_id)
-    # TODO: order by name, in python
     lists = List.objects.filter_lists_for_board(board)
+    lists = sorted(lists, key=lambda x: x.name)
     sprints = Sprint.objects.filter(board__id=board_id).order_by("start_dt")
     context = {
         "board": board,
