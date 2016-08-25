@@ -592,14 +592,8 @@ class CardAction(models.Model):
                         continue
                     ca.list = List.get_or_create_list(trello_list_id, list_name)
 
-                elif ca.action_type in ["updateCard"]:  # update = change list, close or open
-                    if not previous_action:
-                        # this should not happen, it means that trello returned something
-                        # we didn't expect: let's start card history here; likely it got on the board
-                        # from other board or is now on different board
-                        logger.info("update card %s (%s): previous state is unknown",
-                                    ca.trello_card_id, ca.card_name)
-
+                elif ca.action_type in ["updateCard"]:  # update = change list, board, close or open
+                    # if not previous_action: likely a move from different board
                     if ca.archiving:
                         ca.list = None
                         ca.is_archived = True
