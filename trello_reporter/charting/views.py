@@ -181,7 +181,6 @@ def control_chart(request, board_id):
     if request.method == "POST":
         form = ControlChartForm(request.POST)
         if form.is_valid():
-            logger.debug("form data = %s", form.cleaned_data)
             sprint = form.cleaned_data["sprint"]
             if sprint:
                 beginning = sprint.start_dt
@@ -238,7 +237,6 @@ def cumulative_chart(request, board_id):
     if request.method == "POST":
         form = Workflow(request.POST)
         if form.is_valid():
-            logger.debug("form data = %s", form.cleaned_data)
             beginning = form.cleaned_data["from_dt"]
             end = form.cleaned_data["to_dt"]
             count = form.cleaned_data["count"]
@@ -296,7 +294,6 @@ def burndown_chart_data(request, board_id):
     if request.method == "POST":
         form = BurndownForm(request.POST)
         if form.is_valid():
-            logger.debug("form data = %s", form.cleaned_data)
             sprint = form.cleaned_data["sprint"]
             if sprint:
                 beginning = sprint.start_dt
@@ -331,7 +328,6 @@ def velocity_chart_data(request, board_id):
     if request.method == "POST":
         form = RangeForm(request.POST)
         if form.is_valid():
-            logger.debug("form data = %s", form.cleaned_data)
             beginning = form.cleaned_data["from_dt"]
             end = form.cleaned_data["to_dt"]
             sprints = Sprint.objects.for_board_in_range_by_end_date(
