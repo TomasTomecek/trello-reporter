@@ -46,7 +46,6 @@ class TrelloAuthMiddleware(object):
                 token = token_chain.split("=", 1)[1]
                 logger.debug("token = %s", token)
                 user = authenticate(token=token)
-                logger.info("user authenticated: %s", user)
                 request.user = user
                 login(request, user)
                 logger.info("user logged in: %s", user)

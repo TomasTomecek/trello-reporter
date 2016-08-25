@@ -122,7 +122,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '%(levelname)s %(asctime)s %(filename)s %(message)s'
+            'format': '%(levelname)10s\t%(asctime)s\t%(filename)12s %(message)s'
         },
         'simple': {
             'format': '%(levelname)s %(message)s'

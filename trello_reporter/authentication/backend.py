@@ -26,4 +26,6 @@ class TrelloAuthBackend(object):
 
         user = TrelloUser.get_or_create(trello_id, username, full_name=full_name)
 
+        logger.debug("user %s is authenticated", user)
+
         return user

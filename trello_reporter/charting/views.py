@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def index(request):
+    logger.debug("display index")
     boards = Board.list_boards(request.user, request.COOKIES["token"])
     return render(request, "index.html", {
         "boards": boards,
@@ -26,6 +27,7 @@ def index(request):
 
 
 def show_control_chart(request, board_id):
+    logger.debug("display control chart")
     board = Board.objects.by_id(board_id)
     initial = {
         "sprint": Sprint.objects.latest_for_board(board)
@@ -50,6 +52,7 @@ def show_control_chart(request, board_id):
 
 
 def show_burndown_chart(request, board_id):
+    logger.debug("display burndown chart")
     board = Board.objects.by_id(board_id)
     initial = {
         "sprint": Sprint.objects.latest_for_board(board)
@@ -74,6 +77,7 @@ def show_burndown_chart(request, board_id):
 
 
 def show_velocity_chart(request, board_id):
+    logger.debug("display velocity chart")
     board = Board.objects.by_id(board_id)
     form = RangeForm()
     context = {
@@ -94,6 +98,7 @@ def show_velocity_chart(request, board_id):
 
 
 def show_cumulative_chart(request, board_id):
+    logger.debug("display cumulative flow chart")
     n = datetime.datetime.now()
     from_dt = n - datetime.timedelta(days=30)
     # TODO [DRY]: use exactly same variables for charting
@@ -169,12 +174,14 @@ def cards_on_board_at(request, board_id):
 
 
 def control_chart(request, board_id):
+    logger.debug("get data for control chart")
     board = Board.objects.by_id(board_id)
     all_lists = List.objects.get_all_listnames_for_board(board)
 
     if request.method == "POST":
         form = ControlChartForm(request.POST)
         if form.is_valid():
+            logger.debug("form data = %s", form.cleaned_data)
             sprint = form.cleaned_data["sprint"]
             if sprint:
                 beginning = sprint.start_dt
@@ -214,6 +221,7 @@ def control_chart(request, board_id):
 
 
 def cumulative_chart(request, board_id):
+    logger.debug("get data for cumulative chart")
     board = Board.objects.get(id=board_id)
     now = datetime.datetime.now(tz=tzutc())
     beginning = now - datetime.timedelta(days=30)
@@ -226,6 +234,7 @@ def cumulative_chart(request, board_id):
     if request.method == "POST":
         form = Workflow(request.POST)
         if form.is_valid():
+            logger.debug("form data = %s", form.cleaned_data)
             beginning = form.cleaned_data["from_dt"]
             end = form.cleaned_data["to_dt"]
             count = form.cleaned_data["count"]
@@ -277,11 +286,13 @@ def cumulative_chart(request, board_id):
 
 
 def burndown_chart_data(request, board_id):
+    logger.debug("get data for burndown chart")
     board = Board.objects.by_id(board_id)
 
     if request.method == "POST":
         form = BurndownForm(request.POST)
         if form.is_valid():
+            logger.debug("form data = %s", form.cleaned_data)
             sprint = form.cleaned_data["sprint"]
             if sprint:
                 beginning = sprint.start_dt
@@ -310,11 +321,13 @@ def burndown_chart_data(request, board_id):
 
 
 def velocity_chart_data(request, board_id):
+    logger.debug("get data for velocity chart")
     board = Board.objects.by_id(board_id)
 
     if request.method == "POST":
         form = RangeForm(request.POST)
         if form.is_valid():
+            logger.debug("form data = %s", form.cleaned_data)
             beginning = form.cleaned_data["from_dt"]
             end = form.cleaned_data["to_dt"]
             sprints = Sprint.objects.for_board_in_range_by_end_date(
@@ -344,6 +357,7 @@ def list_history_data(request, list_id):
 
 def board_detail(request, board_id):
     board = Board.objects.by_id(board_id)
+    logger.debug("board detail %s", board)
     lists = List.objects.filter_lists_for_board(board)
     lists = sorted(lists, key=lambda x: x.name)
     sprints = Sprint.objects.filter(board__id=board_id).order_by("start_dt")
@@ -362,12 +376,14 @@ def board_detail(request, board_id):
 
 def board_refresh(request, board_id):
     board = Board.objects.by_id(board_id)
+    logger.debug("refresh board %s", board)
     board.ensure_actions(request.COOKIES["token"])
     return redirect('board-detail', board_id=board_id)
 
 
 def sprint_detail(request, sprint_id):
     sprint = Sprint.objects.get(id=sprint_id)
+    logger.debug("sprint detail: %s", sprint)
     if sprint.completed_list is not None:
         # don't supply date, we want latest stuff
         card_actions = CardAction.objects.safe_card_actions_on_list_in(
@@ -401,6 +417,7 @@ def sprint_detail(request, sprint_id):
 
 def list_detail(request, list_id):
     li = List.objects.get(id=list_id)
+    logger.debug("list detail: %s", li)
     context = {
         "list": li,
         "chart_url": "list-history-chart-data",
@@ -420,6 +437,7 @@ def list_detail(request, list_id):
 
 def card_detail(request, card_id):
     card = Card.objects.get(id=card_id)
+    logger.debug("card detail: %s", card)
     # (previous_action, action)
     action_list = list(card.actions.order_by("date"))
     actions = zip([None] + action_list[:-1], action_list)
@@ -444,6 +462,7 @@ def card_detail(request, card_id):
 
 def api_get_card(request, card_id):
     card = Card.objects.get(id=card_id)
+    logger.debug("api: get card %s", card)
 
     response = {
         "id": card.id,
