@@ -752,7 +752,11 @@ class Sprint(models.Model):
         # previous values: make sure this is ordered correctly!
         for card_id in cards:
             with transaction.atomic():
-                due = due_dict[card_id]
+                try:
+                    due = due_dict[card_id]
+                except KeyError:
+                    logger.error("couldn't figure out due of card %s", card_id)
+                    continue
                 try:
                     first = CardAction.objects.for_trello_card_id_on_list_names(
                         card_id, ["In Progress", "Next"]).latest()
