@@ -259,10 +259,14 @@ def cumulative_chart(request, board_id):
                 except KeyError:
                     logger.info("workflow key %s not found", wf_key)
                     break
-                if value not in all_lists:
-                    raise Exception("List %s is not in board" % value)
-                order.append(value)
-                idx += 1
+                else:
+                    logger.debug("value = %s", value)
+                    idx += 1
+                    if not value:
+                        continue
+                    if value not in all_lists:
+                        raise Exception("List %s is not in board" % value)
+                    order.append(value)
 
             lists = List.objects.filter_lists_for_board(board, f=order)
         else:
@@ -282,7 +286,7 @@ def cumulative_chart(request, board_id):
     response = {
         "data": data,
         "order": order,
-        "all_lists": all_lists
+        "all_lists": [""] + all_lists
     }
     return JsonResponse(response)
 
