@@ -28,4 +28,19 @@
 {% endfor %}
   </tbody>
 </table>
+
+<button type="button" class="btn btn-default" onclick="$('#trello-events').toggle();">Toggle trello events</button>
+<div id="trello-events" style="display: none;">
+  <p>
+    These are all events trello emitted for this card. Reading the events may cause serious injury,
+    proceed on your own risk.
+  </p>
+  <ul>
+    {% for event in events %}
+    <li>
+      <pre>{{ event }}</pre>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
 {% endblock %}

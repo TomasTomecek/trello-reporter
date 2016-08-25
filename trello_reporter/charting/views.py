@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import json
 import logging
 import datetime
 from urllib import urlencode
@@ -13,7 +14,7 @@ from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm, Con
     RangeForm
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
-
+from trello_reporter.harvesting.models import CardActionEvent
 
 logger = logging.getLogger(__name__)
 
@@ -445,9 +446,14 @@ def card_detail(request, card_id):
     # (previous_action, action)
     action_list = list(card.actions.order_by("date"))
     actions = zip([None] + action_list[:-1], action_list)
+
+    events = [json.dumps(x.data, indent=2)
+              for x in CardActionEvent.objects.for_card_by_date(card.trello_id)]
+
     context = {
         "card": card,
         "actions": actions,
+        "events": events,
         "breadcrumbs": [
             {
                 "url": reverse("board-detail", args=(card.latest_action.board.id, )),
