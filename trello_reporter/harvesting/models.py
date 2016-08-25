@@ -14,7 +14,8 @@ class CardActionEventQuerySet(models.QuerySet):
 
 class CardActionEventManager(models.Manager):
     def for_card_by_date(self, trello_card_id):
-        return self.for_card(trello_card_id).by_date()
+        # we can't order by date b/c of some nonsense; should be ordered anyway
+        return self.for_card(trello_card_id)
 
 
 class CardActionEvent(models.Model):
