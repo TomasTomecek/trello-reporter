@@ -106,7 +106,7 @@ def show_cumulative_chart(request, board_id):
         "from_dt": from_dt,
         "to_dt": n,
         "count": 1,
-        "time_type": "m"
+        "time_type": "d"
     }
     form = Workflow(initial=initial)
     board = Board.objects.get(id=board_id)
