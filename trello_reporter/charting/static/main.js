@@ -67,7 +67,8 @@ $(function() {
     );
   });
 
-  $("div#chart-workflow div select").focus(on_focus_states);
+  // focus is still on when you're changing options
+  $("div#chart-workflow div select").change(on_focus_states);
 });
 
 // handler for growing state machine
@@ -93,8 +94,8 @@ function on_focus_states(data) {
   //       .on("focus", on_focus_states);
   // }
 
-  // should we add another checkpoint?
-  if ($("#chart-workflow div").last().children("select").find(":selected").length > 0) {
+  // selectedIndex is better than .filter(":selected")
+  if ($("#chart-workflow div").last().children("select")[0].selectedIndex > 0) {
     var root_div = parent_div.parent("div#chart-workflow");
     var new_div = root_div
         .children("div.chart-settings-state-column")
@@ -111,7 +112,7 @@ function on_focus_states(data) {
         })
     new_select
         .attr("name", new_select.attr("id"))
-        .on("focus", on_focus_states);
+        .on("change", on_focus_states);
   }
 }
 

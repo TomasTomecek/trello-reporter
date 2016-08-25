@@ -198,10 +198,14 @@ def control_chart(request, board_id):
                 except KeyError:
                     logger.info("workflow key %s not found", wf_key)
                     break
-                if value not in all_lists:
-                    raise Exception("List %s is not in board" % value)
-                lists_filter.append(value)
-                idx += 1
+                else:
+                    logger.debug("value = %s", value)
+                    idx += 1
+                    if not value:
+                        continue
+                    if value not in all_lists:
+                        raise Exception("List %s is not in board" % value)
+                    lists_filter.append(value)
         else:
             # TODO: show errors
             logger.warning("form is not valid: %s", form.errors.as_json())
@@ -215,7 +219,7 @@ def control_chart(request, board_id):
     data = ChartExporter.control_flow_c3(board, lists_filter, beginning, end)
     response = {
         "data": data,
-        "all_lists": all_lists
+        "all_lists": [""] + all_lists
     }
     return JsonResponse(response)
 
