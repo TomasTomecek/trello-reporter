@@ -52,7 +52,11 @@ class Harvestor(object):
         return url
 
     def get_json(self, url):
-        return self.s.get(url).json()
+        response = self.s.get(url)
+        if response.status_code == 401:
+            logger.warning("can't access resource: %s", response.content)
+            return
+        return response.json()
 
     def get_card_actions(self, board_id, since=None):
         """
@@ -112,7 +116,9 @@ class Harvestor(object):
         params = {"fields": "due"}
         for card_id in trello_card_ids:
             url = self.url("cards/" + card_id, params=params)
-            response[card_id] = self.get_json(url)["due"]
+            j = self.get_json(url)
+            if j:
+                response[card_id] = j["due"]
         return response
 
     def get_token_info(self, token):
