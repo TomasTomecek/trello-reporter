@@ -77,7 +77,7 @@
                   <a href="{% url 'board-detail' board.id %}">{{ board.name }}</a>
                 </div>
                 <div class="list-group-item-text">
-                  Last sync: {% if board.card_actions.latest %}{{ board.card_actions.latest.date }}{% else %}Never{% endif %}
+                  Last action: {% if board.card_actions.latest %}{{ board.card_actions.latest.date }}{% else %}Never{% endif %}
                 </div>
               </div>
             </div>
