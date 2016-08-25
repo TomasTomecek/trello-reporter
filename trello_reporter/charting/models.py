@@ -18,6 +18,7 @@ from dateutil.tz import tzutc
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
+from django.db.utils import DatabaseError
 
 from trello_reporter.harvesting.models import CardActionEvent
 
@@ -750,26 +751,34 @@ class Sprint(models.Model):
         # we want to process actions in order as they happened so they can potentially overwrite
         # previous values: make sure this is ordered correctly!
         for card_id in cards:
-            due = due_dict[card_id]
-            try:
-                first = CardAction.objects.for_trello_card_id_on_list_names(
-                    card_id, ["In Progress", "Next"]).latest()
-            except ObjectDoesNotExist:
-                logger.info("card %s never reached In Progress", card_id)
-                continue
-            last = CardAction.objects.filter(card__trello_id=card_id).latest()
+            with transaction.atomic():
+                due = due_dict[card_id]
+                try:
+                    first = CardAction.objects.for_trello_card_id_on_list_names(
+                        card_id, ["In Progress", "Next"]).latest()
+                except ObjectDoesNotExist:
+                    logger.info("card %s never reached In Progress", card_id)
+                    continue
+                last = CardAction.objects.filter(card__trello_id=card_id).latest()
 
-            logger.debug("processing: %s -> %s", first, last)
+                logger.debug("processing: %s -> %s", first, last)
 
-            sprint_number = sprint_number_re.findall(last.card_name)[0]
-            sprint, created = cls.objects.get_or_create(board=board, sprint_number=sprint_number)
+                sprint_number = sprint_number_re.findall(last.card.name)[0]
+                sprint, created = cls.objects.get_or_create(board=board, sprint_number=sprint_number)
 
-            # update or set
-            sprint.start_dt = first.date
-            sprint.end_dt = due
-            sprint.name = last.card_name
-            sprint.due_card = last.card
-            sprint.save()
+                # update or set
+                sprint.start_dt = first.date
+                sprint.end_dt = due
+                sprint.name = last.card_name
+                sprint.due_card = last.card
+                try:
+                    sprint.save()
+                except DatabaseError as ex:
+                    # this can happen if the due card is moved to another board
+                    logger.error("can't create sprint: %s", ex)
+                    logger.error("suspect: %s", last)
+                    sprint.delete()
+                    continue
 
             logger.debug("%s", sprint)
 
