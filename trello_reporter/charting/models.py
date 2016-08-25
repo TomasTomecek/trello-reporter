@@ -229,7 +229,8 @@ class ListStatQuerySet(models.QuerySet):
 
     def unique_list(self):
         """ don't duplicate lists """
-        return self.order_by('list', '-card_action__date').distinct('list')
+        # here we care about list names, not list instances
+        return self.order_by('list__name', '-card_action__date').distinct('list__name')
 
 
 class ListStatManager(models.Manager):
