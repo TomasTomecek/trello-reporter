@@ -587,6 +587,9 @@ class CardAction(models.Model):
                         continue
                     # when list is changed (or on different board), name is missing; fun stuff!
                     trello_list_id, list_name = ca.list_id_and_name
+                    if not trello_list_id:
+                        # wat?! how about telling us to which list this is going
+                        continue
                     ca.list = List.get_or_create_list(trello_list_id, list_name)
 
                 elif ca.action_type in ["updateCard"]:  # update = change list, close or open
