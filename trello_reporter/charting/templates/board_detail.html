@@ -3,7 +3,7 @@
 <h1>Board "{{ board.name }}"</h1>
 <h2>Charts</h2>
 <ul>
-    <li><a href="{% url 'show-cumulative-chart' board.id %}">Cumulative chart</a></li>
+    <li><a href="{% url 'show-cumulative-chart' board.id %}">Cumulative flow chart</a></li>
     <li><a href="{% url 'show-control-chart' board.id %}">Control chart</a></li>
     <li><a href="{% url 'show-burndown-chart' board.id %}">Burndown chart</a></li>
     <li><a href="{% url 'show-velocity-chart' board.id %}">Velocity chart</a></li>
