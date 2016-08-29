@@ -751,38 +751,36 @@ class Sprint(models.Model):
         # we want to process actions in order as they happened so they can potentially overwrite
         # previous values: make sure this is ordered correctly!
         for card_id in cards:
-            with transaction.atomic():
-                try:
-                    due = due_dict[card_id]
-                except KeyError:
-                    logger.error("couldn't figure out due of card %s", card_id)
-                    continue
-                try:
-                    first = CardAction.objects.for_trello_card_id_on_list_names(
-                        card_id, ["In Progress", "Next"]).latest()
-                except ObjectDoesNotExist:
-                    logger.info("card %s never reached In Progress", card_id)
-                    continue
-                last = CardAction.objects.filter(card__trello_id=card_id).latest()
+            try:
+                with transaction.atomic():
+                    try:
+                        due = due_dict[card_id]
+                    except KeyError:
+                        logger.error("couldn't figure out due of card %s", card_id)
+                        continue
+                    try:
+                        first = CardAction.objects.for_trello_card_id_on_list_names(
+                            card_id, ["In Progress", "Next"]).latest()
+                    except ObjectDoesNotExist:
+                        logger.info("card %s never reached In Progress", card_id)
+                        continue
+                    last = CardAction.objects.filter(card__trello_id=card_id).latest()
 
-                logger.debug("processing: %s -> %s", first, last)
+                    logger.debug("processing: %s -> %s", first, last)
 
-                sprint_number = sprint_number_re.findall(last.card.name)[0]
-                sprint, created = cls.objects.get_or_create(board=board, sprint_number=sprint_number)
+                    sprint_number = sprint_number_re.findall(last.card.name)[0]
+                    sprint, created = cls.objects.get_or_create(board=board, sprint_number=sprint_number)
 
-                # update or set
-                sprint.start_dt = first.date
-                sprint.end_dt = due
-                sprint.name = last.card_name
-                sprint.due_card = last.card
-                try:
+                    # update or set
+                    sprint.start_dt = first.date
+                    sprint.end_dt = due
+                    sprint.name = last.card_name
+                    sprint.due_card = last.card
                     sprint.save()
-                except DatabaseError as ex:
-                    # this can happen if the due card is moved to another board
-                    logger.error("can't create sprint: %s", ex)
-                    logger.error("suspect: %s", last)
-                    sprint.delete()
-                    continue
+            except DatabaseError as ex:
+                # this can happen if the due card is moved to another board
+                logger.error("can't create sprint: %s", ex)
+                continue
 
             logger.debug("%s", sprint)
 
