@@ -66,17 +66,17 @@ class BurndownForm(RangeForm):
     sprint = forms.ModelChoiceField(queryset=Sprint.objects.all(), required=False, label="Sprint")
 
     def clean(self):
-        cleaned_data = super(BurndownForm, self).clean()
+        cleaned_data = super(forms.Form, self).clean()
 
         f = cleaned_data.get("from_dt")
-        t = cleaned_data.get("to_dt")
         s = cleaned_data.get("sprint")
 
-        if f and t and s:
+        if f and s:
             raise forms.ValidationError('Either pick sprint, or specify interval, not both.')
 
-        if not s and not f:
-            raise forms.ValidationError('Either sprint or beginning of a date range needs to specified.')
+        if not (s or f):
+            raise forms.ValidationError(
+                'Either sprint or beginning of a date range needs to specified.')
 
         return cleaned_data
 

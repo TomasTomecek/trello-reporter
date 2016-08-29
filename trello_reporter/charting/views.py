@@ -224,7 +224,7 @@ def control_chart(request, board_id):
     return JsonResponse(response)
 
 
-def cumulative_chart(request, board_id):
+def cumulative_chart_data(request, board_id):
     logger.debug("get data for cumulative chart")
     board = Board.objects.get(id=board_id)
     now = datetime.datetime.now(tz=tzutc())
@@ -316,8 +316,8 @@ def burndown_chart_data(request, board_id):
             sprint = Sprint.objects.get(id=sprint_id)
         else:
             sprint = Sprint.objects.latest_for_board(board)
-        beginning = sprint.start_dt
-        end = sprint.end_dt
+        beginning = sprint.start_dt.date()
+        end = sprint.end_dt.date()
 
     data = ChartExporter.burndown_chart_c3(board, beginning, end)
     response = {

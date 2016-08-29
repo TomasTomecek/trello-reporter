@@ -121,13 +121,19 @@ class ChartExporter(object):
     def burndown_chart_c3(cls, board, beginning, end):
         in_progress_lists = ["Next", "In Progress"]
         completed_lists = ["Complete", "Completed"]
-        now = datetime.datetime.now(tz=tzutc())
-
-        end = end or now
+        tz = tzutc()
+        now = datetime.datetime.now(tz=tz)
+        if end:
+            end = datetime.datetime(
+                year=end.year, month=end.month, day=end.day, hour=23, minute=59, tzinfo=tz)
+        else:
+            end = now
 
         response = []
         delta = datetime.timedelta(days=1)
-        d = beginning
+        d = datetime.datetime(
+            year=beginning.year, month=beginning.month, day=beginning.day, hour=0, minute=0,
+            tzinfo=tz)
         while True:
             if d > end:
                 break
