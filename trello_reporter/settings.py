@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'trello_reporter.charting',
     'trello_reporter.authentication',  # not to conflict with django.c.auth
     'trello_reporter.harvesting',
