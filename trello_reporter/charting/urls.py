@@ -24,6 +24,8 @@ urlpatterns = [
 
     url(r'^column/(?P<list_id>[0-9]+)/$',
         views.list_detail, name='list-detail'),
+    url(r'^column/(?P<list_id>[0-9]+)/stalled-cards/$',
+        views.stalled_cards, name='stalled-cards'),
     url(r'^card/(?P<card_id>[0-9]+)/$',
         views.card_detail, name='card-detail'),
     url(r'^sprint/(?P<sprint_id>[0-9]+)/$',

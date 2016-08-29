@@ -1,0 +1,19 @@
+{% extends "index.html" %}
+{% block body %}
+<table class="table table-striped table-bordered">
+    <thead>
+    <tr>
+        <td>Card</td>
+        <td>Present for</td>
+    </tr>
+    </thead>
+    <tbody>
+    {% for entry in data %}
+    <tr>
+        <td><a href="{% url 'card-detail' entry.ca.card.id %}">{{ entry.ca.card.name }}</a></td>
+        <td>{{ entry.present_for }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

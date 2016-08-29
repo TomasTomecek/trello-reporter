@@ -467,6 +467,22 @@ def card_detail(request, card_id):
     return render(request, "card_detail.html", context)
 
 
+def stalled_cards(request, list_id):
+    li = List.objects.get(id=list_id)
+    data = []
+    n = datetime.datetime.now(tz=tzutc())
+    for ca in CardAction.objects.safe_card_actions_on_list_in(li.latest_action.board, li):
+        data.append({
+            "ca": ca,
+            "present_for": n - ca.date,
+        })
+    context = {
+        "list": li,
+        "data": sorted(data, key=lambda x: x["present_for"], reverse=True),
+    }
+    return render(request, "stalled_cards.html", context)
+
+
 # API
 
 
