@@ -18,44 +18,38 @@ from django.conf.urls import url
 from . import views
 
 urlpatterns = [
-    # TODO: sanitize URLs, do better namespacing
-    # FIXME: API, HTML
     url(r'^$', views.index, name='index'),
     url(r'^board/(?P<board_id>[0-9]+)/$', views.board_detail, name='board-detail'),
     url(r'^board/(?P<board_id>[0-9]+)/refresh/$', views.board_refresh, name='board-refresh'),
 
-    url(r'^list/(?P<list_id>[0-9]+)/$',
+    url(r'^column/(?P<list_id>[0-9]+)/$',
         views.list_detail, name='list-detail'),
     url(r'^card/(?P<card_id>[0-9]+)/$',
         views.card_detail, name='card-detail'),
     url(r'^sprint/(?P<sprint_id>[0-9]+)/$',
         views.sprint_detail, name='sprint-detail'),
 
-    url(r'^chart/(?P<board_id>[0-9]+)/cards_at/$', views.cards_on_board_at, name='cards-at'),
-    url(r'^chart/(?P<board_id>[0-9]+)/card_history/$', views.card_history, name='card-history'),
-
-    url(r'^chart/(?P<board_id>[0-9]+)/$', views.show_cumulative_chart, name='show-cumulative-chart'),
-    url(r'^chart/(?P<board_id>[0-9]+)/cumulative/$', views.cumulative_chart,
-        name='cumulative-chart-data'),
-
-    url(r'^chart/(?P<board_id>[0-9]+)/control/$', views.show_control_chart,
+    url(r'^board/(?P<board_id>[0-9]+)/cards-at/$', views.cards_on_board_at, name='cards-at'),
+    url(r'^board/(?P<board_id>[0-9]+)/card-history/$', views.card_history, name='card-history'),
+    url(r'^board/(?P<board_id>[0-9]+)/cumulative/$', views.show_cumulative_chart,
+        name='show-cumulative-chart'),
+    url(r'^board/(?P<board_id>[0-9]+)/control/$', views.show_control_chart,
         name='show-control-chart'),
-    url(r'^chart/(?P<board_id>[0-9]+)/control-data/$', views.control_chart,
-        name='control-chart-data'),
-
-    url(r'^chart/(?P<board_id>[0-9]+)/burndown/$', views.show_burndown_chart,
-        name='show-burndown-chart'),
-    url(r'^chart/(?P<board_id>[0-9]+)/burndown-data/$',
-        views.burndown_chart_data,
-        name='burndown-chart-data'),
-
-    url(r'^chart/(?P<board_id>[0-9]+)/velocity/$', views.show_velocity_chart,
+    url(r'^board/(?P<board_id>[0-9]+)/velocity/$', views.show_velocity_chart,
         name='show-velocity-chart'),
-    url(r'^chart/(?P<board_id>[0-9]+)/velocity-data/$', views.velocity_chart_data,
-        name='velocity-chart-data'),
-
-    url(r'^chart/(?P<list_id>[0-9]+)/list-history-data/$', views.list_history_data,
-        name='list-history-chart-data'),
+    url(r'^board/(?P<board_id>[0-9]+)/burndown/$', views.show_burndown_chart,
+        name='show-burndown-chart'),
 
     url(r'^api/v0/card/(?P<card_id>[0-9]+)/$', views.api_get_card, name='api-get-card'),
+    url(r'^api/v0/board/(?P<board_id>[0-9]+)/cumulative-flow/$', views.cumulative_chart_data,
+        name='cumulative-chart-data'),
+    url(r'^api/v0/board/(?P<board_id>[0-9]+)/control/$', views.control_chart,
+        name='control-chart-data'),
+    url(r'^api/v0/column/(?P<list_id>[0-9]+)/list-history/$', views.list_history_data,
+        name='list-history-chart-data'),
+    url(r'^api/v0/board/(?P<board_id>[0-9]+)/burndown/$',
+        views.burndown_chart_data,
+        name='burndown-chart-data'),
+    url(r'^api/v0/board/(?P<board_id>[0-9]+)/velocity/$', views.velocity_chart_data,
+        name='velocity-chart-data'),
 ]
