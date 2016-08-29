@@ -102,6 +102,16 @@ class Harvestor(object):
         response.reverse()  # oldest first
         return response
 
+    def get_cards_on_board(self, board_id, before=None):
+        fields = "id,name,idBoard,idList,dateLastActivity"
+        params = {
+            "before": before,
+            "filter": "all",
+            "fields": fields,
+        }
+        url = self.url('boards/%s/cards' % board_id, params=params)
+        return self.get_json(url)
+
     def list_boards(self):
         url = self.url('members/me/boards', params={"fields": "name"})
         return self.get_json(url)

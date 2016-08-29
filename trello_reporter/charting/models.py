@@ -74,14 +74,34 @@ class Board(models.Model):
         """
         ensure that card actions were fetched and loaded inside database; if not, load them
         """
+        h = Harvestor(token)
         try:
             latest_action = self.card_actions.latest()
         except ObjectDoesNotExist:
             logger.info("fetching all card actions")
-            actions = Harvestor(token).get_card_actions(self.trello_id)
+            actions = h.get_card_actions(self.trello_id)
+            initial_cards = h.get_cards_on_board(self.trello_id, actions[0]["date"])
+            # these are synthetic events
+            for c in sorted(initial_cards, key=lambda x: x["dateLastActivity"], reverse=True):
+                actions.insert(0, {
+                    "date": c["dateLastActivity"],
+                    "type": "defaultCard",
+                    "data": {
+                        "board": {
+                            "id": c["idBoard"]
+                        },
+                        "card": {
+                            "id": c["id"],
+                            "name": c["name"],
+                        },
+                        "list": {
+                            "id": c["idList"]
+                        }
+                    }
+                })
         else:
             logger.info("fetching card actions since %s", latest_action.date)
-            actions = Harvestor(token).get_card_actions(self.trello_id, since=latest_action.date)
+            actions = h.get_card_actions(self.trello_id, since=latest_action.date)
 
         CardAction.from_trello_response_list(self, actions)
         Sprint.refresh(self, token)
@@ -421,7 +441,7 @@ class CardActionManager(models.Manager):
 
 
 class CardAction(models.Model):
-    trello_id = models.CharField(max_length=32, db_index=True)
+    trello_id = models.CharField(max_length=32, db_index=True, blank=True, null=True)
     # datetime when the event happened
     date = models.DateTimeField(db_index=True)
     # type of actions displayed as string
@@ -559,7 +579,7 @@ class CardAction(models.Model):
                 event = CardActionEvent(data=action_data)
                 event.save()
                 ca = CardAction(
-                    trello_id=action_data["id"],
+                    trello_id=action_data.get("id", None),
                     date=dateparser.parse(action_data["date"], tzinfos=tzutc),
                     action_type=action_data["type"],
                     card=card,
@@ -579,7 +599,7 @@ class CardAction(models.Model):
                     ca.story_points = story_points_int
 
                 # figure out list_name, archivals, removals and unicorns
-                if ca.action_type in ["createCard", "moveCardToBoard",
+                if ca.action_type in ["createCard", "moveCardToBoard", "defaultCard",
                                       "copyCard", "convertToCardFromCheckItem"]:  # create-like events
                     if ca.trello_board_id != board.trello_id:
                         logger.info("card %s was created on board %s",
@@ -589,12 +609,12 @@ class CardAction(models.Model):
                     # when list is changed (or on different board), name is missing; fun stuff!
                     trello_list_id, list_name = ca.list_id_and_name
                     if not trello_list_id:
+                        logger.warning("list not specified for card '%s'", card.name)
                         # wat?! how about telling us to which list this is going
                         continue
                     ca.list = List.get_or_create_list(trello_list_id, list_name)
 
                 elif ca.action_type in ["updateCard"]:  # update = change list, board, close or open
-                    # if not previous_action: likely a move from different board
                     if ca.archiving:
                         ca.list = None
                         ca.is_archived = True
@@ -602,14 +622,20 @@ class CardAction(models.Model):
                         # card is opened again
                         trello_list_id, list_name = ca.list_id_and_name
                         if not trello_list_id:
+                            logger.warning("card updated to unknown list: %s", ca)
                             # cards without lists are useless to us; srsly trello?!
                             continue
                         ca.list = List.get_or_create_list(trello_list_id, list_name)
-                        if ca.rename:
-                            if previous_action and ca.story_points == previous_action.story_points:
+                        if previous_action:
+                            if previous_action.list != ca.list:
+                                logger.info("sneaky list change %s: %s -> %s", card, previous_action.list, ca.list)
+                            elif ca.story_points == previous_action.story_points:
                                 # just name update, we don't care about that
                                 continue
                     else:
+                        if previous_action and previous_action.is_archived:
+                            logger.info("archived card %s is being moved", card)
+                            continue
                         trello_list_id, list_name = ca.target_list_id_and_name
                         ca.list = List.get_or_create_list(trello_list_id, list_name)
 
@@ -628,7 +654,7 @@ class CardAction(models.Model):
                 ca.save()
 
                 # ListStats
-                if ca.rename:
+                if ca.rename and previous_action and previous_action.list == ca.list:
                     diff = 0
                     try:
                         current_list_stat = ListStat.objects.latest_stat_for_list(ca.list)
@@ -645,12 +671,15 @@ class CardAction(models.Model):
                         diff = -1
                         previous_list = previous_action.list
                         if previous_list:
+                            if previous_list == ca.list:
+                                # HACK: likely trello trashed an event of moving the card
+                                logger.warning("card %s is already on list %s", card, previous_list)
                             previous_list_stat = ListStat.objects.latest_stat_for_list(previous_list)
                             cards_rt = previous_list_stat.cards_rt
                             sp_rt = previous_list_stat.story_points_rt
                             ListStat.create_stat(ca, previous_list, diff, cards_rt + diff,
                                                  sp_rt - previous_action.story_points)
-                    if ca.list:
+                    if ca.list and not (ca.is_archived or ca.is_deleted):
                         diff = 1
                         try:
                             current_list_stat = ListStat.objects.latest_stat_for_list(ca.list)
