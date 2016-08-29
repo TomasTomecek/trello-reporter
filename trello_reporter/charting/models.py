@@ -671,7 +671,12 @@ class SprintQuerySet(models.QuerySet):
         return self.filter(completed_list__isnull=False)
 
     def in_range(self, beginning, end):
-        return self.filter(start_dt__gt=beginning, end_dt__lt=end)
+        q = {}
+        if beginning:
+            q["start_dt__gt"] = beginning
+        if end:
+            q["end_dt__lt"] = end
+        return self.filter(**q)
 
 
 class SprintManager(models.Manager):

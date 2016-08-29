@@ -123,6 +123,8 @@ class ChartExporter(object):
         completed_lists = ["Complete", "Completed"]
         now = datetime.datetime.now(tz=tzutc())
 
+        end = end or now
+
         response = []
         delta = datetime.timedelta(days=1)
         d = beginning

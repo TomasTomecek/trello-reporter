@@ -100,12 +100,12 @@ def show_velocity_chart(request, board_id):
 
 def show_cumulative_chart(request, board_id):
     logger.debug("display cumulative flow chart")
-    n = datetime.datetime.now()
-    from_dt = n - datetime.timedelta(days=30)
+    today = datetime.datetime.now().date()
+    from_dt = today - datetime.timedelta(days=30)
     # TODO [DRY]: use exactly same variables for charting
     initial = {
         "from_dt": from_dt,
-        "to_dt": n,
+        "to_dt": today,
         "count": 1,
         "time_type": "d"
     }

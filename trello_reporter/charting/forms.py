@@ -20,30 +20,50 @@ DELTA_CHOICES = (
 )
 
 
-class Workflow(forms.Form):
+class DateInputWithDatepicker(forms.DateInput):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("attrs", {})
+        kwargs["attrs"]["class"] = "datepicker"
+        super(DateInputWithDatepicker, self).__init__(*args, **kwargs)
+
+
+class DateFieldWithDatepicker(forms.DateField):
+    widget = DateInputWithDatepicker
+
+
+class RangeForm(forms.Form):
+    from_dt = DateFieldWithDatepicker(label="From", required=False)
+    to_dt = DateFieldWithDatepicker(label="To", required=False)
+
+    def clean(self):
+        cleaned_data = super(RangeForm, self).clean()
+
+        f = cleaned_data.get("from_dt")
+        t = cleaned_data.get("to_dt")
+
+        if not (f or t):
+            raise forms.ValidationError('Please specify "From" or "To".')
+
+        return cleaned_data
+
+
+class Workflow(RangeForm):
     """
     State1   State2   State3   ...
     list   → list2  → list4
     ...      list3    ...
              ...
     """
-    from_dt = forms.DateTimeField()
-    to_dt = forms.DateTimeField()
-    count = forms.FloatField()
-    time_type = forms.ChoiceField(choices=DELTA_CHOICES)
+    count = forms.FloatField(label="Delta size")
+    time_type = forms.ChoiceField(choices=DELTA_CHOICES, label="Delta unit")
 
 
 class DateForm(forms.Form):
-    date = forms.DateTimeField()
-
-
-class RangeForm(forms.Form):
-    from_dt = forms.DateTimeField(required=False)
-    to_dt = forms.DateTimeField(required=False)
+    date = DateFieldWithDatepicker(label="Date")
 
 
 class BurndownForm(RangeForm):
-    sprint = forms.ModelChoiceField(queryset=Sprint.objects.all(), required=False)
+    sprint = forms.ModelChoiceField(queryset=Sprint.objects.all(), required=False, label="Sprint")
 
     def clean(self):
         cleaned_data = super(BurndownForm, self).clean()
@@ -53,10 +73,12 @@ class BurndownForm(RangeForm):
         s = cleaned_data.get("sprint")
 
         if f and t and s:
-            raise forms.ValidationError('Either pick sprint, or specify interval, not both')
+            raise forms.ValidationError('Either pick sprint, or specify interval, not both.')
 
-        if not s and not (f and t):
-            raise forms.ValidationError('Both "from" and "to" has to be filled.')
+        if not s and not f:
+            raise forms.ValidationError('Either sprint or beginning of a date range needs to specified.')
+
+        return cleaned_data
 
 
 class ControlChartForm(BurndownForm):

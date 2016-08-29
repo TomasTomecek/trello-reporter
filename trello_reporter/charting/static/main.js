@@ -23,6 +23,10 @@ $(function() {
     chart_data_url = $("#chart").attr('data-chart-url');
   }
 
+  $('.datepicker').datepicker({
+    format: 'yyyy-mm-dd'
+  });
+
   // load chart data
   $.ajax({
     url: chart_data_url,
@@ -61,6 +65,8 @@ $(function() {
           reload_cumulative_chart(data);
         } else if (chart_data_url.indexOf("burndown") > -1) {
           reload_burndown_chart(data);
+        } else if (chart_data_url.indexOf("velocity") > -1) {
+          reload_velocity_chart(data);
         }
       },
       'json' // I expect a JSON response
@@ -308,6 +314,12 @@ function render_burndown_chart(data) {
       connectNull: true
     }
   });
+}
+
+function reload_velocity_chart(data) {
+  chart_data["json"] = data["data"];
+  chart_data["unload"] = chart.columns;
+  chart.load(chart_data);
 }
 
 function render_velocity_chart(data) {
