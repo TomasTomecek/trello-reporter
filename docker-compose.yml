@@ -6,20 +6,22 @@ web:
    - .:/opt/app/
   links:
    - db
-   - redis
+     #   - redis
   stdin_open: true
   tty: true
   environment:
-   - REDIS_URL=redis://redis:6379/1
+    #   - REDIS_URL=redis://redis:6379/1
    - POSTGRESQL_DATABASE=trello-reporting
    - POSTGRESQL_USER=user
    - POSTGRESQL_PASSWORD=password
    - API_KEY
 db:
   image: praiskup/postgresql:APIv1.0.1-fedora23
-#  volumes:
+  volumes:
+    - ./deployment/postgresql/:/usr/share/cont-volume/postgresql/
 #   - ./db:/var/lib/pgsql/data
   environment:
+   - CONT_DEBUG=3
    - POSTGRESQL_DATABASE=trello-reporting
    - POSTGRESQL_USER=user
    - POSTGRESQL_PASSWORD=password
@@ -37,19 +39,15 @@ db:
 #   volumes:
 #    - .:/opt/app/
 #   command: bash -c "sleep 7 && exec python /opt/app/manage.py runworker -v3"
-redis:
-  image: redis
+# redis:
+#   image: redis
 migrator:
   build: .
   environment:
    - POSTGRESQL_DATABASE=trello-reporting
    - POSTGRESQL_USER=user
    - POSTGRESQL_PASSWORD=password
-   - REDIS_URL=redis://redis:6379/1
    - API_KEY
-   - API_SECRET
-   - OAUTH_TOKEN
-   - OAUTH_SECRET
   volumes:
    - .:/opt/app/
   links:

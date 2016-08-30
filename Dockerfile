@@ -1,5 +1,7 @@
 FROM fedora:24
-RUN dnf install -y git python-pip gcc python-devel postgresql-devel redhat-rpm-config
+# TODO: install server deps from RPM
+# TODO: move devel tools to a separate container
+RUN dnf install -y git python-pip gcc python-devel postgresql-devel redhat-rpm-config python2-pytest
 # python-psycopg2 python-twisted python-six python-redis python-dateutil python-zope-interface
 
 RUN mkdir -p /opt/app
