@@ -66,7 +66,7 @@ class ChartExporter(object):
                 "date": d.strftime("%Y-%m-%d %H:%M"),
             }
             for s in stats:
-                tick[s.list.name] = s.story_points_rt
+                tick[s.list.name] = s.cards_rt
             response.append(tick)
             d += delta
         return response
