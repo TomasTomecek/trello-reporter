@@ -271,6 +271,21 @@ function render_cumulative_chart(data) {
   });
 }
 
+function get_burndown_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
+  var data = this.config.data_json[d[0].source_index];
+  var template_b="<table class=\"c3-tooltip\"><tbody>";
+  var template_e="</tbody></table>";
+  var cards = "";
+  data.done_cards.forEach(function(card) {
+    cards += "<tr><td colspan=\"2\">" + card.name + "</td></tr>";
+  });
+  var response = template_b + cards +
+    "<tr><td class=\"name\">Done</td><td class=\"value\">" + data.done + "</td></tr>" +
+    "<tr><td class=\"name\">Not done</td><td class=\"value\">" + data.not_done + "</td></tr>" +
+    template_e;
+  return response;
+}
+
 function reload_burndown_chart(data) {
   chart_data["json"] = data["data"];
   chart_data["unload"] = chart.columns;
@@ -309,6 +324,9 @@ function render_burndown_chart(data) {
       y: {
         label: 'Story points',
       }
+    },
+    tooltip: {
+      contents: get_burndown_tooltip
     },
     line: {
       connectNull: true

@@ -240,13 +240,16 @@ class ListStatQuerySet(models.QuerySet):
         return self.filter(list__id__in=list_ids)
 
     def for_list_names(self, list_names):
-        return self.filter(list__name__in=list_names)
+        return self.filter(card_action__list__name__in=list_names, list__name__in=list_names)
 
     def in_range(self, beginning, end):
         return self.filter(card_action__date__range=(beginning, end))
 
     def before(self, date):
         return self.filter(card_action__date__lt=date)
+
+    def unique_card(self):
+        return self.order_by('card_action__card', '-card_action__date').distinct('card_action__card')
 
     def unique_list(self):
         """ don't duplicate lists """
@@ -274,7 +277,6 @@ class ListStatManager(models.Manager):
             .for_list_names(list_names) \
             .in_range(beginning, end) \
             .select_related("list", "card_action")
-        logger.debug(q)
         return q
 
     def stats_for_list_names_before(self, board, list_names, before):
@@ -298,16 +300,9 @@ class ListStatManager(models.Manager):
     def latest_sp_for_list_names_before(self, board, list_names, before):
         """
         # of story points on a list in a given time - specified as a array of names - it works
-        for lists duplicate lists
+        for duplicate lists
         """
-        return self.stats_for_list_names_before(board, list_names, before).latest().story_poits_rt
-
-    def sum_sp_for_list_names_in_interval(self, board, list_names, beginning, end):
-        """ sum of story points in"""
-        # NotImplementedError: aggregate() + distinct(fields) not implemented.
-        return sum(filter(None,
-            [x.card_action.story_points for x in self.stats_for_list_names_in_range(
-            board, list_names, beginning, end)]))
+        return self.stats_for_list_names_before(board, list_names, before)[0].story_points_rt
 
 
 class ListStat(models.Model):
@@ -399,6 +394,14 @@ class CardActionManager(models.Manager):
         return self.filter(id__in=[x.id for x in cas], list__name__in=list_names).select_related(
             "list", "card", "board"
         )
+
+    def card_actions_on_list_names_in_range(self, board, list_names, beginning, end):
+        cas = self.get_card_actions_on_board_in(board, end)
+        return self \
+            .since(beginning) \
+            .for_list_names(list_names) \
+            .filter(id__in=[x.id for x in cas]) \
+            .select_related("list", "card", "board")
 
     def card_actions_on_list_names_in_interval(self, board, list_names, beginning, end):
         cas = self.actions_on_board_in_range(board, beginning, end)
