@@ -124,16 +124,20 @@ class ChartExporter(object):
         tz = tzutc()
         now = datetime.datetime.now(tz=tz)
         if end:
-            end = datetime.datetime(
-                year=end.year, month=end.month, day=end.day, hour=23, minute=59, tzinfo=tz)
+            if not isinstance(end, datetime.datetime):
+                end = datetime.datetime(
+                    year=end.year, month=end.month, day=end.day, hour=23, minute=59, tzinfo=tz)
         else:
             end = now
 
         response = []
         delta = datetime.timedelta(days=1)
-        d = datetime.datetime(
-            year=beginning.year, month=beginning.month, day=beginning.day, hour=0, minute=0,
-            tzinfo=tz)
+        if not isinstance(beginning, datetime.datetime):
+            d = datetime.datetime(
+                year=beginning.year, month=beginning.month, day=beginning.day, hour=0, minute=0,
+                tzinfo=tz)
+        else:
+            d = beginning
         while True:
             if d > end:
                 break

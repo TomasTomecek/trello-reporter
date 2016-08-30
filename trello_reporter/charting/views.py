@@ -316,8 +316,8 @@ def burndown_chart_data(request, board_id):
             sprint = Sprint.objects.get(id=sprint_id)
         else:
             sprint = Sprint.objects.latest_for_board(board)
-        beginning = sprint.start_dt.date()
-        end = sprint.end_dt.date()
+        beginning = sprint.start_dt
+        end = sprint.end_dt
 
     data = ChartExporter.burndown_chart_c3(board, beginning, end)
     response = {
