@@ -385,7 +385,7 @@ function render_list_history_chart(data) {
         }
       },
       y: {
-        label: 'Count',
+        label: '# cards',
       }
     },
   });
