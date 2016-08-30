@@ -1,9 +1,45 @@
 # trello-reporter
 
+Reports and charts for your trello boards!
+
+
+**This project is currently under heavy development.**
+
+
+## Usage
+
+### API key
+
+This tool is interacting with trello via API. Every request sent to trello needs two values:
+
+ 1. API key
+ 2. token
+
+You can obtain API key from [https://trello.com/app-key](https://trello.com/app-key).
+
+The token is retrieved automatically from trello with the first request sent to the tool. The token is *NOT* saved to database. It's set as a cookie.
+
+
+### Running the tool
+
+Please make sure you have `docker-compose` installed.
+
+Before starting the tool, you have to provide the API key. The easiest way is to set as an environment variable:
+
+```
+$ export API_KEY="mykey"
+```
+
+Then just bring the whole environment up:
+
+```
+$ docker-compose up
+```
+
 
 ## Development
 
-Everything is in docker containers.
+Everything is running in docker containers.
 
 
 ### Using django
