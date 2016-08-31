@@ -154,7 +154,7 @@ class ChartExporter(object):
             prev = d - delta
             compl = CardAction.objects.card_actions_on_list_names_in_range(
                 board, completed_lists, prev, d)
-            in_progress = ListStat.objects.latest_sp_for_list_names_before(
+            in_progress = ListStat.objects.sum_sp_for_list_names_before(
                 board, in_progress_lists, d)
             tick = {
                 "date": d.strftime("%Y-%m-%d %H:%M"),
@@ -163,7 +163,7 @@ class ChartExporter(object):
                 "done_cards": [{"name": x.card.name, "id": x.card_id} for x in compl]
             }
             if len(response) == 0:
-                tick["ideal"] = ListStat.objects.latest_sp_for_list_names_before(
+                tick["ideal"] = ListStat.objects.sum_sp_for_list_names_before(
                     board, in_progress_lists, beginning)
             response.append(tick)
             d += delta

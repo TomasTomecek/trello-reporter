@@ -240,7 +240,8 @@ class ListStatQuerySet(models.QuerySet):
         return self.filter(list__id__in=list_ids)
 
     def for_list_names(self, list_names):
-        return self.filter(card_action__list__name__in=list_names, list__name__in=list_names)
+        """ latest stat for lists """
+        return self.filter(list__name__in=list_names)
 
     def in_range(self, beginning, end):
         return self.filter(card_action__date__range=(beginning, end))
@@ -294,13 +295,13 @@ class ListStatManager(models.Manager):
     def sum_sp_for_list_names_before(self, board, list_names, before):
         """ if you want to aggregate from multiple lists, e.g. in progress + next """
         # NotImplementedError: aggregate() + distinct(fields) not implemented.
-        return sum(filter(None, [x.story_points_rt for x in self.stats_for_list_names_before(
-            board, list_names, before)]))
+        stats = self.stats_for_list_names_before(board, list_names, before)
+        return sum(filter(None, [x.story_points_rt for x in stats]))
 
     def latest_sp_for_list_names_before(self, board, list_names, before):
         """
         # of story points on a list in a given time - specified as a array of names - it works
-        for duplicate lists
+        for duplicate lists, don't use for aggregation!
         """
         return self.stats_for_list_names_before(board, list_names, before)[0].story_points_rt
 
@@ -325,8 +326,8 @@ class ListStat(models.Model):
         get_latest_by = "card_action__date"
 
     def __unicode__(self):
-        return "[c=%s sp=%s] %s (%s)" % (self.cards_rt, self.story_points_rt,
-                                         self.diff, self.card_action)
+        return "[c=%s sp=%s %s] %s (%s)" % (
+            self.cards_rt, self.story_points_rt, self.list, self.diff, self.card_action)
 
     @classmethod
     def create_stat(cls, ca, list, diff, cards_rt, sp_rt):
