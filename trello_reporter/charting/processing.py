@@ -109,11 +109,13 @@ class ChartExporter(object):
             else:
                 first_action = card_data["data"][0]
                 last_action = card_data["data"][-1]
-                days = (last_action.date - first_action.date).days
-                logger.debug("%s - %s = %d days", last_action, first_action, days)
+                total_seconds = (last_action.date - first_action.date).total_seconds()
+                days = float(total_seconds) / 60 / 60 / 24
+                days_out = "{:.1f}".format(days)
+                logger.debug("%s - %s = %s days", last_action, first_action, days_out)
                 date = last_action.date.strftime("%Y-%m-%d %H:%M")
                 cards.append({
-                    "days": days,
+                    "days": days_out,
                     "id": card.id,
                     "size": last_action.story_points,
                     "label": "Hours",
