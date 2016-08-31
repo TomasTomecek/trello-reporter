@@ -4,6 +4,7 @@ Calculate chart data
 TODO:
 
  * move all queries to models.py
+ * refactor date/time - create util functions, use timezone everywhere
 """
 from __future__ import unicode_literals, print_function
 
@@ -56,6 +57,9 @@ class ChartExporter(object):
         #         s.list.name: s.running_total
         #     }
         #     response.append(tick)
+
+        beginning = datetime.datetime.combine(beginning, datetime.datetime.min.time())
+        end = datetime.datetime.combine(end, datetime.datetime.max.time())
 
         d = beginning
         while True:
