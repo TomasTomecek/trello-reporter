@@ -117,6 +117,7 @@ class ChartExporter(object):
                 cards.append({
                     "days": days_out,
                     "id": card.id,
+                    "name": card.name,
                     "size": last_action.story_points,
                     "label": "Hours",
                     "date": date

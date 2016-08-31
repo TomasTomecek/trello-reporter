@@ -3,12 +3,6 @@ var chart_data_url = null;
 var chart = null;
 var previous_values = null;
 var chart_data = null;
-var cache = {
-  cards: {},  // card_id -> response from api
-  card_indexes: {},  // c3_index -> response from api
-  lists: {},
-  boards: {}
- };
 var constants = {
   datetime_format: '%Y-%m-%d %H:%M',
   day_format: '%Y-%m-%d',
@@ -123,7 +117,7 @@ function on_focus_states(data) {
 }
 
 function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
-  var card_id = this.config.data_json[d[0].source_index].id
+  var card = this.config.data_json[d[0].source_index];
   var titleFormat = this.config.tooltip_format_title || defaultTitleFormat;
   var title = titleFormat ? titleFormat(d[0].x) : d[0].x;
 
@@ -132,25 +126,14 @@ function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
 
   var tooltip = $("div#custom-chart-tooltip").html();
 
-  if (!(card_id in cache.cards)) {
-    // TODO: provide all tooltips with chart data
-    $.ajax({
-      url: "/api/v0/card/" + card_id + "/",
-      dataType: "json",
-      async: false,
-    }).done(function(data) {
-      cache.cards[card_id] = data;
-      cache.card_indexes[d[0].index] = data;
-    });
-  }
-  tooltip = tooltip.replace("TITLE", cache.cards[card_id].name);
+  tooltip = tooltip.replace("TITLE", card.name);
   tooltip = tooltip.replace("DATE", title);
   tooltip = tooltip.replace("DAYS", value);
   return tooltip;
 }
 
 function on_point_click(d, element) {
-  var card_id = cache.card_indexes[d.index].id;  // FIXME: race for the data to get there
+  var card_id = this.internal.config.data_json[d.source_index].id;
   window.open('/card/' + card_id + '/', '_blank');
 }
 
