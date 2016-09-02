@@ -12,12 +12,17 @@ from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
 from django.views.generic.base import TemplateView, View
 
-from trello_reporter.charting.forms import DateForm, BurndownForm, ControlChartForm
+from trello_reporter.charting.forms import DateForm, BurndownForm, ControlChartForm, \
+    get_workflow_formset
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 from trello_reporter.harvesting.models import CardActionEvent
 
 logger = logging.getLogger(__name__)
+
+# local constants
+
+CONTROL_INITIAL_WORKFLOW = ["Next", "Complete"]
 
 
 def index(request):
@@ -69,10 +74,6 @@ class ChartView(BaseView):
         context["form"] = self.form
         return context
 
-    def populate_workflow_select(self, board):
-        lis = List.objects.get_all_listnames_for_board(board)
-        self.form.set_workflow_choices([("", "")] + zip(lis, lis))
-
 
 class ControlChartView(ChartView):
     template_name = "control_chart.html"
@@ -91,9 +92,13 @@ class ControlChartView(ChartView):
         context = super(ControlChartView, self).get_context_data(**kwargs)
 
         self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
-        self.populate_workflow_select(board)
+
+        # TODO: have this in mixin, share with data
+        lis = List.objects.get_all_listnames_for_board(board)
+        formset = get_workflow_formset([("", "")] + zip(lis, lis), CONTROL_INITIAL_WORKFLOW)
 
         context["board"] = board
+        context["formset"] = formset
         context["breadcrumbs"] = [
             Breadcrumbs.board_detail(board),
             Breadcrumbs.text("Control Chart")
@@ -107,14 +112,14 @@ class ControlChartDataView(View):
         sprint = Sprint.objects.latest_for_board(board)
         beginning = sprint.start_dt
         end = sprint.end_dt
-        lists_filter = ["Next", "Complete"]
 
-        context = self.get_context(board, beginning, end, lists_filter)
+        context = self.get_context(board, beginning, end, CONTROL_INITIAL_WORKFLOW)
         return JsonResponse(context)
 
     def post(self, request, board_id, *args, **kwargs):
         board = Board.objects.by_id(board_id)
         form = ControlChartForm(request.POST)
+        # TODO: instantiate formset
         if form.is_valid():
             sprint = form.cleaned_data["sprint"]
             if sprint:

@@ -24,11 +24,14 @@
         {{ form.sprint }}
     </div>
     <div id="chart-workflow">
-        {{ form.workflow.errors }}
-        {{ form.workflow.label_tag }}
-        <div class="chart-settings-state-column">
-            {{ form.workflow }}
-        </div>
+        {{ formset.management_form }}
+        {% for form in formset %}
+            {% if forloop.first %}{{ form.workflow.label_tag }}{% endif %}
+            {{ form.workflow.errors }}
+            <div class="chart-settings-state-column">
+                {{ form.workflow }}
+            </div>
+        {% endfor %}
     </div>
 
     <input class="submit-button" type="button" value="Submit" />

@@ -22,48 +22,54 @@ DELTA_CHOICES = (
 # they have to derive from forms.Form, NOT from object (django metaclass magic)
 
 
-class SelectWidgetWithCustomId(forms.Select):
-    def render(self, name, value, attrs=None, **kwargs):
-        attrs["id"] = "workflow-1"
-        return super(SelectWidgetWithCustomId, self).render(name, value, attrs=attrs, **kwargs)
-
-
-class ChoiceFieldWithCustomId(forms.ChoiceField):
-    widget = SelectWidgetWithCustomId
-
-
-# TODO: rewrite and use formsets
 class WorkflowMixin(forms.Form):
     # initial workflow select, rest is spawned via javascript
-    workflow = ChoiceFieldWithCustomId(
+    workflow = forms.ChoiceField(
         required=False,  # we'll validate in our clean()
         label="Workflow"
     )
 
+    def set_initial_data(self, value):
+        self.fields["workflow"].initial = value
+
     def set_workflow_choices(self, values):
         self.fields["workflow"].choices = values
 
-    def clean(self):
-        cleaned_data = super(WorkflowMixin, self).clean()
 
-        idx = 1
-        cleaned_data["workflow"] = []
-        while True:
-            wf_key = "workflow-%d" % idx
+class WorkflowBaseFormSet(forms.BaseFormSet):
+    def set_initial_data(self, values):
+        [form.set_initial_data(values[idx]) for idx, form in enumerate(self.forms)]
+
+    def set_choices(self, choices):
+        [form.set_workflow_choices(choices) for form in self.forms]
+
+    @property
+    def workflow(self):
+        if not self.is_valid():
+            logger.warning("formset is invalid")
+            raise Exception("form is invalid")
+        response = []
+        for form in self.forms:
             try:
-                value = self.data[wf_key].strip()
-            except KeyError:
-                logger.info("workflow key %s not found", wf_key)
-                break
-            else:
-                logger.debug("value = %s", value)
-                idx += 1
-                if not value:
-                    continue
-                cleaned_data["workflow"].append(value)
-        if not cleaned_data["workflow"]:
+                response.append(form.cleaned_data.values()[0])
+            except IndexError:
+                # might not be filled
+                continue
+        return response
+
+    def clean(self):
+        if not self.workflow:
             raise forms.ValidationError("Please select at least one value.")
-        return cleaned_data
+
+WorkflowFormSet = forms.formset_factory(WorkflowMixin, formset=WorkflowBaseFormSet)
+
+
+def get_workflow_formset(choices, initial_data):
+    fs = forms.formset_factory(
+        WorkflowMixin, formset=WorkflowBaseFormSet, extra=len(initial_data))()
+    fs.set_choices(choices)
+    fs.set_initial_data(initial_data)
+    return fs
 
 
 class DateInputWithDatepicker(forms.DateInput):
@@ -132,11 +138,9 @@ class DateForm(forms.Form):
 # ACTUAL FORMS
 
 
-class ControlChartForm(WorkflowMixin, SprintAndRangeMixin, DeltaMixin, forms.Form):
+class ControlChartForm(SprintAndRangeMixin, DeltaMixin, forms.Form):
     def clean(self):
-        cleaned_data = WorkflowMixin.clean(self)
-        cleaned_data.update(SprintAndRangeMixin.clean(self))
-        return cleaned_data
+        return SprintAndRangeMixin.clean(self)
 
 
 class BurndownForm(SprintAndRangeMixin, forms.Form):
