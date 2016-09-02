@@ -1,0 +1,37 @@
+{% extends "charting.html" %}
+{% block form %}
+    {{ form.non_field_errors }}
+    {% csrf_token %}
+    <div class="form-field">
+    {{ form.count.errors }}
+    {{ form.count.label_tag }}
+    {{ form.count }}
+    {{ form.time_type.errors }}
+    {{ form.time_type.label_tag }}
+    {{ form.time_type }}
+    </div>
+    <div class="form-field">
+        {{ form.from_dt.errors }}
+        {{ form.from_dt.label_tag }}
+        {{ form.from_dt }}
+        {{ form.to_dt.errors }}
+        {{ form.to_dt.label_tag }}
+        {{ form.to_dt }}
+    </div>
+    <div class="form-field">
+        {{ form.sprint.errors }}
+        {{ form.sprint.label_tag }}
+        {{ form.sprint }}
+    </div>
+    <div id="chart-workflow">
+        {{ form.workflow.errors }}
+        {{ form.workflow.label_tag }}
+        <div class="chart-settings-state-column">
+            {{ form.workflow }}
+        </div>
+    </div>
+
+    <input class="submit-button" type="button" value="Submit" />
+{% endblock %}
+{% block rest %}
+{% endblock %}

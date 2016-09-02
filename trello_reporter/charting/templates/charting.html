@@ -1,6 +1,10 @@
 {% extends "index.html" %}
 {% block js %}
-<script type="text/javascript" src="/static/main.js"></script>
+var GLOBAL = {
+  chart_data_url: "{{ chart_data_url }}",
+  chart_name: "{{ chart_name }}",
+  view: "{{ view_name }}"
+};
 {% endblock %}
 {% block body %}
 <div style="display: none;">
@@ -22,17 +26,11 @@
         </table>
     </div>
 </div>
-<form id="chart-settings" action="{% url chart_url board.id %}" method="post">
-    {% csrf_token %}
-    {{ form }}
-    <input class="submit-button" type="button" value="Submit" />
-
-    <div id="chart-workflow">
-        <label for="workflow-1">Workflow</label>
-        <div class="chart-settings-state-column">
-            <select id="workflow-1" name="workflow-1"></select>
-        </div>
-    </div>
+<form id="chart-settings" action="{{ chart_data_url }}" method="post">
+{% block form %}
+{% endblock form %}
 </form>
 <div id="chart" class="line-chart-pf"></div>
+{% block rest %} {# rest of the data #}
+{% endblock rest %}
 {% endblock %}

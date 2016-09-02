@@ -6,12 +6,13 @@ import datetime
 from urllib import urlencode
 
 from dateutil.tz import tzutc
+
 from django.core.urlresolvers import reverse
 from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
+from django.views.generic.base import TemplateView, View
 
-from trello_reporter.charting.forms import Workflow, DateForm, BurndownForm, ControlChartForm, \
-    RangeForm
+from trello_reporter.charting.forms import DateForm, BurndownForm, ControlChartForm
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 from trello_reporter.harvesting.models import CardActionEvent
@@ -27,29 +28,118 @@ def index(request):
     })
 
 
-def show_control_chart(request, board_id):
-    logger.debug("display control chart")
-    board = Board.objects.by_id(board_id)
-    initial = {
-        "sprint": Sprint.objects.latest_for_board(board)
-    }
-    form = ControlChartForm(initial=initial)
-    form.fields['sprint'].queryset = Sprint.objects.for_board_by_end_date(board)
-    context = {
-        "board": board,
-        "form": form,
-        "chart_url": "control-chart-data",
-        "breadcrumbs": [
-            {
-                "url": reverse("board-detail", args=(board.id, )),
-                "text": "Board \"%s\"" % board.name
-            },
-            {
-                "text": "Control chart"
-            },
-        ],
-    }
-    return render(request, "charting.html", context)
+class Breadcrumbs(object):
+    @classmethod
+    def text(cls, text):
+        return {"text": text}
+
+    @classmethod
+    def url(cls, text):
+        return {"url": text}
+
+    @classmethod
+    def board_detail(cls, board):
+        t = cls.url(reverse("board-detail", args=(board.id, )))
+        t.update(cls.text("Board \"%s\"" % board.name))
+        return t
+
+
+class BaseView(TemplateView):
+    view_name = None  # for javascript
+
+
+class ChartView(BaseView):
+    chart_name = None
+    chart_data_url = None
+    form_class = None
+    view_name = "chart"
+
+    def __init__(self, **kwargs):
+        super(ChartView, self).__init__(**kwargs)
+        self.initial_form_data = {}
+        self.form = None
+
+    def get_context_data(self, **kwargs):
+        context = super(ChartView, self).get_context_data(**kwargs)
+        context["view_name"] = self.view_name  # django uses view to link self
+        context["chart_name"] = self.chart_name
+        context["chart_data_url"] = self.chart_data_url
+
+        self.form = self.form_class(initial=self.initial_form_data)
+        context["form"] = self.form
+        return context
+
+    def populate_workflow_select(self, board):
+        lis = List.objects.get_all_listnames_for_board(board)
+        self.form.set_workflow_choices([("", "")] + zip(lis, lis))
+
+
+class ControlChartView(ChartView):
+    template_name = "control_chart.html"
+    chart_name = "control"
+    form_class = ControlChartForm
+
+    def get_context_data(self, board_id, **kwargs):
+        logger.debug("display control chart")
+        board = Board.objects.by_id(board_id)
+
+        self.chart_data_url = reverse("control-chart-data", args=(board.id, ))
+        self.initial_form_data["sprint"] = Sprint.objects.latest_for_board(board)
+        self.initial_form_data["count"] = 1
+        self.initial_form_data["time_type"] = "d"
+
+        context = super(ControlChartView, self).get_context_data(**kwargs)
+
+        self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
+        self.populate_workflow_select(board)
+
+        context["board"] = board
+        context["breadcrumbs"] = [
+            Breadcrumbs.board_detail(board),
+            Breadcrumbs.text("Control Chart")
+        ]
+        return context
+
+
+class ControlChartDataView(View):
+    def get(self, request, board_id, *args, **kwargs):
+        board = Board.objects.by_id(board_id)
+        sprint = Sprint.objects.latest_for_board(board)
+        beginning = sprint.start_dt
+        end = sprint.end_dt
+        lists_filter = ["Next", "Complete"]
+
+        context = self.get_context(board, beginning, end, lists_filter)
+        return JsonResponse(context)
+
+    def post(self, request, board_id, *args, **kwargs):
+        board = Board.objects.by_id(board_id)
+        form = ControlChartForm(request.POST)
+        if form.is_valid():
+            sprint = form.cleaned_data["sprint"]
+            if sprint:
+                beginning = sprint.start_dt
+                end = sprint.end_dt
+            else:
+                beginning = form.cleaned_data["from_dt"]
+                end = form.cleaned_data["to_dt"]
+            lists_filter = form.cleaned_data["workflow"]
+        else:
+            # TODO: show errors
+            logger.warning("form is not valid: %s", form.errors.as_json())
+            raise Exception("Invalid form.")
+        context = self.get_context(board, beginning, end, lists_filter)
+        return JsonResponse(context)
+
+    def get_context(self, board, beginning, end, lists_filter):
+        logger.debug("get data for control chart")
+        all_lists = List.objects.get_all_listnames_for_board(board)
+        data = ChartExporter.control_flow_c3(board, lists_filter, beginning, end)
+        response = {
+            "data": data,
+            "all_lists": [""] + all_lists
+        }
+        return response
 
 
 def show_burndown_chart(request, board_id):
@@ -63,7 +153,9 @@ def show_burndown_chart(request, board_id):
     context = {
         "form": form,
         "board": board,
-        "chart_url": "burndown-chart-data",
+        "chart_data_url": reverse("burndown-chart-data", args=(board_id, )),
+        "chart_name": "burndown",
+        "view": "chart",
         "breadcrumbs": [
             {
                 "url": reverse("board-detail", args=(board.id, )),
@@ -174,54 +266,6 @@ def cards_on_board_at(request, board_id):
     )
 
 
-def control_chart(request, board_id):
-    logger.debug("get data for control chart")
-    board = Board.objects.by_id(board_id)
-    all_lists = List.objects.get_all_listnames_for_board(board)
-
-    if request.method == "POST":
-        form = ControlChartForm(request.POST)
-        if form.is_valid():
-            sprint = form.cleaned_data["sprint"]
-            if sprint:
-                beginning = sprint.start_dt
-                end = sprint.end_dt
-            else:
-                beginning = form.cleaned_data["from_dt"]
-                end = form.cleaned_data["to_dt"]
-            idx = 1
-            lists_filter = []
-            while True:
-                wf_key = "workflow-%d" % idx
-                try:
-                    value = request.POST[wf_key].strip()
-                except KeyError:
-                    logger.info("workflow key %s not found", wf_key)
-                    break
-                else:
-                    logger.debug("value = %s", value)
-                    idx += 1
-                    if not value:
-                        continue
-                    if value not in all_lists:
-                        raise Exception("List %s is not in board" % value)
-                    lists_filter.append(value)
-        else:
-            # TODO: show errors
-            logger.warning("form is not valid: %s", form.errors.as_json())
-            raise Exception("Invalid form.")
-    else:
-        sprint = Sprint.objects.latest_for_board(board)
-        beginning = sprint.start_dt
-        end = sprint.end_dt
-        lists_filter = ["Next", "Complete"]
-    board = Board.objects.by_id(board_id)
-    data = ChartExporter.control_flow_c3(board, lists_filter, beginning, end)
-    response = {
-        "data": data,
-        "all_lists": [""] + all_lists
-    }
-    return JsonResponse(response)
 
 
 def cumulative_chart_data(request, board_id):

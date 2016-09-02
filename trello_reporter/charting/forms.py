@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-TODO:
- * do inheritance for DRY
+forms used for charts
 """
 
 import logging
@@ -10,7 +9,6 @@ from django import forms
 
 from trello_reporter.charting.models import Sprint
 
-
 logger = logging.getLogger(__name__)
 
 DELTA_CHOICES = (
@@ -18,6 +16,54 @@ DELTA_CHOICES = (
     ("d", "Day(s)"),
     ("m", "Month(s)"),
 )
+
+
+# MIXINS
+# they have to derive from forms.Form, NOT from object (django metaclass magic)
+
+
+class SelectWidgetWithCustomId(forms.Select):
+    def render(self, name, value, attrs=None, **kwargs):
+        attrs["id"] = "workflow-1"
+        return super(SelectWidgetWithCustomId, self).render(name, value, attrs=attrs, **kwargs)
+
+
+class ChoiceFieldWithCustomId(forms.ChoiceField):
+    widget = SelectWidgetWithCustomId
+
+
+# TODO: rewrite and use formsets
+class WorkflowMixin(forms.Form):
+    # initial workflow select, rest is spawned via javascript
+    workflow = ChoiceFieldWithCustomId(
+        required=False,  # we'll validate in our clean()
+        label="Workflow"
+    )
+
+    def set_workflow_choices(self, values):
+        self.fields["workflow"].choices = values
+
+    def clean(self):
+        cleaned_data = super(WorkflowMixin, self).clean()
+
+        idx = 1
+        cleaned_data["workflow"] = []
+        while True:
+            wf_key = "workflow-%d" % idx
+            try:
+                value = self.data[wf_key].strip()
+            except KeyError:
+                logger.info("workflow key %s not found", wf_key)
+                break
+            else:
+                logger.debug("value = %s", value)
+                idx += 1
+                if not value:
+                    continue
+                cleaned_data["workflow"].append(value)
+        if not cleaned_data["workflow"]:
+            raise forms.ValidationError("Please select at least one value.")
+        return cleaned_data
 
 
 class DateInputWithDatepicker(forms.DateInput):
@@ -31,12 +77,12 @@ class DateFieldWithDatepicker(forms.DateField):
     widget = DateInputWithDatepicker
 
 
-class RangeForm(forms.Form):
+class RangeMixin(forms.Form):
     from_dt = DateFieldWithDatepicker(label="From", required=False)
     to_dt = DateFieldWithDatepicker(label="To", required=False)
 
     def clean(self):
-        cleaned_data = super(RangeForm, self).clean()
+        cleaned_data = super(RangeMixin, self).clean()
 
         f = cleaned_data.get("from_dt")
         t = cleaned_data.get("to_dt")
@@ -47,26 +93,16 @@ class RangeForm(forms.Form):
         return cleaned_data
 
 
-class Workflow(RangeForm):
-    """
-    State1   State2   State3   ...
-    list   → list2  → list4
-    ...      list3    ...
-             ...
-    """
-    count = forms.FloatField(label="Delta size")
-    time_type = forms.ChoiceField(choices=DELTA_CHOICES, label="Delta unit")
+class SprintMixin(forms.Form):
+    sprint = forms.ModelChoiceField(queryset=Sprint.objects.none(), required=False, label="Sprint")
+
+    def set_sprint_choices(self, queryset):
+        self.fields["sprint"].queryset = queryset
 
 
-class DateForm(forms.Form):
-    date = DateFieldWithDatepicker(label="Date")
-
-
-class BurndownForm(RangeForm):
-    sprint = forms.ModelChoiceField(queryset=Sprint.objects.all(), required=False, label="Sprint")
-
+class SprintAndRangeMixin(SprintMixin, RangeMixin):
     def clean(self):
-        cleaned_data = super(forms.Form, self).clean()
+        cleaned_data = super(SprintAndRangeMixin, self).clean()
 
         f = cleaned_data.get("from_dt")
         s = cleaned_data.get("sprint")
@@ -81,5 +117,27 @@ class BurndownForm(RangeForm):
         return cleaned_data
 
 
-class ControlChartForm(BurndownForm):
+class DeltaMixin(forms.Form):
+    """
+    e.g. delta = 3h, 1d, 2m, ...
+    """
+    count = forms.FloatField(label="Delta size")
+    time_type = forms.ChoiceField(choices=DELTA_CHOICES, label="Delta unit")
+
+
+class DateForm(forms.Form):
+    date = DateFieldWithDatepicker(label="Date")
+
+
+# ACTUAL FORMS
+
+
+class ControlChartForm(WorkflowMixin, SprintAndRangeMixin, DeltaMixin, forms.Form):
+    def clean(self):
+        cleaned_data = WorkflowMixin.clean(self)
+        cleaned_data.update(SprintAndRangeMixin.clean(self))
+        return cleaned_data
+
+
+class BurndownForm(SprintAndRangeMixin, forms.Form):
     pass
