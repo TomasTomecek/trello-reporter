@@ -32,32 +32,7 @@ class ChartExporter(object):
 
         response = []
 
-        # # c3 doesn't handle this implementation: it can't stack disconnected area segments
-        # # initial data, left-most
-        # stats = ListStat.stats_for_lists_before(list_ids, beginning)
-        # for s in stats:
-        #     tick = {
-        #         "date": beginning.strftime("%Y-%m-%d %H:%M:%S"),
-        #         s.list.name: s.running_total
-        #     }
-        #     response.append(tick)
-        # # whole interval
-        # stats = ListStat.stats_for_lists_in(list_ids, beginning, end)
-        # for s in stats:
-        #     tick = {
-        #         "date": s.card_action.date.strftime("%Y-%m-%d %H:%M:%S"),
-        #         s.list.name: s.running_total
-        #     }
-        #     response.append(tick)
-        # # right-most
-        # stats = ListStat.stats_for_lists_before(list_ids, end)
-        # for s in stats:
-        #     tick = {
-        #         "date": end.strftime("%Y-%m-%d %H:%M:%S"),
-        #         s.list.name: s.running_total
-        #     }
-        #     response.append(tick)
-
+        # c3 doesn't handle disconnected area segments, hence we need to cumulate
         beginning = datetime.datetime.combine(beginning, datetime.datetime.min.time())
         end = datetime.datetime.combine(end, datetime.datetime.max.time())
 

@@ -5,6 +5,7 @@ forms used for charts
 
 import logging
 
+import datetime
 from django import forms
 
 from trello_reporter.charting.models import Sprint
@@ -120,6 +121,13 @@ class SprintAndRangeMixin(SprintMixin, RangeMixin):
             raise forms.ValidationError(
                 'Either sprint or beginning of a date range needs to specified.')
 
+        if s:
+            cleaned_data["beginning"] = s.start_dt
+            cleaned_data["end"] = s.end_dt
+        else:
+            cleaned_data["beginning"] = cleaned_data["from_dt"]
+            cleaned_data["end"] = cleaned_data["to_dt"]
+
         return cleaned_data
 
 
@@ -132,6 +140,22 @@ class DeltaMixin(forms.Form):
     time_type = forms.ChoiceField(choices=TICK_CHOICES, label="Tick unit",
                                   widget=forms.Select(attrs={"class": "form-control"}))
 
+    def clean(self):
+        cleaned_data = super(forms.Form, self).clean()
+        count = cleaned_data["count"]
+        time_type = cleaned_data["time_type"]
+
+        if time_type == "d":
+            delta = datetime.timedelta(days=count)
+        elif time_type == "m":
+            delta = datetime.timedelta(days=count * 30)
+        elif time_type == "h":
+            delta = datetime.timedelta(seconds=count * 3600)
+        else:
+            raise forms.ValidationError("Invalid time measure.")
+        cleaned_data["delta"] = delta
+        return cleaned_data
+
 
 class DateForm(forms.Form):
     date = DateFieldWithDatepicker(label="Date")
@@ -140,10 +164,16 @@ class DateForm(forms.Form):
 # ACTUAL FORMS
 
 
-class ControlChartForm(SprintAndRangeMixin, DeltaMixin, forms.Form):
-    def clean(self):
-        return SprintAndRangeMixin.clean(self)
-
-
-class BurndownForm(SprintAndRangeMixin, forms.Form):
+class ControlChartForm(SprintAndRangeMixin, forms.Form):
     pass
+
+
+class BurndownChartForm(SprintAndRangeMixin, forms.Form):
+    pass
+
+
+class CumulativeFlowChartForm(SprintAndRangeMixin, DeltaMixin, forms.Form):
+    def clean(self):
+        d = SprintAndRangeMixin.clean(self)
+        d.update(DeltaMixin.clean(self))
+        return d

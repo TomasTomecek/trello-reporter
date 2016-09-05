@@ -33,8 +33,8 @@ urlpatterns = [
 
     url(r'^board/(?P<board_id>[0-9]+)/cards-at/$', views.cards_on_board_at, name='cards-at'),
     url(r'^board/(?P<board_id>[0-9]+)/card-history/$', views.card_history, name='card-history'),
-    url(r'^board/(?P<board_id>[0-9]+)/cumulative/$', views.show_cumulative_chart,
-        name='show-cumulative-chart'),
+    url(r'^board/(?P<board_id>[0-9]+)/cumulative/$', views.CumulativeFlowChartView.as_view(),
+        name='show-cumulative-flow-chart'),
     url(r'^board/(?P<board_id>[0-9]+)/control/$', views.ControlChartView.as_view(),
         name='show-control-chart'),
     url(r'^board/(?P<board_id>[0-9]+)/velocity/$', views.show_velocity_chart,
@@ -43,8 +43,9 @@ urlpatterns = [
         name='show-burndown-chart'),
 
     url(r'^api/v0/card/(?P<card_id>[0-9]+)/$', views.api_get_card, name='api-get-card'),
-    url(r'^api/v0/board/(?P<board_id>[0-9]+)/cumulative-flow/$', views.cumulative_chart_data,
-        name='cumulative-chart-data'),
+    url(r'^api/v0/board/(?P<board_id>[0-9]+)/cumulative-flow/$',
+        views.CumulativeFlowChartDataView.as_view(),
+        name='cumulative-flow-chart-data'),
     url(r'^api/v0/board/(?P<board_id>[0-9]+)/control/$', views.ControlChartDataView.as_view(),
         name='control-chart-data'),
     url(r'^api/v0/column/(?P<list_id>[0-9]+)/list-history/$', views.list_history_data,

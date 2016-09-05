@@ -14,6 +14,7 @@ var constants = {
 };
 
 // TODO: use PF to initialize form, stuff the code into a function and reuse in every chart
+// TODO: get rid of reload functions, one function should load and reload
 // class with "classmethods" to create charts
 var charting = {
   reload_control: function(data) {
@@ -75,7 +76,7 @@ var charting = {
     });
   },
 
-  reload_cumulative: function(data) {
+  reload_cumulative_flow: function(data) {
     chart_data.json = data.data;
     chart_data.keys.value = data.order;
     chart_data.groups = data.order
@@ -84,7 +85,7 @@ var charting = {
     previous_values = data.order;
   },
 
-  cumulative: function(data) {
+  cumulative_flow: function(data) {
     previous_values = data.order;
     chart_data = {
       json: data["data"],
@@ -101,6 +102,9 @@ var charting = {
     chart = c3.generate({
       bindto: '#chart',
       data: chart_data,
+      size: {
+        height: 480,
+      },
       axis: {
         x: {
           type: 'timeseries',
@@ -247,41 +251,35 @@ var charting = {
   }
 };
 
+function load_chart(callback) {
+  $("#errors").hide()
+  $.post(
+    GLOBAL.chart_data_url,
+    $('#chart-settings').serialize(),
+    function(data) {
+      if ("error" in data) {
+        $("#errors").show()
+        $("#error-content").html(data.error);
+      } else {
+        callback(data);
+      }
+    },
+    'json' // I expect a JSON response
+  );
+}
+
 var controller = {
   chart: function(){
     // load chart data
-    $.ajax({
-      url: GLOBAL.chart_data_url,
-      cache: false,
-      dataType: "json"
-    }).done(function(data) {
+    load_chart(function(data) {
       charting[GLOBAL.chart_name](data);
-
-      // $.each(data.all_lists, function(idx, value) {
-      //   $('#workflow-1')
-      //       .append($("<option></option>")
-      //       .attr("value", value)
-      //       .text(value)
-      //   );
-      // });
     });
 
     // get chart data on form submit
     $('input#submit-button').click(function() {
-      $("#errors").hide()
-      $.post(
-        GLOBAL.chart_data_url,
-        $('#chart-settings').serialize(),
-        function(data) {
-          if ("error" in data) {
-            $("#errors").show()
-            $("#error-content").html(data.error);
-          } else {
-            charting["reload_" + GLOBAL.chart_name](data);
-          }
-        },
-        'json' // I expect a JSON response
-      );
+      load_chart(function(data) {
+        charting["reload_" + GLOBAL.chart_name](data);
+      });
     });
 
     // focus event is still on when you're changing options, let's hook with change event

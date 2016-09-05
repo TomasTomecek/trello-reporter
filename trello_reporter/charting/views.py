@@ -12,8 +12,7 @@ from django.http.response import JsonResponse
 from django.shortcuts import render, redirect
 from django.views.generic.base import TemplateView, View
 
-from trello_reporter.charting.forms import DateForm, BurndownForm, ControlChartForm, \
-    get_workflow_formset
+from trello_reporter.charting import forms
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 from trello_reporter.harvesting.models import CardActionEvent
@@ -24,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 CONTROL_INITIAL_WORKFLOW = ["Next", "Complete"]
 BURNDOWN_INITIAL_WORKFLOW = ["Next", "In Progress"]
+CUMULATIVE_FLOW_INITIAL_WORKFLOW = ["New", "Backlog", "Next", "In Progress", "Complete"]
 
 
 def index(request):
@@ -108,7 +108,7 @@ class ChartView(BaseView):
 class ControlChartBase(ChartView):
     """ common code for data and html """
     chart_name = "control"
-    form_class = ControlChartForm
+    form_class = forms.ControlChartForm
 
     def get_context_data(self, board_id, **kwargs):
         board = Board.objects.by_id(board_id)
@@ -121,8 +121,8 @@ class ControlChartBase(ChartView):
         self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
 
         lis = List.objects.get_all_listnames_for_board(board)
-        formset = get_workflow_formset([("", "")] + zip(lis, lis), CONTROL_INITIAL_WORKFLOW,
-                                       data=self.formset_data)
+        formset = forms.get_workflow_formset([("", "")] + zip(lis, lis), CONTROL_INITIAL_WORKFLOW,
+                                             data=self.formset_data)
 
         context["board"] = board
         context["formset"] = formset
@@ -131,7 +131,7 @@ class ControlChartBase(ChartView):
 
 
 class ControlChartView(ControlChartBase):
-    template_name = "control_chart.html"
+    template_name = "chart/control_chart.html"
 
     def get_context_data(self, board_id, **kwargs):
         logger.debug("display control chart")
@@ -148,48 +148,23 @@ class ControlChartView(ControlChartBase):
 
 
 class ControlChartDataView(ControlChartBase):
-    def get(self, request, board_id, *args, **kwargs):
-        context = super(ControlChartDataView, self).get_context_data(board_id, **kwargs)
-        beginning = context["latest_sprint"].start_dt
-        end = context["latest_sprint"].end_dt
-
-        response = self.get_chart_data(context["board"], beginning, end, CONTROL_INITIAL_WORKFLOW)
-
-        return JsonResponse(response)
-
     def post(self, request, board_id, *args, **kwargs):
         self.form_data = request.POST
         self.formset_data = request.POST
         context = super(ControlChartDataView, self).get_context_data(board_id, **kwargs)
         form, formset = context["form"], context["formset"]
 
-        if form.is_valid() and formset.is_valid():
-            sprint = form.cleaned_data["sprint"]
-            if sprint:
-                beginning = sprint.start_dt
-                end = sprint.end_dt
-            else:
-                beginning = form.cleaned_data["from_dt"]
-                end = form.cleaned_data["to_dt"]
-            lists_filter = formset.workflow
-        else:
+        if not (form.is_valid() and formset.is_valid()):
             return self.respond_json_form_errors(form, formset=formset)
-        context = self.get_chart_data(context["board"], beginning, end, lists_filter)
-        return JsonResponse(context)
-
-    @staticmethod
-    def get_chart_data(board, beginning, end, lists_filter):
-        logger.debug("get data for control chart")
-        data = ChartExporter.control_flow_c3(board, lists_filter, beginning, end)
-        response = {
-            "data": data,
-        }
-        return response
+        data = ChartExporter.control_flow_c3(
+            context["board"], formset.workflow, form.cleaned_data["beginning"],
+            form.cleaned_data["end"])
+        return JsonResponse({"data": data})
 
 
 class BurndownChartBase(ChartView):
     chart_name = "burndown"
-    form_class = BurndownForm
+    form_class = forms.BurndownChartForm
 
     def get_context_data(self, board_id, **kwargs):
         board = Board.objects.by_id(board_id)
@@ -200,8 +175,8 @@ class BurndownChartBase(ChartView):
         self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
 
         lis = List.objects.get_all_listnames_for_board(board)
-        formset = get_workflow_formset([("", "")] + zip(lis, lis), BURNDOWN_INITIAL_WORKFLOW,
-                                       data=self.formset_data)
+        formset = forms.get_workflow_formset([("", "")] + zip(lis, lis), BURNDOWN_INITIAL_WORKFLOW,
+                                             data=self.formset_data)
 
         context["board"] = board
         context["formset"] = formset
@@ -210,7 +185,7 @@ class BurndownChartBase(ChartView):
 
 
 class BurndownChartView(BurndownChartBase):
-    template_name = "burndown_chart.html"
+    template_name = "chart/burndown_chart.html"
 
     def get_context_data(self, board_id, **kwargs):
         logger.debug("display burndown chart")
@@ -227,48 +202,81 @@ class BurndownChartView(BurndownChartBase):
 
 
 class BurndownChartDataView(BurndownChartBase):
-    def get(self, request, board_id, *args, **kwargs):
-        context = super(BurndownChartDataView, self).get_context_data(board_id, **kwargs)
-        sprint_id = request.GET.get("sprint_id", None)
-        if sprint_id:
-            sprint = Sprint.objects.get(id=sprint_id)
-        else:
-            sprint = context["latest_sprint"]
-        beginning = sprint.start_dt
-        end = sprint.end_dt
-
-        response = self.get_chart_data(context["board"], beginning, end, BURNDOWN_INITIAL_WORKFLOW)
-
-        return JsonResponse(response)
-
     def post(self, request, board_id, *args, **kwargs):
+        logger.debug("get data for burndown chart")
         self.form_data = request.POST
         self.formset_data = request.POST
         context = super(BurndownChartDataView, self).get_context_data(board_id, **kwargs)
         form, formset = context["form"], context["formset"]
 
-        if form.is_valid() and formset.is_valid():
-            sprint = form.cleaned_data["sprint"]
-            if sprint:
-                beginning = sprint.start_dt
-                end = sprint.end_dt
-            else:
-                beginning = form.cleaned_data["from_dt"]
-                end = form.cleaned_data["to_dt"]
-            lists_filter = formset.workflow
-        else:
+        if not (form.is_valid() and formset.is_valid()):
             return self.respond_json_form_errors(form, formset=formset)
-        context = self.get_chart_data(context["board"], beginning, end, lists_filter)
-        return JsonResponse(context)
+        data = ChartExporter.burndown_chart_c3(
+            context["board"], form.cleaned_data["beginning"],
+            form.cleaned_data["end"], formset.workflow)
+        return JsonResponse({"data": data})
 
-    @staticmethod
-    def get_chart_data(board, beginning, end, lists_filter):
-        logger.debug("get data for burndown chart")
-        data = ChartExporter.burndown_chart_c3(board, beginning, end, lists_filter)
-        response = {
-            "data": data,
-        }
-        return response
+
+class CumulativeFlowChartBase(ChartView):
+    chart_name = "cumulative_flow"
+    form_class = forms.CumulativeFlowChartForm
+
+    def get_context_data(self, board_id, **kwargs):
+        board = Board.objects.by_id(board_id)
+        today = datetime.datetime.now().date()
+        self.initial_form_data["from_dt"] = today - datetime.timedelta(days=30)
+        self.initial_form_data["to_dt"] = today
+        self.initial_form_data["time_type"] = "d"
+        self.initial_form_data["count"] = 1
+
+        context = super(CumulativeFlowChartBase, self).get_context_data(**kwargs)
+        self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
+
+        lis = List.objects.get_all_listnames_for_board(board)
+        formset = forms.get_workflow_formset([("", "")] + zip(lis, lis),
+                                             CUMULATIVE_FLOW_INITIAL_WORKFLOW,
+                                             data=self.formset_data)
+
+        context["board"] = board
+        context["formset"] = formset
+        return context
+
+
+class CumulativeFlowChartView(CumulativeFlowChartBase):
+    template_name = "chart/cumulative_flow_chart.html"
+
+    def get_context_data(self, board_id, **kwargs):
+        logger.debug("display cumulative flow chart")
+
+        self.chart_data_url = reverse("cumulative-flow-chart-data", args=(board_id, ))
+
+        context = super(CumulativeFlowChartView, self).get_context_data(board_id, **kwargs)
+
+        context["breadcrumbs"] = [
+            Breadcrumbs.board_detail(context["board"]),
+            Breadcrumbs.text("Cumulative flow chart")
+        ]
+        return context
+
+
+class CumulativeFlowChartDataView(CumulativeFlowChartBase):
+    def post(self, request, board_id, *args, **kwargs):
+        logger.debug("get data for cumulative flow chart")
+        self.form_data = request.POST
+        self.formset_data = request.POST
+        context = super(CumulativeFlowChartDataView, self).get_context_data(board_id, **kwargs)
+        form, formset = context["form"], context["formset"]
+
+        if not (form.is_valid() and formset.is_valid()):
+            return self.respond_json_form_errors(form, formset=formset)
+        order = formset.workflow
+        data = ChartExporter.cumulative_chart_c3(
+            context["board"],
+            order,
+            form.cleaned_data["beginning"], form.cleaned_data["end"],
+            form.cleaned_data["delta"])
+        # c3 wants reversed order
+        return JsonResponse({"data": data, "order": list(reversed(order))})
 
 
 def show_velocity_chart(request, board_id):
@@ -290,35 +298,6 @@ def show_velocity_chart(request, board_id):
         ],
     }
     return render(request, "charting.html", context)
-
-
-def show_cumulative_chart(request, board_id):
-    logger.debug("display cumulative flow chart")
-    today = datetime.datetime.now().date()
-    from_dt = today - datetime.timedelta(days=30)
-    # TODO [DRY]: use exactly same variables for charting
-    initial = {
-        "from_dt": from_dt,
-        "to_dt": today,
-        "count": 1,
-        "time_type": "d"
-    }
-    form = Workflow(initial=initial)
-    board = Board.objects.get(id=board_id)
-    return render(request, "charting.html", {
-        "board": board,
-        "form": form,
-        "chart_url": "cumulative-chart-data",
-        "breadcrumbs": [
-            {
-                "url": reverse("board-detail", args=(board.id, )),
-                "text": "Board \"%s\"" % board.name
-            },
-            {
-                "text": "Cumulative flow chart"
-            },
-        ],
-    })
 
 
 def card_history(request, board_id):
@@ -366,78 +345,6 @@ def cards_on_board_at(request, board_id):
             "board": board,
         }
     )
-
-
-
-
-def cumulative_chart_data(request, board_id):
-    logger.debug("get data for cumulative chart")
-    board = Board.objects.get(id=board_id)
-    now = datetime.datetime.now(tz=tzutc())
-    beginning = now - datetime.timedelta(days=30)
-    delta = datetime.timedelta(days=1)
-    end = now
-
-    order = []
-    all_lists = List.objects.get_all_listnames_for_board(board)
-
-    if request.method == "POST":
-        form = Workflow(request.POST)
-        if form.is_valid():
-            beginning = form.cleaned_data["from_dt"]
-            end = form.cleaned_data["to_dt"]
-            count = form.cleaned_data["count"]
-            time_type = form.cleaned_data["time_type"]
-
-            if time_type == "d":
-                delta = datetime.timedelta(days=count)
-            elif time_type == "m":
-                delta = datetime.timedelta(days=count * 30)
-            elif time_type == "h":
-                delta = datetime.timedelta(seconds=count * 3600)
-            else:
-                raise Exception("Invalid time measure.")
-
-            idx = 1
-            while True:
-                wf_key = "workflow-%d" % idx
-                try:
-                    value = request.POST[wf_key].strip()
-                except KeyError:
-                    logger.info("workflow key %s not found", wf_key)
-                    break
-                else:
-                    logger.debug("value = %s", value)
-                    idx += 1
-                    if not value:
-                        continue
-                    if value not in all_lists:
-                        raise Exception("List %s is not in board" % value)
-                    order.append(value)
-
-            lists = List.objects.filter_lists_for_board(board, f=order)
-        else:
-            logger.warning("form is not valid")
-            raise Exception("Invalid form.")
-    else:
-        lists = List.objects.filter_lists_for_board(board)
-        order = all_lists
-
-    logger.debug("lists = %s", lists)
-    # we can't filter by list IDs because there may be multiple lists with the same name
-    data = ChartExporter.cumulative_chart_c3(board, order, beginning, end, delta)
-
-    # c3 wants it the other way around: first one is the bottom one
-    order = list(reversed(order))  # order may not be list, force it to be one
-
-    response = {
-        "data": data,
-        "order": order,
-        "all_lists": [""] + all_lists
-    }
-    return JsonResponse(response)
-
-
 
 
 def velocity_chart_data(request, board_id):
