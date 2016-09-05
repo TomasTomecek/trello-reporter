@@ -39,7 +39,7 @@ urlpatterns = [
         name='show-control-chart'),
     url(r'^board/(?P<board_id>[0-9]+)/velocity/$', views.show_velocity_chart,
         name='show-velocity-chart'),
-    url(r'^board/(?P<board_id>[0-9]+)/burndown/$', views.show_burndown_chart,
+    url(r'^board/(?P<board_id>[0-9]+)/burndown/$', views.BurndownChartView.as_view(),
         name='show-burndown-chart'),
 
     url(r'^api/v0/card/(?P<card_id>[0-9]+)/$', views.api_get_card, name='api-get-card'),
@@ -50,7 +50,7 @@ urlpatterns = [
     url(r'^api/v0/column/(?P<list_id>[0-9]+)/list-history/$', views.list_history_data,
         name='list-history-chart-data'),
     url(r'^api/v0/board/(?P<board_id>[0-9]+)/burndown/$',
-        views.burndown_chart_data,
+        views.BurndownChartDataView.as_view(),
         name='burndown-chart-data'),
     url(r'^api/v0/board/(?P<board_id>[0-9]+)/velocity/$', views.velocity_chart_data,
         name='velocity-chart-data'),

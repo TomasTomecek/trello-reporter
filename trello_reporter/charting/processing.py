@@ -125,8 +125,7 @@ class ChartExporter(object):
         return cards
 
     @classmethod
-    def burndown_chart_c3(cls, board, beginning, end):
-        in_progress_lists = ["Next", "In Progress"]
+    def burndown_chart_c3(cls, board, beginning, end, in_progress_list_names):
         completed_lists = ["Complete", "Completed"]
         tz = tzutc()
         now = datetime.datetime.now(tz=tz)
@@ -155,7 +154,7 @@ class ChartExporter(object):
             compl = CardAction.objects.card_actions_on_list_names_in_range(
                 board, completed_lists, prev, d)
             in_progress = ListStat.objects.sum_sp_for_list_names_before(
-                board, in_progress_lists, d)
+                board, in_progress_list_names, d)
             tick = {
                 "date": d.strftime("%Y-%m-%d %H:%M"),
                 "done": sum([x.story_points for x in compl]),
@@ -164,7 +163,7 @@ class ChartExporter(object):
             }
             if len(response) == 0:
                 tick["ideal"] = ListStat.objects.sum_sp_for_list_names_before(
-                    board, in_progress_lists, beginning)
+                    board, in_progress_list_names, beginning)
             response.append(tick)
             d += delta
         if response:

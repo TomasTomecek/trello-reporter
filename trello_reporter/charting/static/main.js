@@ -145,6 +145,9 @@ var charting = {
     chart = c3.generate({
       bindto: '#chart',
       data: chart_data,
+      size: {
+        height: 480,
+      },
       legend: {
         show: true
       },
@@ -168,6 +171,7 @@ var charting = {
       }
     });
   },
+
   reload_velocity: function(data) {
     chart_data["json"] = data["data"];
     chart_data["unload"] = chart.columns;
@@ -263,7 +267,7 @@ var controller = {
     });
 
     // get chart data on form submit
-    $('form#chart-settings input.submit-button').click(function() {
+    $('input#submit-button').click(function() {
       $("#errors").hide()
       $.post(
         GLOBAL.chart_data_url,

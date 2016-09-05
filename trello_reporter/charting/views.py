@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # local constants
 
 CONTROL_INITIAL_WORKFLOW = ["Next", "Complete"]
+BURNDOWN_INITIAL_WORKFLOW = ["Next", "In Progress"]
 
 
 def index(request):
@@ -179,40 +180,95 @@ class ControlChartDataView(ControlChartBase):
     @staticmethod
     def get_chart_data(board, beginning, end, lists_filter):
         logger.debug("get data for control chart")
-        all_lists = List.objects.get_all_listnames_for_board(board)
         data = ChartExporter.control_flow_c3(board, lists_filter, beginning, end)
         response = {
             "data": data,
-            "all_lists": [""] + all_lists
         }
         return response
 
 
-def show_burndown_chart(request, board_id):
-    logger.debug("display burndown chart")
-    board = Board.objects.by_id(board_id)
-    initial = {
-        "sprint": Sprint.objects.latest_for_board(board)
-    }
-    form = BurndownForm(initial=initial)
-    form.fields['sprint'].queryset = Sprint.objects.for_board_by_end_date(board)
-    context = {
-        "form": form,
-        "board": board,
-        "chart_data_url": reverse("burndown-chart-data", args=(board_id, )),
-        "chart_name": "burndown",
-        "view": "chart",
-        "breadcrumbs": [
-            {
-                "url": reverse("board-detail", args=(board.id, )),
-                "text": "Board \"%s\"" % board.name
-            },
-            {
-                "text": "Burndown chart"
-            },
-        ],
-    }
-    return render(request, "charting.html", context)
+class BurndownChartBase(ChartView):
+    chart_name = "burndown"
+    form_class = BurndownForm
+
+    def get_context_data(self, board_id, **kwargs):
+        board = Board.objects.by_id(board_id)
+        sprint = Sprint.objects.latest_for_board(board)
+        self.initial_form_data["sprint"] = sprint
+
+        context = super(BurndownChartBase, self).get_context_data(**kwargs)
+        self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
+
+        lis = List.objects.get_all_listnames_for_board(board)
+        formset = get_workflow_formset([("", "")] + zip(lis, lis), BURNDOWN_INITIAL_WORKFLOW,
+                                       data=self.formset_data)
+
+        context["board"] = board
+        context["formset"] = formset
+        context["latest_sprint"] = sprint
+        return context
+
+
+class BurndownChartView(BurndownChartBase):
+    template_name = "burndown_chart.html"
+
+    def get_context_data(self, board_id, **kwargs):
+        logger.debug("display burndown chart")
+
+        self.chart_data_url = reverse("burndown-chart-data", args=(board_id, ))
+
+        context = super(BurndownChartView, self).get_context_data(board_id, **kwargs)
+
+        context["breadcrumbs"] = [
+            Breadcrumbs.board_detail(context["board"]),
+            Breadcrumbs.text("Burndown Chart")
+        ]
+        return context
+
+
+class BurndownChartDataView(BurndownChartBase):
+    def get(self, request, board_id, *args, **kwargs):
+        context = super(BurndownChartDataView, self).get_context_data(board_id, **kwargs)
+        sprint_id = request.GET.get("sprint_id", None)
+        if sprint_id:
+            sprint = Sprint.objects.get(id=sprint_id)
+        else:
+            sprint = context["latest_sprint"]
+        beginning = sprint.start_dt
+        end = sprint.end_dt
+
+        response = self.get_chart_data(context["board"], beginning, end, BURNDOWN_INITIAL_WORKFLOW)
+
+        return JsonResponse(response)
+
+    def post(self, request, board_id, *args, **kwargs):
+        self.form_data = request.POST
+        self.formset_data = request.POST
+        context = super(BurndownChartDataView, self).get_context_data(board_id, **kwargs)
+        form, formset = context["form"], context["formset"]
+
+        if form.is_valid() and formset.is_valid():
+            sprint = form.cleaned_data["sprint"]
+            if sprint:
+                beginning = sprint.start_dt
+                end = sprint.end_dt
+            else:
+                beginning = form.cleaned_data["from_dt"]
+                end = form.cleaned_data["to_dt"]
+            lists_filter = formset.workflow
+        else:
+            return self.respond_json_form_errors(form, formset=formset)
+        context = self.get_chart_data(context["board"], beginning, end, lists_filter)
+        return JsonResponse(context)
+
+    @staticmethod
+    def get_chart_data(board, beginning, end, lists_filter):
+        logger.debug("get data for burndown chart")
+        data = ChartExporter.burndown_chart_c3(board, beginning, end, lists_filter)
+        response = {
+            "data": data,
+        }
+        return response
 
 
 def show_velocity_chart(request, board_id):
@@ -382,38 +438,6 @@ def cumulative_chart_data(request, board_id):
     return JsonResponse(response)
 
 
-def burndown_chart_data(request, board_id):
-    logger.debug("get data for burndown chart")
-    board = Board.objects.by_id(board_id)
-
-    if request.method == "POST":
-        form = BurndownForm(request.POST)
-        if form.is_valid():
-            sprint = form.cleaned_data["sprint"]
-            if sprint:
-                beginning = sprint.start_dt
-                end = sprint.end_dt
-            else:
-                beginning = form.cleaned_data["from_dt"]
-                end = form.cleaned_data["to_dt"]
-        else:
-            # TODO: show errors
-            logger.warning("form is not valid: %s", form.errors.as_json())
-            raise Exception("Invalid form.")
-    else:
-        sprint_id = request.GET.get("sprint_id", None)
-        if sprint_id:
-            sprint = Sprint.objects.get(id=sprint_id)
-        else:
-            sprint = Sprint.objects.latest_for_board(board)
-        beginning = sprint.start_dt
-        end = sprint.end_dt
-
-    data = ChartExporter.burndown_chart_c3(board, beginning, end)
-    response = {
-        "data": data,
-    }
-    return JsonResponse(response)
 
 
 def velocity_chart_data(request, board_id):
