@@ -164,16 +164,20 @@ class DateForm(forms.Form):
 # ACTUAL FORMS
 
 
-class ControlChartForm(SprintAndRangeMixin, forms.Form):
+class ControlChartForm(SprintAndRangeMixin):
     pass
 
 
-class BurndownChartForm(SprintAndRangeMixin, forms.Form):
+class BurndownChartForm(SprintAndRangeMixin):
     pass
 
 
-class CumulativeFlowChartForm(SprintAndRangeMixin, DeltaMixin, forms.Form):
+class CumulativeFlowChartForm(SprintAndRangeMixin, DeltaMixin):
     def clean(self):
         d = SprintAndRangeMixin.clean(self)
         d.update(DeltaMixin.clean(self))
         return d
+
+
+class VelocityChartForm(RangeMixin):
+    pass

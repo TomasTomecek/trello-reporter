@@ -279,25 +279,53 @@ class CumulativeFlowChartDataView(CumulativeFlowChartBase):
         return JsonResponse({"data": data, "order": list(reversed(order))})
 
 
-def show_velocity_chart(request, board_id):
-    logger.debug("display velocity chart")
-    board = Board.objects.by_id(board_id)
-    form = RangeForm()
-    context = {
-        "board": board,
-        "chart_url": "velocity-chart-data",
-        "form": form,
-        "breadcrumbs": [
-            {
-                "url": reverse("board-detail", args=(board.id, )),
-                "text": "Board \"%s\"" % board.name
-            },
-            {
-                "text": "Velocity chart"
-            },
-        ],
-    }
-    return render(request, "charting.html", context)
+class VelocityChartBase(ChartView):
+    chart_name = "velocity"
+    form_class = forms.VelocityChartForm
+
+    def get_context_data(self, board_id, **kwargs):
+        board = Board.objects.by_id(board_id)
+        today = datetime.datetime.now().date()
+        self.initial_form_data["from_dt"] = today - datetime.timedelta(days=180)
+        self.initial_form_data["to_dt"] = today
+
+        context = super(VelocityChartBase, self).get_context_data(**kwargs)
+
+        context["board"] = board
+        return context
+
+
+class VelocityChartView(VelocityChartBase):
+    template_name = "chart/velocity_chart.html"
+
+    def get_context_data(self, board_id, **kwargs):
+        logger.debug("display velocity chart")
+
+        self.chart_data_url = reverse("velocity-chart-data", args=(board_id, ))
+
+        context = super(VelocityChartView, self).get_context_data(board_id, **kwargs)
+
+        context["breadcrumbs"] = [
+            Breadcrumbs.board_detail(context["board"]),
+            Breadcrumbs.text("Velocity Chart")
+        ]
+        return context
+
+
+class VelocityChartDataView(VelocityChartBase):
+    def post(self, request, board_id, *args, **kwargs):
+        logger.debug("get data for velocity chart")
+        self.form_data = request.POST
+        context = super(VelocityChartDataView, self).get_context_data(board_id, **kwargs)
+        form = context["form"]
+
+        if not form.is_valid():
+            return self.respond_json_form_errors(form)
+
+        sprints = Sprint.objects.for_board_in_range_by_end_date(
+            context["board"], form.cleaned_data["from_dt"], form.cleaned_data["to_dt"])
+        data = ChartExporter.velocity_chart_c3(sprints)
+        return JsonResponse({"data": data})
 
 
 def card_history(request, board_id):
@@ -345,31 +373,6 @@ def cards_on_board_at(request, board_id):
             "board": board,
         }
     )
-
-
-def velocity_chart_data(request, board_id):
-    logger.debug("get data for velocity chart")
-    board = Board.objects.by_id(board_id)
-
-    if request.method == "POST":
-        form = RangeForm(request.POST)
-        if form.is_valid():
-            beginning = form.cleaned_data["from_dt"]
-            end = form.cleaned_data["to_dt"]
-            sprints = Sprint.objects.for_board_in_range_by_end_date(
-                board, beginning, end)
-        else:
-            # TODO: show errors
-            logger.warning("form is not valid: %s", form.errors.as_json())
-            raise Exception("Invalid form.")
-    else:
-        sprints = Sprint.objects.for_board_by_end_date(board)[:5]
-
-    data = ChartExporter.velocity_chart_c3(sprints)
-    response = {
-        "data": data
-    }
-    return JsonResponse(response)
 
 
 def list_history_data(request, list_id):

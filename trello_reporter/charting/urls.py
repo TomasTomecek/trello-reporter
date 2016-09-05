@@ -37,7 +37,7 @@ urlpatterns = [
         name='show-cumulative-flow-chart'),
     url(r'^board/(?P<board_id>[0-9]+)/control/$', views.ControlChartView.as_view(),
         name='show-control-chart'),
-    url(r'^board/(?P<board_id>[0-9]+)/velocity/$', views.show_velocity_chart,
+    url(r'^board/(?P<board_id>[0-9]+)/velocity/$', views.VelocityChartView.as_view(),
         name='show-velocity-chart'),
     url(r'^board/(?P<board_id>[0-9]+)/burndown/$', views.BurndownChartView.as_view(),
         name='show-burndown-chart'),
@@ -53,6 +53,6 @@ urlpatterns = [
     url(r'^api/v0/board/(?P<board_id>[0-9]+)/burndown/$',
         views.BurndownChartDataView.as_view(),
         name='burndown-chart-data'),
-    url(r'^api/v0/board/(?P<board_id>[0-9]+)/velocity/$', views.velocity_chart_data,
+    url(r'^api/v0/board/(?P<board_id>[0-9]+)/velocity/$', views.VelocityChartDataView.as_view(),
         name='velocity-chart-data'),
 ]
