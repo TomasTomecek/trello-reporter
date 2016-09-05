@@ -249,23 +249,28 @@ var controller = {
     }).done(function(data) {
       charting[GLOBAL.chart_name](data);
 
-      // TODO: hide workflow if all_lists is not present
-      $.each(data.all_lists, function(idx, value) {
-        $('#workflow-1')
-            .append($("<option></option>")
-            .attr("value", value)
-            .text(value)
-        );
-      });
+      // $.each(data.all_lists, function(idx, value) {
+      //   $('#workflow-1')
+      //       .append($("<option></option>")
+      //       .attr("value", value)
+      //       .text(value)
+      //   );
+      // });
     });
 
     // get chart data on form submit
     $('form#chart-settings input.submit-button').click(function() {
+      $("#errors").hide()
       $.post(
         GLOBAL.chart_data_url,
         $('#chart-settings').serialize(),
         function(data) {
-          charting["reload_" + GLOBAL.chart_name](data);
+          if ("error" in data) {
+            $("#errors").show()
+            $("#error-content").html(data.error);
+          } else {
+            charting["reload_" + GLOBAL.chart_name](data);
+          }
         },
         'json' // I expect a JSON response
       );

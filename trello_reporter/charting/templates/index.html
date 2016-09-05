@@ -71,6 +71,10 @@
         {% endif %}
         {% endfor %}
       </ol>
+      <div id="errors" class="alert alert-danger" style="display: none;">
+        <span class="pficon pficon-error-circle-o"></span>
+        <span id="error-content"></span>
+      </div>
     {% block body %}
       <div class="list-group list-view-pf list-view-pf-view">
       {% for board in boards %}

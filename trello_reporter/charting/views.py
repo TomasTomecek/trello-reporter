@@ -53,6 +53,26 @@ class BaseView(TemplateView):
     view_name = None  # for javascript
 
 
+def humanize_form_errors(form, formset=None):
+    texts = []
+    if form.errors:
+        form_errors_text = form.errors.as_text()
+        logger.info("form errors: %s", form_errors_text)
+        texts.append(form_errors_text)
+    if formset:
+        nfe = formset.non_form_errors()
+        if nfe:
+            nfe_text = nfe.as_text()
+            logger.info("non formset errors: %s", nfe_text)
+            texts.append(nfe_text)
+        for fe in formset.errors:
+            if fe:
+                formset_form_error_text = fe.as_text()
+                logger.info("formset, form error: %s", formset_form_error_text)
+                texts.append(formset_form_error_text)
+    return "<br>".join(texts)
+
+
 class ChartView(BaseView):
     chart_name = None
     chart_data_url = None
@@ -77,6 +97,11 @@ class ChartView(BaseView):
         self.form = self.form_class(data=self.form_data, initial=self.initial_form_data)
         context["form"] = self.form
         return context
+
+    @staticmethod
+    def respond_json_form_errors(form, formset=None):
+        return JsonResponse({"error": "Form is not valid: " +
+                                      humanize_form_errors(form, formset=formset)})
 
 
 class ControlChartBase(ChartView):
@@ -147,10 +172,7 @@ class ControlChartDataView(ControlChartBase):
                 end = form.cleaned_data["to_dt"]
             lists_filter = formset.workflow
         else:
-            # TODO: show errors
-            logger.warning("form errors: %s", form.errors.as_json())
-            logger.warning("formset errors: %s %s", formset.errors, formset.non_form_errors())
-            raise Exception("Invalid form.")
+            return self.respond_json_form_errors(form, formset=formset)
         context = self.get_chart_data(context["board"], beginning, end, lists_filter)
         return JsonResponse(context)
 
