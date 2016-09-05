@@ -449,7 +449,9 @@ def list_detail(request, list_id):
     logger.debug("list detail: %s", li)
     context = {
         "list": li,
-        "chart_url": "list-history-chart-data",
+        "view_name": "list_history",
+        "chart_name": "list_history",
+        "chart_data_url": reverse("list-history-chart-data", args=(list_id, )),
         "list_stats": ListStat.objects.for_list_order_by_date(li),
         "breadcrumbs": [
             {

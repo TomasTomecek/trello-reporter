@@ -1,10 +1,6 @@
 {% extends "index.html" %}
 {% block js %}
-var GLOBAL = {
-  chart_data_url: "{{ chart_data_url }}",
-  chart_name: "{{ chart_name }}",
-  view: "{{ view_name }}"
-};
+{% include 'chart/initialization.html' %}
 {% endblock %}
 {% block body %}
 <div style="display: none;">

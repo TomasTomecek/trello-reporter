@@ -1,10 +1,8 @@
 {% extends "index.html" %}
 {% block js %}
-<script type="text/javascript" src="/static/main.js"></script>
+{% include 'chart/initialization.html' %}
 {% endblock %}
 {% block body %}
-<form id="chart-settings" action="{% url chart_url list.id %}" method="post">
-</form>
 <div id="chart" class="line-chart-pf"></div>
 <p>
   <a href="{% url 'stalled-cards' list.id %}">Stalled cards</a>

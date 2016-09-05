@@ -285,7 +285,16 @@ var controller = {
     // focus event is still on when you're changing options, let's hook with change event
     $("div#chart-workflow div select").change(on_focus_states);
   },
-  index: function(){}
+  index: function(){},
+  list_history: function() {
+    $.get(
+      GLOBAL.chart_data_url,
+      function(data) {
+        charting[GLOBAL.chart_name](data);
+      },
+      'json' // I expect a JSON response
+    );
+  }
 };
 
 // DOM is ready, let's start the show
