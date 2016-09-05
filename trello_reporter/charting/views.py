@@ -61,7 +61,11 @@ class ChartView(BaseView):
 
     def __init__(self, **kwargs):
         super(ChartView, self).__init__(**kwargs)
+        # initial data populated in the form
         self.initial_form_data = {}
+        # data from request.POST
+        self.form_data = None
+        self.formset_data = None
         self.form = None
 
     def get_context_data(self, **kwargs):
@@ -70,57 +74,70 @@ class ChartView(BaseView):
         context["chart_name"] = self.chart_name
         context["chart_data_url"] = self.chart_data_url
 
-        self.form = self.form_class(initial=self.initial_form_data)
+        self.form = self.form_class(data=self.form_data, initial=self.initial_form_data)
         context["form"] = self.form
         return context
 
 
-class ControlChartView(ChartView):
-    template_name = "control_chart.html"
+class ControlChartBase(ChartView):
+    """ common code for data and html """
     chart_name = "control"
     form_class = ControlChartForm
 
     def get_context_data(self, board_id, **kwargs):
-        logger.debug("display control chart")
         board = Board.objects.by_id(board_id)
-
-        self.chart_data_url = reverse("control-chart-data", args=(board.id, ))
-        self.initial_form_data["sprint"] = Sprint.objects.latest_for_board(board)
+        sprint = Sprint.objects.latest_for_board(board)
+        self.initial_form_data["sprint"] = sprint
         self.initial_form_data["count"] = 1
         self.initial_form_data["time_type"] = "d"
 
-        context = super(ControlChartView, self).get_context_data(**kwargs)
-
+        context = super(ControlChartBase, self).get_context_data(**kwargs)
         self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
 
-        # TODO: have this in mixin, share with data
         lis = List.objects.get_all_listnames_for_board(board)
-        formset = get_workflow_formset([("", "")] + zip(lis, lis), CONTROL_INITIAL_WORKFLOW)
+        formset = get_workflow_formset([("", "")] + zip(lis, lis), CONTROL_INITIAL_WORKFLOW,
+                                       data=self.formset_data)
 
         context["board"] = board
         context["formset"] = formset
+        context["latest_sprint"] = sprint
+        return context
+
+
+class ControlChartView(ControlChartBase):
+    template_name = "control_chart.html"
+
+    def get_context_data(self, board_id, **kwargs):
+        logger.debug("display control chart")
+
+        self.chart_data_url = reverse("control-chart-data", args=(board_id, ))
+
+        context = super(ControlChartView, self).get_context_data(board_id, **kwargs)
+
         context["breadcrumbs"] = [
-            Breadcrumbs.board_detail(board),
+            Breadcrumbs.board_detail(context["board"]),
             Breadcrumbs.text("Control Chart")
         ]
         return context
 
 
-class ControlChartDataView(View):
+class ControlChartDataView(ControlChartBase):
     def get(self, request, board_id, *args, **kwargs):
-        board = Board.objects.by_id(board_id)
-        sprint = Sprint.objects.latest_for_board(board)
-        beginning = sprint.start_dt
-        end = sprint.end_dt
+        context = super(ControlChartDataView, self).get_context_data(board_id, **kwargs)
+        beginning = context["latest_sprint"].start_dt
+        end = context["latest_sprint"].end_dt
 
-        context = self.get_context(board, beginning, end, CONTROL_INITIAL_WORKFLOW)
-        return JsonResponse(context)
+        response = self.get_chart_data(context["board"], beginning, end, CONTROL_INITIAL_WORKFLOW)
+
+        return JsonResponse(response)
 
     def post(self, request, board_id, *args, **kwargs):
-        board = Board.objects.by_id(board_id)
-        form = ControlChartForm(request.POST)
-        # TODO: instantiate formset
-        if form.is_valid():
+        self.form_data = request.POST
+        self.formset_data = request.POST
+        context = super(ControlChartDataView, self).get_context_data(board_id, **kwargs)
+        form, formset = context["form"], context["formset"]
+
+        if form.is_valid() and formset.is_valid():
             sprint = form.cleaned_data["sprint"]
             if sprint:
                 beginning = sprint.start_dt
@@ -128,15 +145,17 @@ class ControlChartDataView(View):
             else:
                 beginning = form.cleaned_data["from_dt"]
                 end = form.cleaned_data["to_dt"]
-            lists_filter = form.cleaned_data["workflow"]
+            lists_filter = formset.workflow
         else:
             # TODO: show errors
-            logger.warning("form is not valid: %s", form.errors.as_json())
+            logger.warning("form errors: %s", form.errors.as_json())
+            logger.warning("formset errors: %s %s", formset.errors, formset.non_form_errors())
             raise Exception("Invalid form.")
-        context = self.get_context(board, beginning, end, lists_filter)
+        context = self.get_chart_data(context["board"], beginning, end, lists_filter)
         return JsonResponse(context)
 
-    def get_context(self, board, beginning, end, lists_filter):
+    @staticmethod
+    def get_chart_data(board, beginning, end, lists_filter):
         logger.debug("get data for control chart")
         all_lists = List.objects.get_all_listnames_for_board(board)
         data = ChartExporter.control_flow_c3(board, lists_filter, beginning, end)

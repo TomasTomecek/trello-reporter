@@ -25,11 +25,11 @@
     </div>
     <div id="chart-workflow">
         {{ formset.management_form }}
-        {% for form in formset %}
-            {% if forloop.first %}{{ form.workflow.label_tag }}{% endif %}
-            {{ form.workflow.errors }}
+        {% for f in formset %}
+            {% if forloop.first %}{{ f.workflow.label_tag }}{% endif %}
+            {{ f.workflow.errors }}
             <div class="chart-settings-state-column">
-                {{ form.workflow }}
+                {{ f.workflow }}
             </div>
         {% endfor %}
     </div>

@@ -61,14 +61,12 @@ class WorkflowBaseFormSet(forms.BaseFormSet):
         if not self.workflow:
             raise forms.ValidationError("Please select at least one value.")
 
-WorkflowFormSet = forms.formset_factory(WorkflowMixin, formset=WorkflowBaseFormSet)
 
-
-def get_workflow_formset(choices, initial_data):
-    fs = forms.formset_factory(
-        WorkflowMixin, formset=WorkflowBaseFormSet, extra=len(initial_data))()
+def get_workflow_formset(choices, initial_data, data=None):
+    fs_kls = forms.formset_factory(
+        WorkflowMixin, formset=WorkflowBaseFormSet)
+    fs = fs_kls(data=data, initial=[{"workflow": x} for x in initial_data])
     fs.set_choices(choices)
-    fs.set_initial_data(initial_data)
     return fs
 
 
@@ -108,7 +106,7 @@ class SprintMixin(forms.Form):
 
 class SprintAndRangeMixin(SprintMixin, RangeMixin):
     def clean(self):
-        cleaned_data = super(SprintAndRangeMixin, self).clean()
+        cleaned_data = super(forms.Form, self).clean()  # don't call range's clean()
 
         f = cleaned_data.get("from_dt")
         s = cleaned_data.get("sprint")

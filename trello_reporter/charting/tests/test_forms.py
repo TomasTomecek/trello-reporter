@@ -2,51 +2,37 @@ from __future__ import unicode_literals
 
 import pytest
 
-from trello_reporter.charting.forms import ControlChartForm, WorkflowFormSet
+from trello_reporter.charting.forms import ControlChartForm, get_workflow_formset
 from trello_reporter.charting.models import Sprint, Board
 
 
-# @pytest.mark.django_db
-# def test_workflow_clean():
-#     List.objects.bulk_create([
-#         List(trello_id="1", name="A"),
-#         List(trello_id="2", name="B"),
-#         List(trello_id="3", name="C"),
-#         List(trello_id="4", name="D"),
-#     ])
-#     f = WorkflowMixin({"workflow-1": "B", "workflow-2": "C"})
-#     assert f.is_valid(), f.errors
-#     assert f.cleaned_data == {"workflow": ["B", "C"]}
-
-
 def test_workflow_formset_render():
-    f = WorkflowFormSet()
-    f.set_choices([("A", "A"), ("B", "B")])
+    choices = [("A", "A"), ("B", "B")]
+    f = get_workflow_formset(choices, [])
     html = f.as_ul()
     assert "<option value=\"A\">A</option>" in html
     assert "<option value=\"B\">B</option>" in html
 
 
 def test_workflow_formset_initial_data():
-    f = WorkflowFormSet()
     choices = [("A", "A"), ("B", "B")]
-    f.set_choices(choices)
-    f.set_initial_data(["A"])
+    initial_data = ["A"]
+    f = get_workflow_formset(choices, initial_data)
     assert f.forms[0].fields["workflow"].choices == choices
-    assert f.forms[0].fields["workflow"].initial == "A"
     html = f.as_ul()
     assert "<option value=\"A\" selected=\"selected\">A</option>" in html
 
 
 def test_workflow_formset_data():
-    f = WorkflowFormSet({
+    choices = [("A", "A"), ("B", "B")]
+    f = get_workflow_formset(choices, [], data={
         'form-TOTAL_FORMS': '3',
         'form-INITIAL_FORMS': '2',
         'form-MAX_NUM_FORMS': '',
         'form-0-workflow': 'A',
         'form-1-workflow': 'B',
+        'form-2-workflow': '',
     })
-    f.set_choices([("A", "A"), ("B", "B")])
     assert f.is_valid()
     assert f.total_error_count() == 0
     assert f.workflow == ["A", "B"]

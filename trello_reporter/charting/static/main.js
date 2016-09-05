@@ -307,9 +307,16 @@ function on_focus_states(data) {
                 return (+m + 1);  // +m means it's converted to `int(m) + 1`
             });
         })
+        .attr("name", function(i, oldVal) {
+            return oldVal.replace(/\d+/, function(m) {
+                return (+m + 1);
+            });
+        })
     new_select
-        .attr("name", new_select.attr("id"))
         .on("change", on_focus_states);
+    // set # of forms, needed by django formsets
+    $("#id_form-TOTAL_FORMS")
+        .val($("#chart-workflow div.chart-settings-state-column").length);
   }
 }
 
