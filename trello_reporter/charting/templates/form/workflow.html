@@ -1,0 +1,14 @@
+<div class="row">
+  <div id="chart-workflow" class="form-group">
+    {{ formset.management_form }}
+    {% for f in formset %}
+    {% if forloop.first %}
+    <label class="col-sm-1 control-label" for="id_{{ f.workflow.name }}">{{ f.workflow.label }}</label>
+    {% endif %}
+    {{ f.workflow.errors }}
+    <div class="chart-settings-state-column col-sm-2">
+      {{ f.workflow }}
+    </div>
+    {% endfor %}
+  </div>
+</div>

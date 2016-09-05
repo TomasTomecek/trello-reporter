@@ -2,39 +2,11 @@
 {% block form %}
     {{ form.non_field_errors }}
     {% csrf_token %}
-    <div class="form-field">
-    {{ form.count.errors }}
-    {{ form.count.label_tag }}
-    {{ form.count }}
-    {{ form.time_type.errors }}
-    {{ form.time_type.label_tag }}
-    {{ form.time_type }}
-    </div>
-    <div class="form-field">
-        {{ form.from_dt.errors }}
-        {{ form.from_dt.label_tag }}
-        {{ form.from_dt }}
-        {{ form.to_dt.errors }}
-        {{ form.to_dt.label_tag }}
-        {{ form.to_dt }}
-    </div>
-    <div class="form-field">
-        {{ form.sprint.errors }}
-        {{ form.sprint.label_tag }}
-        {{ form.sprint }}
-    </div>
-    <div id="chart-workflow">
-        {{ formset.management_form }}
-        {% for f in formset %}
-            {% if forloop.first %}{{ f.workflow.label_tag }}{% endif %}
-            {{ f.workflow.errors }}
-            <div class="chart-settings-state-column">
-                {{ f.workflow }}
-            </div>
-        {% endfor %}
-    </div>
-
-    <input class="submit-button" type="button" value="Submit" />
+    {% include 'form/tick.html' %}
+    {% include 'form/range.html' %}
+    {% include 'form/sprint.html' %}
+    {% include 'form/workflow.html' %}
+    {% include 'form/submit.html' %}
 {% endblock %}
 {% block rest %}
 {% endblock %}

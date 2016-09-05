@@ -11,7 +11,7 @@ from trello_reporter.charting.models import Sprint
 
 logger = logging.getLogger(__name__)
 
-DELTA_CHOICES = (
+TICK_CHOICES = (
     ("h", "Hour(s)"),
     ("d", "Day(s)"),
     ("m", "Month(s)"),
@@ -26,7 +26,8 @@ class WorkflowMixin(forms.Form):
     # initial workflow select, rest is spawned via javascript
     workflow = forms.ChoiceField(
         required=False,  # we'll validate in our clean()
-        label="Workflow"
+        label="Workflow",
+        widget=forms.Select(attrs={"class": "form-control"})
     )
 
     def set_initial_data(self, value):
@@ -73,7 +74,7 @@ def get_workflow_formset(choices, initial_data, data=None):
 class DateInputWithDatepicker(forms.DateInput):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("attrs", {})
-        kwargs["attrs"]["class"] = "datepicker"
+        kwargs["attrs"]["class"] = "datepicker form-control"
         super(DateInputWithDatepicker, self).__init__(*args, **kwargs)
 
 
@@ -98,7 +99,8 @@ class RangeMixin(forms.Form):
 
 
 class SprintMixin(forms.Form):
-    sprint = forms.ModelChoiceField(queryset=Sprint.objects.none(), required=False, label="Sprint")
+    sprint = forms.ModelChoiceField(queryset=Sprint.objects.none(), required=False, label="Sprint",
+                                    widget=forms.Select(attrs={"class": "form-control"}))
 
     def set_sprint_choices(self, queryset):
         self.fields["sprint"].queryset = queryset
@@ -125,8 +127,10 @@ class DeltaMixin(forms.Form):
     """
     e.g. delta = 3h, 1d, 2m, ...
     """
-    count = forms.FloatField(label="Delta size")
-    time_type = forms.ChoiceField(choices=DELTA_CHOICES, label="Delta unit")
+    count = forms.IntegerField(label="Tick size",
+                               widget=forms.NumberInput(attrs={"class": "form-control"}))
+    time_type = forms.ChoiceField(choices=TICK_CHOICES, label="Tick unit",
+                                  widget=forms.Select(attrs={"class": "form-control"}))
 
 
 class DateForm(forms.Form):

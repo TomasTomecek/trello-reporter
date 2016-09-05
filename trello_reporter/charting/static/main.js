@@ -13,6 +13,7 @@ var constants = {
   day_format: '%Y-%m-%d',
 };
 
+// TODO: use PF to initialize form, stuff the code into a function and reuse in every chart
 // class with "classmethods" to create charts
 var charting = {
   reload_control: function(data) {
@@ -40,6 +41,9 @@ var charting = {
 
     chart = c3.generate({
       bindto: '#chart',
+      size: {
+        height: 480,
+      },
       data: chart_data,
       legend: {
         show: true
