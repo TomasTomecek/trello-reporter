@@ -13,7 +13,30 @@ var constants = {
   day_format: '%Y-%m-%d',
 };
 
-// TODO: use PF to initialize form, stuff the code into a function and reuse in every chart
+function get_default_line_config() {
+  return $().c3ChartDefaults().getDefaultLineConfig();
+}
+
+function get_default_bar_config() {
+  return $().c3ChartDefaults().getDefaultBarConfig();
+}
+
+function get_default_area_config() {
+  return $().c3ChartDefaults().getDefaultAreaConfig();
+}
+
+// initialize empty chart from patternfly
+function init_chart(chart_config) {
+  chart_config.bindto = '#chart';
+  chart_config.size = {
+    height: 480,
+  };
+  chart_config.legend = {
+    show: true,
+  };
+  return chart_config;
+}
+
 // TODO: get rid of reload functions, one function should load and reload
 // class with "classmethods" to create charts
 var charting = {
@@ -24,6 +47,7 @@ var charting = {
   },
 
   control: function(data) {
+    var chart_defaults = init_chart(get_default_line_config());
     chart_data = {
       json: data["data"],
       keys: {
@@ -33,18 +57,9 @@ var charting = {
       xFormat: constants.datetime_format,
       type: 'scatter',
       onclick: on_point_click,
-      color: get_point_color,
-      // colors: {
-      //   hours: '#ff0000',
-      //   date: '#00ff00'
-      // }
     };
 
-    chart = c3.generate({
-      bindto: '#chart',
-      size: {
-        height: 480,
-      },
+    var ch = {
       data: chart_data,
       legend: {
         show: true
@@ -73,7 +88,9 @@ var charting = {
           }
         }
       }
-    });
+    };
+    $.extend(true, chart_defaults, ch);
+    chart = c3.generate(chart_defaults);
   },
 
   reload_cumulative_flow: function(data) {
@@ -86,6 +103,7 @@ var charting = {
   },
 
   cumulative_flow: function(data) {
+    var chart_defaults = init_chart(get_default_area_config());
     previous_values = data.order;
     chart_data = {
       json: data["data"],
@@ -99,12 +117,8 @@ var charting = {
       order: null
     };
 
-    chart = c3.generate({
-      bindto: '#chart',
+    var ch = {
       data: chart_data,
-      size: {
-        height: 480,
-      },
       axis: {
         x: {
           type: 'timeseries',
@@ -123,7 +137,9 @@ var charting = {
       line: {
         connectNull: true
       }
-    });
+    };
+    $.extend(true, ch, chart_defaults);
+    chart = c3.generate(ch);
   },
 
   reload_burndown: function(data) {
@@ -132,6 +148,7 @@ var charting = {
     chart.load(chart_data);
   },
   burndown: function (data) {
+    var chart_defaults = init_chart(get_default_line_config());
     chart_data = {
       json: data["data"],
       keys: {
@@ -145,16 +162,8 @@ var charting = {
         "ideal": "line",
       }
     };
-
-    chart = c3.generate({
-      bindto: '#chart',
+    var ch = {
       data: chart_data,
-      size: {
-        height: 480,
-      },
-      legend: {
-        show: true
-      },
       axis: {
         x: {
           type: 'timeseries',
@@ -173,7 +182,10 @@ var charting = {
       line: {
         connectNull: true
       }
-    });
+    }
+    $.extend(true, ch, chart_defaults)
+
+    chart = c3.generate(ch);
   },
 
   reload_velocity: function(data) {
@@ -182,6 +194,8 @@ var charting = {
     chart.load(chart_data);
   },
   velocity: function(data) {
+    var bar_chart_defaults = init_chart(get_default_bar_config());
+    var line_chart_defaults = init_chart(get_default_line_config());
     chart_data = {
       json: data["data"],
       keys: {
@@ -195,12 +209,8 @@ var charting = {
       }
     };
 
-    chart = c3.generate({
-      bindto: '#chart',
+    var ch = {
       data: chart_data,
-      legend: {
-        show: true
-      },
       bar: {
         width: {
             ratio: 0.5
@@ -215,10 +225,13 @@ var charting = {
           label: "Story points"
         }
       },
-    });
+    };
+    $.extend(true, ch, line_chart_defaults, bar_chart_defaults);
+    chart = c3.generate(ch);
   },
 
   list_history: function(data) {
+    var chart_defaults = init_chart(get_default_line_config());
     chart_data = {
       json: data.data,
       keys: {
@@ -228,13 +241,8 @@ var charting = {
       xFormat: constants.datetime_format,
       type: "line"
     };
-
-    chart = c3.generate({
-      bindto: '#chart',
+    var ch = {
       data: chart_data,
-      legend: {
-        show: true
-      },
       axis: {
         x: {
           type: 'timeseries',
@@ -246,8 +254,10 @@ var charting = {
         y: {
           label: 'Count',
         }
-      },
-    });
+      }
+    };
+    $.extend(true, ch, chart_defaults);
+    chart = c3.generate(ch);
   }
 };
 
@@ -362,17 +372,13 @@ function on_point_click(d, element) {
 }
 
 function point_size(d) {
-  var sizes={0:2, 1:2, 2:3, 3:4, 5:5, 8:6, 13:7};
+  var sizes={0:2, 1:3, 2:4, 3:5, 5:6, 8:8, 13:13};
   var point_size = this.data_json[d.source_index].size;
   for (var s in sizes) {
     if (s >= point_size) {
       return sizes[s];
     }
   }
-}
-
-function get_point_color(color, d) {
-  return "#006";
 }
 
 function get_burndown_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
