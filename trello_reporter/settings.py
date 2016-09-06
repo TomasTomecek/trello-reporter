@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'trello_reporter.charting',
     'trello_reporter.authentication',  # not to conflict with django.c.auth
     'trello_reporter.harvesting',
+    'trello_reporter.static_data',  # used for easier development
     'django_extensions',
     'debug_toolbar',
     # 'channels',

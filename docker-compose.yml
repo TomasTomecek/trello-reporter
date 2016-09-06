@@ -3,7 +3,8 @@ web:
   ports:
    - "8000:8000"
   volumes:
-   - .:/opt/app/
+   - ./trello_reporter/:/opt/app/trello_reporter/
+   - ./manage.py:/opt/app/manage.py
   links:
    - db
      #   - redis
