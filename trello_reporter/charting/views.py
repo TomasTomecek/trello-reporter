@@ -8,7 +8,7 @@ from urllib import urlencode
 from dateutil.tz import tzutc
 
 from django.core.urlresolvers import reverse
-from django.http.response import JsonResponse
+from django.http.response import JsonResponse, Http404
 from django.shortcuts import render, redirect
 from django.views.generic.base import TemplateView, View
 
@@ -202,6 +202,16 @@ class BurndownChartView(BurndownChartBase):
 
 
 class BurndownChartDataView(BurndownChartBase):
+    def get(self, request, *args, **kwargs):
+        sprint_id = request.GET.get("sprint_id", None)
+        if not sprint_id:
+            raise Http404("Selected view of burndown chart does not exist, please specify sprint.")
+        sprint = Sprint.objects.get(id=sprint_id)
+        data = ChartExporter.burndown_chart_c3(
+            sprint.board, sprint.start_dt,
+            sprint.end_dt, BURNDOWN_INITIAL_WORKFLOW)
+        return JsonResponse({"data": data})
+
     def post(self, request, board_id, *args, **kwargs):
         logger.debug("get data for burndown chart")
         self.form_data = request.POST
@@ -430,7 +440,9 @@ def sprint_detail(request, sprint_id):
     context = {
         "sprint": sprint,
         "card_actions": card_actions,
-        "chart_url": chart_url,
+        "view_name": "chart_without_form",
+        "chart_name": "burndown",
+        "chart_data_url": chart_url,
         "breadcrumbs": [
             {
                 "url": reverse("board-detail", args=(sprint.board.id, )),
@@ -449,7 +461,7 @@ def list_detail(request, list_id):
     logger.debug("list detail: %s", li)
     context = {
         "list": li,
-        "view_name": "list_history",
+        "view_name": "chart_without_form",
         "chart_name": "list_history",
         "chart_data_url": reverse("list-history-chart-data", args=(list_id, )),
         "list_stats": ListStat.objects.for_list_order_by_date(li),

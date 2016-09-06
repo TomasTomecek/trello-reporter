@@ -1,9 +1,9 @@
 {% extends "index.html" %}
 {% block js %}
-<script type="text/javascript" src="/static/main.js"></script>
+{% include 'chart/initialization.html' %}
 {% endblock %}
 {% block body %}
-<div id="chart" data-chart-url="{{ chart_url }}"></div>
+<div id="chart" class="line-chart-pf"></div>
 <h2>Info</h2>
 <ul>
   <li>Start: {{ sprint.start_dt }}</li>

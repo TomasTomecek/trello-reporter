@@ -286,7 +286,7 @@ var controller = {
     $("div#chart-workflow div select").change(on_focus_states);
   },
   index: function(){},
-  list_history: function() {
+  chart_without_form: function() {
     $.get(
       GLOBAL.chart_data_url,
       function(data) {
