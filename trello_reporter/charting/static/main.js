@@ -314,6 +314,9 @@ $(function() {
   $('.datepicker').datepicker({
     format: 'yyyy-mm-dd'
   });
+  $('.timepicker').datetimepicker({
+    format: 'LT',
+  });
 });
 
 // handler for growing state machine

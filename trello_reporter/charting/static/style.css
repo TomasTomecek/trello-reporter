@@ -1,7 +1,11 @@
-#chart-settings {
+.form-horizontal {
   margin: 0 20px 0 20px;
 }
 
 .chart-settings-state-column {
 ￼ display: inline;
+}
+
+.mtop3p {
+  margin-top: 3%;
 }

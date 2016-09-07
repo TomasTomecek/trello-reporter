@@ -423,6 +423,15 @@ def board_refresh(request, board_id):
 def sprint_detail(request, sprint_id):
     sprint = Sprint.objects.get(id=sprint_id)
     logger.debug("sprint detail: %s", sprint)
+    # edit sprint as soon as possible
+    if request.method == "POST":
+        sprint_edit_form = forms.SprintEditForm(data=request.POST, instance=sprint)
+        if sprint_edit_form.is_valid():
+            sprint = sprint_edit_form.save()
+            logger.debug("saving updated sprint: %s", sprint)
+    else:
+        sprint_edit_form = forms.SprintEditForm(instance=sprint)
+
     if sprint.completed_list is not None:
         # don't supply date, we want latest stuff
         card_actions = CardAction.objects.safe_card_actions_on_list_in(
@@ -437,20 +446,18 @@ def sprint_detail(request, sprint_id):
         )
     chart_url = reverse("burndown-chart-data", args=(sprint.board.id, ), )
     chart_url += "?" + urlencode({"sprint_id": sprint.id})
+
     context = {
+        "form": sprint_edit_form,
+        "post_url": reverse("sprint-detail", args=(sprint_id, )),
         "sprint": sprint,
         "card_actions": card_actions,
         "view_name": "chart_without_form",
         "chart_name": "burndown",
         "chart_data_url": chart_url,
         "breadcrumbs": [
-            {
-                "url": reverse("board-detail", args=(sprint.board.id, )),
-                "text": "Board \"%s\"" % sprint.board.name
-            },
-            {
-                "text": "Sprint \"%s\"" % sprint.name
-            },
+            Breadcrumbs.board_detail(sprint.board),
+            Breadcrumbs.text("Sprint \"%s\"" % sprint.name)
         ],
     }
     return render(request, "sprint_detail.html", context)

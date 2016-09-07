@@ -4,14 +4,49 @@
 {% endblock %}
 {% block body %}
 <div id="chart" class="line-chart-pf"></div>
-<h2>Info</h2>
-<ul>
-  <li>Start: {{ sprint.start_dt }}</li>
-  <li>End: {{ sprint.end_dt }}</li>
-  <li>Sprint number: {{ sprint.sprint_number }}</li>
-  {% if sprint.completed_list %}<li><a href="{% url 'list-detail' sprint.completed_list.id %}">Completed cards</a></li>{% endif %}
-  {% if sprint.due_card %}<li><a href="{% url 'card-detail' sprint.due_card.id %}">Sprint card</a></li>{% endif %}
-</ul>
+<div class="mtop3p">
+  <form class="form-horizontal" action="{{ post_url }}" method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="row">
+      <div class="form-group">
+        {{ form.start_dt.errors }}
+        <label class="col-sm-1 control-label" for="id_{{ form.start_dt.name }}">{{ form.start_dt.label }}</label>
+        <div class="col-sm-3">
+          {{ form.start_dt }}
+        </div>
+        {{ form.start_t.errors }}
+        <div class="col-sm-2">
+          {{ form.start_t }}
+        </div>
+        {{ form.end_dt.errors }}
+        <label class="col-sm-1 control-label" for="id_{{ form.end_dt.name }}">{{ form.end_dt.label }}</label>
+        <div class="col-sm-3">
+          {{ form.end_dt }}
+        </div>
+        {{ form.end_t.errors }}
+        <div class="col-sm-2">
+          {{ form.end_t }}
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="form-group">
+        {{ form.name.errors }}
+        <label class="col-sm-1 control-label" for="id_{{ form.name.name }}">{{ form.name.label }}</label>
+        <div class="col-sm-5">
+          {{ form.name }}
+        </div>
+        {{ form.sprint_number.errors }}
+        <label class="col-sm-1 control-label" for="id_{{ form.sprint_number.name }}">{{ form.sprint_number.label }}</label>
+        <div class="col-sm-5">
+          {{ form.sprint_number }}
+        </div>
+      </div>
+    </div>
+    {% include 'form/submit.html' with name="Update sprint" %}
+  </form>
+</div>
 <h2>Cards</h2>
 <table class="table table-striped table-bordered">
   <thead>

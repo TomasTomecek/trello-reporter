@@ -17,6 +17,7 @@ TICK_CHOICES = (
     ("d", "Day(s)"),
     ("m", "Month(s)"),
 )
+TIME_FORMAT = "%I:%M %p"
 
 
 # MIXINS
@@ -79,8 +80,21 @@ class DateInputWithDatepicker(forms.DateInput):
         super(DateInputWithDatepicker, self).__init__(*args, **kwargs)
 
 
+class TimeInputWithDatepicker(forms.TimeInput):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("attrs", {})
+        kwargs["attrs"]["class"] = "timepicker form-control"
+        kwargs["format"] = TIME_FORMAT
+        super(TimeInputWithDatepicker, self).__init__(*args, **kwargs)
+
+
 class DateFieldWithDatepicker(forms.DateField):
     widget = DateInputWithDatepicker
+
+
+class TimeFieldWithDatepicker(forms.TimeField):
+    widget = TimeInputWithDatepicker
+    input_formats = [TIME_FORMAT]
 
 
 class RangeMixin(forms.Form):
@@ -181,3 +195,35 @@ class CumulativeFlowChartForm(SprintAndRangeMixin, DeltaMixin):
 
 class VelocityChartForm(RangeMixin):
     pass
+
+
+class SprintEditForm(forms.ModelForm):
+    start_t = TimeFieldWithDatepicker()
+    end_t = TimeFieldWithDatepicker()
+
+    def __init__(self, *args, **kwargs):
+        super(SprintEditForm, self).__init__(*args, **kwargs)
+        self.fields["start_t"].initial = self.instance.start_dt.time()
+        self.fields["end_t"].initial = self.instance.end_dt.time()
+
+    class Meta:
+        model = Sprint
+        fields = ['start_dt', 'end_dt', 'name', 'sprint_number']
+        widgets = {
+            "start_dt": DateInputWithDatepicker(),
+            "end_dt": DateInputWithDatepicker(),
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "sprint_number": forms.NumberInput(attrs={"class": "form-control"}),
+        }
+
+    def save(self, commit=True):
+        self.instance.start_dt = datetime.datetime.combine(self.cleaned_data["start_dt"],
+                                                           self.cleaned_data["start_t"])
+        self.instance.end_dt = datetime.datetime.combine(self.cleaned_data["end_dt"],
+                                                         self.cleaned_data["end_t"])
+        self.instance.name = self.cleaned_data["name"]
+        self.instance.sprint_number = self.cleaned_data["sprint_number"]
+        # self.instance.save(force_update=True, update_fields=("start_dt",
+        #                                                      "end_dt", "name", "sprint_number"))
+        super(SprintEditForm, self).save(commit=commit)
+        return self.instance
