@@ -22,7 +22,9 @@ RUN  pip install --user -r ./requirements-devel.txt
 
 # the actual sources will be replaced by bind mount
 COPY . /opt/app/
+USER root
 RUN chown -R reporter:reporter .
+USER reporter
 
 # database needs to be set up before web can start serving requests
 # --noworker
