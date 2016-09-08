@@ -455,6 +455,7 @@ def sprint_detail(request, sprint_id):
         "view_name": "chart_without_form",
         "chart_name": "burndown",
         "chart_data_url": chart_url,
+        "sprint_card_actions": sprint.card_actions.all().select_related("list", "card"),
         "breadcrumbs": [
             Breadcrumbs.board_detail(sprint.board),
             Breadcrumbs.text("Sprint \"%s\"" % sprint.name)
