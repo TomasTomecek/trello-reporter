@@ -746,6 +746,9 @@ class Sprint(models.Model):
                                           blank=True, null=True)
     due_card = models.OneToOneField(Card, models.CASCADE, related_name="sprint",
                                     blank=True, null=True)
+    # cards which are part of sprint: all cards present on Next column when the sprint starts
+    # this needs to be calculated from scratch when start date is changed
+    cards = models.ManyToManyField(Card, related_name="sprints")
 
     objects = SprintManager.from_queryset(SprintQuerySet)()
 
@@ -814,6 +817,9 @@ class Sprint(models.Model):
                     sprint.end_dt = due
                     sprint.name = last.card_name
                     sprint.due_card = last.card
+                    card_actions = CardAction.objects.card_actions_on_list_names_in(
+                        board, ["Next"], first.date)
+                    sprint.cards.add(*[x.card for x in card_actions])
                     sprint.save()
             except DatabaseError as ex:
                 # this can happen if the due card is moved to another board
