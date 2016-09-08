@@ -10,6 +10,8 @@ from __future__ import unicode_literals
 import logging
 import re
 
+from django.dispatch.dispatcher import receiver
+
 from trello_reporter.authentication.models import TrelloUser
 from trello_reporter.harvesting.harvestor import Harvestor
 
@@ -19,6 +21,7 @@ from dateutil.tz import tzutc
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 from django.db.utils import DatabaseError
+from django.db.models.signals import post_save
 
 from trello_reporter.harvesting.models import CardActionEvent
 
@@ -769,6 +772,12 @@ class Sprint(models.Model):
             return 0
         return self.completed_list.story_points
 
+    def set_sprint_cards(self):
+        self.cards.clear()
+        card_actions = CardAction.objects.card_actions_on_list_names_in(
+            self.board, ["Next"], self.start_dt)
+        self.cards.add(*[x.card for x in card_actions])
+
     @classmethod
     def refresh(cls, board, token):
         """
@@ -817,9 +826,6 @@ class Sprint(models.Model):
                     sprint.end_dt = due
                     sprint.name = last.card_name
                     sprint.due_card = last.card
-                    card_actions = CardAction.objects.card_actions_on_list_names_in(
-                        board, ["Next"], first.date)
-                    sprint.cards.add(*[x.card for x in card_actions])
                     sprint.save()
             except DatabaseError as ex:
                 # this can happen if the due card is moved to another board
@@ -843,3 +849,8 @@ class Sprint(models.Model):
             sprint.completed_list = li
             logger.info("sprint %s cards are in list %s", sprint, li)
             sprint.save()
+
+
+@receiver(post_save, sender=Sprint)
+def set_sprint_cards_cb(instance, *args, **kwargs):
+    instance.set_sprint_cards()

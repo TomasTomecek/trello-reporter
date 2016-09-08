@@ -26,6 +26,10 @@ BURNDOWN_INITIAL_WORKFLOW = ["Next", "In Progress"]
 CUMULATIVE_FLOW_INITIAL_WORKFLOW = ["New", "Backlog", "Next", "In Progress", "Complete"]
 
 
+def now():
+    return datetime.datetime.now(tzutc())
+
+
 def index(request):
     logger.debug("display index")
     boards = Board.list_boards(request.user, request.COOKIES["token"])
@@ -233,7 +237,7 @@ class CumulativeFlowChartBase(ChartView):
 
     def get_context_data(self, board_id, **kwargs):
         board = Board.objects.by_id(board_id)
-        today = datetime.datetime.now().date()
+        today = now().date()
         self.initial_form_data["from_dt"] = today - datetime.timedelta(days=30)
         self.initial_form_data["to_dt"] = today
         self.initial_form_data["time_type"] = "d"
@@ -295,7 +299,7 @@ class VelocityChartBase(ChartView):
 
     def get_context_data(self, board_id, **kwargs):
         board = Board.objects.by_id(board_id)
-        today = datetime.datetime.now().date()
+        today = now().date()
         self.initial_form_data["from_dt"] = today - datetime.timedelta(days=180)
         self.initial_form_data["to_dt"] = today
 
@@ -432,18 +436,24 @@ def sprint_detail(request, sprint_id):
     else:
         sprint_edit_form = forms.SprintEditForm(instance=sprint)
 
+    sprint_cards = sprint.cards.all()  # TODO optim: latest CAs in one query
+    sprint_card_ids = [x.id for x in sprint_cards]
+
+    completed_card_actions = []
+    unfinished_cards = []
     if sprint.completed_list is not None:
         # don't supply date, we want latest stuff
-        card_actions = CardAction.objects.safe_card_actions_on_list_in(
+        completed_card_actions = CardAction.objects.safe_card_actions_on_list_in(
             sprint.board,
             sprint.completed_list,
         )
-    else:
-        card_actions = CardAction.objects.card_actions_on_list_names_in(
-            sprint.board,
-            ["Next", "In progress", "Complete"],
-            sprint.end_dt
-        )
+        completed_card_ids = [x.card_id for x in completed_card_actions]
+        unfinished_cards = [card for card in sprint_cards if card.id not in completed_card_ids]
+
+    current_sprint_cas = CardAction.objects.card_actions_on_list_names_in(
+        sprint.board, ["Next", "In Progress", "Complete"], min(now(), sprint.end_dt))
+    added_after_sprint_card_actions = [ca for ca in current_sprint_cas if ca.card_id not in sprint_card_ids]
+
     chart_url = reverse("burndown-chart-data", args=(sprint.board.id, ), )
     chart_url += "?" + urlencode({"sprint_id": sprint.id})
 
@@ -451,11 +461,13 @@ def sprint_detail(request, sprint_id):
         "form": sprint_edit_form,
         "post_url": reverse("sprint-detail", args=(sprint_id, )),
         "sprint": sprint,
-        "card_actions": card_actions,
+        "sprint_cards": sprint_cards,
+        "completed_card_actions": completed_card_actions,
+        "unfinished_cards": unfinished_cards,
+        "after_sprint_cas": added_after_sprint_card_actions,
         "view_name": "chart_without_form",
         "chart_name": "burndown",
         "chart_data_url": chart_url,
-        "sprint_cards": sprint.cards.all(),
         "breadcrumbs": [
             Breadcrumbs.board_detail(sprint.board),
             Breadcrumbs.text("Sprint \"%s\"" % sprint.name)
