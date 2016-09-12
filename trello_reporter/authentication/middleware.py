@@ -81,7 +81,7 @@ class TimezoneMiddleware(object):
     def __call__(self, request):
         tz = None
         if request.user:
-            tzname = request.user.timezone
+            tzname = getattr(request.user, "timezone", None)
             if tzname:
                 tz = pytz.timezone(tzname)
         if tz:
