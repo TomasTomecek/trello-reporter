@@ -63,6 +63,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'trello_reporter.authentication.middleware.TrelloAuthMiddleware',
+    'trello_reporter.authentication.middleware.TimezoneMiddleware',
 ]
 
 ROOT_URLCONF = 'trello_reporter.urls'

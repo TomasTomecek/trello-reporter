@@ -40,7 +40,7 @@ def test_workflow_formset_data():
 
 def test_control_form_has_fields():
     f = ControlChartForm()
-    assert len(f.fields) == 5
+    assert len(f.fields) == 3  # start_dt, end_dt, sprint
 
 
 @pytest.mark.django_db

@@ -1,4 +1,5 @@
 {% extends "index.html" %}
+{% load tz %}
 {% block body %}
 <table class="table table-striped table-bordered">
   <thead>
@@ -13,7 +14,7 @@
   <tbody>
 {% for previous_action, ca in actions %}
   <tr>
-    <td>{{ ca.date }}</td>
+    <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
     <td>{{ ca.action_type }}</td>
     {% if ca.is_archived %}
     <td>Archived</td>

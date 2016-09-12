@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import pytz
+
 from django.db import models
 
 
@@ -8,6 +10,9 @@ class TrelloUser(models.Model):
     username = models.CharField(max_length=255, db_index=True, unique=True)
     full_name = models.CharField(max_length=255, blank=True, null=True)
     trello_id = models.CharField(max_length=32, db_index=True)
+    timezone = models.CharField(max_length=63,
+                                choices=zip(pytz.common_timezones, pytz.common_timezones),
+                                default="UTC")
     # we DO NOT store user's token persistently, ever
 
     last_login = models.DateTimeField(blank=True, null=True)

@@ -3,6 +3,7 @@
 {% include 'chart/initialization.html' %}
 {% endblock %}
 {% block body %}
+{% load tz %}
 <div id="chart" class="line-chart-pf"></div>
 <div class="mtop3p">
   <form class="form-horizontal" action="{{ post_url }}" method="post">
@@ -71,7 +72,7 @@
     {% endif %}
     </td>
     <td>{{ card.latest_action.story_points }}</td>
-    <td>{{ card.latest_action.date }}</td>
+    <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
   {% endfor %}
   </tbody>
@@ -93,7 +94,7 @@
     <td><a href="{% url 'card-detail' card.id %}">{{ card.name }}</a></td>
     <td>{{ card.latest_action.story_points }}</td>
     <td>{{ card.latest_action.list.name }}</td>
-    <td>{{ card.latest_action.date }}</td>
+    <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
   {% endfor %}
   </tbody>
@@ -116,7 +117,7 @@
     <td><a href="{% url 'card-detail' ca.card.id %}">{{ ca.card.name }}</a></td>
     <td>{{ ca.story_points }}</td>
     <td>{{ ca.list.name }}</td>
-    <td>{{ ca.date }}</td>
+    <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
   {% endfor %}
   </tbody>
@@ -139,7 +140,7 @@
     <td><a href="{% url 'card-detail' ca.card.id %}">{{ ca.card.name }}</a></td>
     <td>{{ ca.story_points }}</td>
     <td>{{ ca.list.name }}</td>
-    <td>{{ ca.date }}</td>
+    <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
 {% endfor %}
   </tbody>

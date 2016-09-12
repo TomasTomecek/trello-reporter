@@ -1,0 +1,20 @@
+{% extends "index.html" %}
+{% block body %}
+<div class="mtop3p">
+  <form class="form-horizontal" action="{% url 'user-profile' %}" method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="row">
+      <div class="form-group">
+        {{ form.timezone.errors }}
+        <label class="col-sm-1 control-label" for="id_{{ form.timezone.name }}">{{ form.timezone.label }}</label>
+        <div class="col-sm-11">
+          {{ form.timezone }}
+        </div>
+      </div>
+    </div>
+    {% include 'form/submit.html' with name="Update" %}
+  </form>
+</div>
+
+{% endblock %}

@@ -12,8 +12,10 @@ import re
 
 from django.dispatch.dispatcher import receiver
 
+from .constants import DATETIME_FORMAT
 from trello_reporter.authentication.models import TrelloUser
 from trello_reporter.harvesting.harvestor import Harvestor
+from trello_reporter.harvesting.models import CardActionEvent
 
 from dateutil import parser as dateparser
 from dateutil.tz import tzutc
@@ -22,8 +24,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
 from django.db.utils import DatabaseError
 from django.db.models.signals import post_save
+from django.utils import timezone
 
-from trello_reporter.harvesting.models import CardActionEvent
 
 logger = logging.getLogger(__name__)
 
@@ -587,6 +589,7 @@ class CardAction(models.Model):
                 event.save()
                 ca = CardAction(
                     trello_id=action_data.get("id", None),
+                    # FIXME: remove dateutil dependency, do this with django and strptime
                     date=dateparser.parse(action_data["date"], tzinfos=tzutc),
                     action_type=action_data["type"],
                     card=card,
@@ -739,8 +742,8 @@ class Sprint(models.Model):
     """
 
     """
-    start_dt = models.DateTimeField(db_index=True, blank=True, null=True)
-    end_dt = models.DateTimeField(db_index=True, blank=True, null=True)
+    start_dt = models.DateTimeField(db_index=True, blank=True, null=True, help_text="Start date")
+    end_dt = models.DateTimeField(db_index=True, blank=True, null=True, help_text="End date")
     name = models.CharField(max_length=255, blank=True, null=True)
     sprint_number = models.IntegerField(db_index=True)
     board = models.ForeignKey(Board, models.CASCADE, related_name="sprints")
@@ -759,7 +762,12 @@ class Sprint(models.Model):
         get_latest_by = "end_dt"
 
     def __unicode__(self):
-        return "[%s] %s → %s" % (self.sprint_number, self.start_dt, self.end_dt)
+        tz = timezone.get_current_timezone()
+        return "%s (%s - %s)" % (
+            self.name,
+            tz.normalize(self.start_dt).strftime(DATETIME_FORMAT),
+            tz.normalize(self.end_dt).strftime(DATETIME_FORMAT)
+        )
 
     @property
     def story_points_committed(self):

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load humanize %}
+{% load tz %}
 <html class="home-container">
   <head>
   <meta charset="utf-8">
@@ -45,7 +46,10 @@
         <ul class="nav navbar-nav navbar-utility">
           <li>
             {% if request.user.is_authenticated %}
-              <a><span class="pficon pficon-user">{{ request.user.full_name }}</span></a>
+              <a href="{% url 'user-profile' %}">
+                <span class="pficon pficon-user">{{ request.user.full_name }}</span>
+                <span>Timezone: <em>{{ user.timezone }}</em></span>
+              </a>
             {% else %}
               <a><span class="pficon pficon-user">Log in</span></a>
             {% endif %}

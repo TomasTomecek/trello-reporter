@@ -2,3 +2,4 @@ Django==1.10
 psycopg2
 requests
 python-dateutil
+pytz

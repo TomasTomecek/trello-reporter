@@ -3,6 +3,7 @@
 {% include 'chart/initialization.html' %}
 {% endblock %}
 {% block body %}
+{% load tz %}
 <div id="chart" class="line-chart-pf"></div>
 <p>
   <a href="{% url 'stalled-cards' list.id %}">Stalled cards</a>
@@ -23,7 +24,7 @@
     <tr>
       <td><a href="{% url 'card-detail' ls.card_action.card.id %}">{{ ls.card_action.card.name }}</a></td>
       <td>{{ ls.card_action.action_type }}</td>
-      <td>{{ ls.card_action.date }}</td>
+      <td>{{ ls.card_action.date|localtime|date:"Y-m-d P T" }}</td>
       <td>{{ ls.diff }}</td>
       <td>{{ ls.cards_rt }}</td>
       <td>{{ ls.story_points_rt }}</td>

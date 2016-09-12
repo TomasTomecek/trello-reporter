@@ -4,11 +4,15 @@ forms used for charts
 """
 
 import logging
-
 import datetime
+
+import pytz
+
 from django import forms
+from django.utils import timezone
 
 from trello_reporter.charting.models import Sprint
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +22,36 @@ TICK_CHOICES = (
     ("m", "Month(s)"),
 )
 TIME_FORMAT = "%I:%M %p"
+
+
+# UTILS
+
+
+def datetime_in_utc(date, time):
+    if not date:
+        return
+    dt = datetime.datetime.combine(date, time)
+    dt = pytz.utc.localize(dt)
+    logger.debug("utc dt = %s", dt)
+    return dt
+
+
+def max_time_for_date(date):
+    return datetime_in_utc(date, datetime.datetime.max.time())
+
+
+def min_time_for_date(date):
+    return datetime_in_utc(date, datetime.datetime.min.time())
+
+
+def datetime_in_current_timezone(date, time):
+    tz = timezone.get_current_timezone()
+    logger.debug("current timezone = %s", tz)
+    dt = datetime.datetime.combine(date, time)
+    dt = pytz.utc.localize(dt)
+    local_dt = tz.normalize(dt)
+    logger.debug("utc-aware: %s local: %s", dt, local_dt)
+    return local_dt
 
 
 # MIXINS
@@ -104,11 +138,8 @@ class RangeMixin(forms.Form):
     def clean(self):
         cleaned_data = super(RangeMixin, self).clean()
 
-        f = cleaned_data.get("from_dt")
-        t = cleaned_data.get("to_dt")
-
-        if not (f or t):
-            raise forms.ValidationError('Please specify "From" or "To".')
+        cleaned_data["from_dt"] = min_time_for_date(cleaned_data.get("from_dt"))
+        cleaned_data["to_dt"] = max_time_for_date(cleaned_data.get("to_dt"))
 
         return cleaned_data
 
@@ -123,7 +154,8 @@ class SprintMixin(forms.Form):
 
 class SprintAndRangeMixin(SprintMixin, RangeMixin):
     def clean(self):
-        cleaned_data = super(forms.Form, self).clean()  # don't call range's clean()
+        cleaned_data = SprintMixin.clean(self)
+        cleaned_data.update(RangeMixin.clean(self))
 
         f = cleaned_data.get("from_dt")
         s = cleaned_data.get("sprint")
@@ -171,8 +203,8 @@ class DeltaMixin(forms.Form):
         return cleaned_data
 
 
-class DateForm(forms.Form):
-    date = DateFieldWithDatepicker(label="Date")
+# class DateForm(forms.Form):
+#     date = DateFieldWithDatepicker(label="Date")
 
 
 # ACTUAL FORMS
@@ -194,7 +226,16 @@ class CumulativeFlowChartForm(SprintAndRangeMixin, DeltaMixin):
 
 
 class VelocityChartForm(RangeMixin):
-    pass
+    def clean(self):
+        cleaned_data = super(VelocityChartForm, self).clean()
+
+        f = cleaned_data.get("from_dt")
+        t = cleaned_data.get("to_dt")
+
+        if not (f or t):
+            raise forms.ValidationError('Please specify "From" or "To".')
+
+        return cleaned_data
 
 
 class SprintEditForm(forms.ModelForm):
@@ -203,8 +244,11 @@ class SprintEditForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(SprintEditForm, self).__init__(*args, **kwargs)
-        self.fields["start_t"].initial = self.instance.start_dt.time()
-        self.fields["end_t"].initial = self.instance.end_dt.time()
+        tz = timezone.get_current_timezone()
+        s = tz.normalize(self.instance.start_dt)
+        e = tz.normalize(self.instance.end_dt)
+        self.fields["start_t"].initial = s
+        self.fields["end_t"].initial = e
 
     class Meta:
         model = Sprint
@@ -215,12 +259,16 @@ class SprintEditForm(forms.ModelForm):
             "name": forms.TextInput(attrs={"class": "form-control"}),
             "sprint_number": forms.NumberInput(attrs={"class": "form-control"}),
         }
+        labels = {
+            "start_dt": "Start date",
+            "end_dt": "End date"
+        }
 
     def save(self, commit=True):
-        self.instance.start_dt = datetime.datetime.combine(self.cleaned_data["start_dt"],
-                                                           self.cleaned_data["start_t"])
-        self.instance.end_dt = datetime.datetime.combine(self.cleaned_data["end_dt"],
-                                                         self.cleaned_data["end_t"])
+        self.instance.start_dt = datetime_in_current_timezone(
+            self.cleaned_data["start_dt"], self.cleaned_data["start_t"])
+        self.instance.end_dt = datetime_in_current_timezone(
+            self.cleaned_data["end_dt"], self.cleaned_data["end_t"])
         self.instance.name = self.cleaned_data["name"]
         self.instance.sprint_number = self.cleaned_data["sprint_number"]
         # self.instance.save(force_update=True, update_fields=("start_dt",

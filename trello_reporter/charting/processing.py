@@ -9,10 +9,9 @@ TODO:
 from __future__ import unicode_literals, print_function
 
 import logging
-
 import datetime
 
-from dateutil.tz import tzutc
+from django.utils import timezone
 
 from trello_reporter.charting.models import CardAction, ListStat
 
@@ -33,9 +32,6 @@ class ChartExporter(object):
         response = []
 
         # c3 doesn't handle disconnected area segments, hence we need to cumulate
-        beginning = datetime.datetime.combine(beginning, datetime.datetime.min.time())
-        end = datetime.datetime.combine(end, datetime.datetime.max.time())
-
         d = beginning
         while True:
             if d > end:
@@ -87,7 +83,6 @@ class ChartExporter(object):
                 total_seconds = (last_action.date - first_action.date).total_seconds()
                 days = float(total_seconds) / 60 / 60 / 24
                 days_out = "{:.1f}".format(days)
-                logger.debug("%s - %s = %s days", last_action, first_action, days_out)
                 date = last_action.date.strftime("%Y-%m-%d %H:%M")
                 cards.append({
                     "days": days_out,
@@ -102,23 +97,13 @@ class ChartExporter(object):
     @classmethod
     def burndown_chart_c3(cls, board, beginning, end, in_progress_list_names):
         completed_lists = ["Complete", "Completed"]
-        tz = tzutc()
-        now = datetime.datetime.now(tz=tz)
-        if end:
-            if not isinstance(end, datetime.datetime):
-                end = datetime.datetime(
-                    year=end.year, month=end.month, day=end.day, hour=23, minute=59, tzinfo=tz)
-        else:
+        now = timezone.now()
+        if not end:
             end = now
 
         response = []
         delta = datetime.timedelta(days=1)
-        if not isinstance(beginning, datetime.datetime):
-            d = datetime.datetime(
-                year=beginning.year, month=beginning.month, day=beginning.day, hour=0, minute=0,
-                tzinfo=tz)
-        else:
-            d = beginning
+        d = beginning
         while True:
             if d > end:
                 break
@@ -138,7 +123,7 @@ class ChartExporter(object):
             }
             if len(response) == 0:
                 tick["ideal"] = ListStat.objects.sum_sp_for_list_names_before(
-                    board, in_progress_list_names, beginning)
+                    board, in_progress_list_names, d)
             response.append(tick)
             d += delta
         if response:

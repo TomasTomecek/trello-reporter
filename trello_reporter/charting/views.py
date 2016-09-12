@@ -5,12 +5,11 @@ import logging
 import datetime
 from urllib import urlencode
 
-from dateutil.tz import tzutc
-
 from django.core.urlresolvers import reverse
 from django.http.response import JsonResponse, Http404
 from django.shortcuts import render, redirect
-from django.views.generic.base import TemplateView, View
+from django.views.generic.base import TemplateView
+from django.utils import timezone
 
 from trello_reporter.charting import forms
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
@@ -24,10 +23,6 @@ logger = logging.getLogger(__name__)
 CONTROL_INITIAL_WORKFLOW = ["Next", "Complete"]
 BURNDOWN_INITIAL_WORKFLOW = ["Next", "In Progress"]
 CUMULATIVE_FLOW_INITIAL_WORKFLOW = ["New", "Backlog", "Next", "In Progress", "Complete"]
-
-
-def now():
-    return datetime.datetime.now(tzutc())
 
 
 def index(request):
@@ -237,7 +232,7 @@ class CumulativeFlowChartBase(ChartView):
 
     def get_context_data(self, board_id, **kwargs):
         board = Board.objects.by_id(board_id)
-        today = now().date()
+        today = timezone.now().date()
         self.initial_form_data["from_dt"] = today - datetime.timedelta(days=30)
         self.initial_form_data["to_dt"] = today
         self.initial_form_data["time_type"] = "d"
@@ -299,7 +294,7 @@ class VelocityChartBase(ChartView):
 
     def get_context_data(self, board_id, **kwargs):
         board = Board.objects.by_id(board_id)
-        today = now().date()
+        today = timezone.now().date()
         self.initial_form_data["from_dt"] = today - datetime.timedelta(days=180)
         self.initial_form_data["to_dt"] = today
 
@@ -430,6 +425,7 @@ def sprint_detail(request, sprint_id):
     # edit sprint as soon as possible
     if request.method == "POST":
         sprint_edit_form = forms.SprintEditForm(data=request.POST, instance=sprint)
+        logger.debug("user's timezone = %s", request.user.timezone)
         if sprint_edit_form.is_valid():
             sprint = sprint_edit_form.save()
             logger.debug("saving updated sprint: %s", sprint)
@@ -451,7 +447,7 @@ def sprint_detail(request, sprint_id):
         unfinished_cards = [card for card in sprint_cards if card.id not in completed_card_ids]
 
     current_sprint_cas = CardAction.objects.card_actions_on_list_names_in(
-        sprint.board, ["Next", "In Progress", "Complete"], min(now(), sprint.end_dt))
+        sprint.board, ["Next", "In Progress", "Complete"], min(timezone.now(), sprint.end_dt))
     added_after_sprint_card_actions = [ca for ca in current_sprint_cas if ca.card_id not in sprint_card_ids]
 
     chart_url = reverse("burndown-chart-data", args=(sprint.board.id, ), )

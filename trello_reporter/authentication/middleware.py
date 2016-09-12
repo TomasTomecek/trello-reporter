@@ -3,13 +3,16 @@ authenticating users with trello
 """
 import os
 import logging
+import datetime
 from urllib import urlencode
 
-import datetime
+import pytz
+
 from django.contrib.auth import authenticate, login
 from django.http.response import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from django.utils import timezone
 
 
 url = "https://trello.com/1/authorize"
@@ -51,21 +54,43 @@ class TrelloAuthMiddleware(object):
                 logger.info("user logged in: %s", user)
         if request.user.is_authenticated and "token" in request.COOKIES:
             logger.info("user %s is authenticated", request.user)
-            response = self.get_response(request)
         elif request.path in self.ignore_list:
             logger.debug("this endpoint ignores required authentication")
-            response = self.get_response(request)
         else:
             # TODO: set "?next=<current_url>"
             full_path = request.build_absolute_uri(self.redirect_url)
             redirect_url = form_authorize_url(full_path)
             logger.info("redirect to trello authorization")
             return HttpResponseRedirect(redirect_url)
+        # /\ code for request
+        response = self.get_response(request)
+        # \/ code for response
         if token:
             # in 30 days
             logger.debug("setting token cookie")
             expires = datetime.datetime.utcnow() + datetime.timedelta(days=30)
             response.set_cookie("token", token, expires=expires, secure=not settings.DEBUG)
             logger.debug(response.cookies)
-
         return response
+
+
+class TimezoneMiddleware(object):
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        tz = None
+        if request.user:
+            tzname = request.user.timezone
+            if tzname:
+                tz = pytz.timezone(tzname)
+        if tz:
+            timezone.activate(tz)
+        else:
+            timezone.deactivate()
+        logger.info("timezone set to %s", timezone.get_current_timezone())
+        # /\ code for request
+        response = self.get_response(request)
+        # \/ code for response
+        return response
+
