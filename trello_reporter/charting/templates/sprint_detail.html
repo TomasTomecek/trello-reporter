@@ -4,6 +4,7 @@
 {% endblock %}
 {% block body %}
 {% load tz %}
+{% load list_tags %}
 <div id="chart" class="line-chart-pf"></div>
 <div class="mtop3p">
   <form class="form-horizontal" action="{{ post_url }}" method="post">
@@ -63,13 +64,7 @@
   <tr>
     <td><a href="{% url 'card-detail' card.id %}">{{ card.name }}</a></td>
     <td>
-    {% if card.latest_action.is_archived %}
-    Archived
-    {% elif card.latest_action.is_deleted %}
-    Deleted
-    {% else %}
-      <a href="{% url 'list-detail' card.latest_action.list_id %}">{{ card.latest_action.list.name }}</a>
-    {% endif %}
+      {% present_list card.latest_action %}
     </td>
     <td>{{ card.latest_action.story_points }}</td>
     <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
@@ -84,7 +79,7 @@
   <tr>
     <th>Name</th>
     <th>Story points</th>
-    <th>Column</th>
+    <th>Current column</th>
     <th>Date</th>
   </tr>
   </thead>
@@ -93,7 +88,7 @@
   <tr>
     <td><a href="{% url 'card-detail' card.id %}">{{ card.name }}</a></td>
     <td>{{ card.latest_action.story_points }}</td>
-    <td>{{ card.latest_action.list.name }}</td>
+    <td>{% present_list card.latest_action %}</td>
     <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
   {% endfor %}
@@ -107,7 +102,7 @@
   <tr>
     <th>Name</th>
     <th>Story points</th>
-    <th>Add to column</th>
+    <th>Added to column</th>
     <th>Date</th>
   </tr>
   </thead>
@@ -116,7 +111,7 @@
   <tr>
     <td><a href="{% url 'card-detail' ca.card.id %}">{{ ca.card.name }}</a></td>
     <td>{{ ca.story_points }}</td>
-    <td>{{ ca.list.name }}</td>
+    <td>{% present_list ca %}</td>
     <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
   {% endfor %}
@@ -139,7 +134,7 @@
   <tr>
     <td><a href="{% url 'card-detail' ca.card.id %}">{{ ca.card.name }}</a></td>
     <td>{{ ca.story_points }}</td>
-    <td>{{ ca.list.name }}</td>
+    <td>{% present_list ca %}</td>
     <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
 {% endfor %}
