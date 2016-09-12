@@ -25,6 +25,7 @@
 <form id="chart-settings" class="form-horizontal" action="{{ chart_data_url }}" method="post">
 {% block form %}
 {% endblock form %}
+{% include 'form/submit.html' with input_type="button" %}
 </form>
 <div id="chart" class="line-chart-pf"></div>
 {% block rest %} {# rest of the data #}
