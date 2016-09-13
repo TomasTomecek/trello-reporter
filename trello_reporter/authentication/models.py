@@ -6,7 +6,7 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 
-from trello_reporter.charting.constants import INITIAL_COLUMNS
+from trello_reporter.charting.constants import INITIAL_COLUMNS, SPRINT_COMMITMENT_COLUMNS
 
 
 class TrelloUser(models.Model):
@@ -72,17 +72,18 @@ class KeyValQuerySet(models.QuerySet):
     def for_board(self, board_id):
         return self.filter(value__board_id=board_id)
 
-    def get_or_create_unique_setting(self, key, user_id, board_id=None, default=None):
-        q = {
-            "key": key,
-            "value__user_id": user_id
-        }
+    def get_or_create_setting(self, key, user_id=None, board_id=None, default=None):
+        q = {"key": key}
+        if user_id:
+            q["value__user_id"] = user_id
         if board_id:
             q["value__board_id"] = board_id
         try:
             return self.get(**q)
         except ObjectDoesNotExist:
-            value = {"user_id": user_id}
+            value = {}
+            if board_id:
+                value["user_id"] = user_id
             if board_id:
                 value["board_id"] = board_id
             if default:
@@ -92,9 +93,15 @@ class KeyValQuerySet(models.QuerySet):
 
 class KeyValManager(models.Manager):
     def displayed_cols_in_board_detail(self, user, board):
-        return self.get_or_create_unique_setting(
-            KeyVal.DISPLAYED_COLS_IN_BOARD_DETAIL, user.id, board_id=board.id,
+        return self.get_or_create_setting(
+            KeyVal.DISPLAYED_COLS_IN_BOARD_DETAIL, user_id=user.id, board_id=board.id,
             default={"columns": INITIAL_COLUMNS}
+        )
+
+    def sprint_commitment_columns(self, board):
+        return self.get_or_create_setting(
+            KeyVal.SPRINT_COMMITMENT_COLS, board_id=board.id,
+            default={"columns": SPRINT_COMMITMENT_COLUMNS}
         )
 
 
@@ -109,3 +116,4 @@ class KeyVal(models.Model):
         return "%s: %s" % (self.key, self.value)
 
     DISPLAYED_COLS_IN_BOARD_DETAIL = "DISPLAYED_COLS_IN_BOARD_DETAIL"
+    SPRINT_COMMITMENT_COLS = "SPRINT_COMMITMENT_COLS"

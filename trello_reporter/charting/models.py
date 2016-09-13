@@ -768,10 +768,9 @@ class Sprint(models.Model):
             tz.normalize(self.end_dt).strftime(DATETIME_FORMAT)
         )
 
-    @property
-    def story_points_committed(self):
+    def story_points_committed(self, commitment_cols):
         return ListStat.objects.sum_sp_for_list_names_before(
-            self.board, ["Next", "In Progress"], self.start_dt)
+            self.board, commitment_cols, self.start_dt)
 
     @property
     def story_points_done(self):

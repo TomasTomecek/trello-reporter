@@ -106,7 +106,7 @@ class WorkflowBaseFormSet(forms.BaseFormSet):
             raise forms.ValidationError("Please select at least one value.")
 
 
-def get_workflow_formset(choices, initial_data, data=None, label=None):
+def get_workflow_formset(choices, initial_data, data=None, label=None, prefix=None):
     fs_kls = forms.formset_factory(
         WorkflowMixin, formset=WorkflowBaseFormSet)
     q = {
@@ -115,6 +115,8 @@ def get_workflow_formset(choices, initial_data, data=None, label=None):
     }
     if label:
         q["label"] = label
+    if prefix:
+        q["prefix"] = prefix
     fs = fs_kls(**q)
     fs.set_choices(choices)
     return fs

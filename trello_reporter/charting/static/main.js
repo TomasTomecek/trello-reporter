@@ -320,12 +320,12 @@ $(function() {
 
 // handler for growing state machine
 function on_focus_states(data) {
-  var t = $(this);
-  var parent_div = t.parent("div")
+  var t = $(this); // select
+  var parent_div = t.parent("div"); // div.state-workflow-column
+  var root_div = parent_div.parent("div.state-workflow");
 
   // selectedIndex is better than .filter(":selected")
-  if ($("div.state-workflow div.state-workflow-column").last().children("select")[0].selectedIndex > 0) {
-    var root_div = parent_div.parent("div.state-workflow");
+  if (root_div.children("div.state-workflow-column").last().children("select")[0].selectedIndex > 0) {
     var new_div = root_div
         .children("div.state-workflow-column")
         .last()
@@ -347,7 +347,7 @@ function on_focus_states(data) {
     new_select
         .on("change", on_focus_states);
     // set # of forms, needed by django formsets
-    $("#id_form-TOTAL_FORMS")
+    parent_div.siblings("input[id$='-TOTAL_FORMS']")
         .val(root_div.find("div.state-workflow-column").length);
   }
 }

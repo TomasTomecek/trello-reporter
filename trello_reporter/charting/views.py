@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 # local constants
 
 CONTROL_INITIAL_WORKFLOW = ["Next", "Complete"]
-BURNDOWN_INITIAL_WORKFLOW = ["Next", "In Progress"]
 
 
 def index(request):
@@ -54,23 +53,24 @@ class BaseView(TemplateView):
     view_name = None  # for javascript
 
 
-def humanize_form_errors(form=None, formset=None):
+def humanize_form_errors(form=None, formsets=None):
     texts = []
     if form and form.errors:
         form_errors_text = form.errors.as_text()
         logger.info("form errors: %s", form_errors_text)
         texts.append(form_errors_text)
-    if formset:
-        nfe = formset.non_form_errors()
-        if nfe:
-            nfe_text = nfe.as_text()
-            logger.info("non formset errors: %s", nfe_text)
-            texts.append(nfe_text)
-        for fe in formset.errors:
-            if fe:
-                formset_form_error_text = fe.as_text()
-                logger.info("formset, form error: %s", formset_form_error_text)
-                texts.append(formset_form_error_text)
+    if formsets:
+        for formset in formsets:
+            nfe = formset.non_form_errors()
+            if nfe:
+                nfe_text = nfe.as_text()
+                logger.info("non formset errors: %s", nfe_text)
+                texts.append(nfe_text)
+            for fe in formset.errors:
+                if fe:
+                    formset_form_error_text = fe.as_text()
+                    logger.info("formset, form error: %s", formset_form_error_text)
+                    texts.append(formset_form_error_text)
     return "<br>".join(texts)
 
 
@@ -102,7 +102,7 @@ class ChartView(BaseView):
     @staticmethod
     def respond_json_form_errors(form, formset=None):
         return JsonResponse({"error": "Form is not valid: " +
-                                      humanize_form_errors(form, formset=formset)})
+                                      humanize_form_errors(form, formsets=[formset])})
 
 
 class ControlChartBase(ChartView):
@@ -175,7 +175,8 @@ class BurndownChartBase(ChartView):
         self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
 
         lis = List.objects.get_all_listnames_for_board(board)
-        formset = forms.get_workflow_formset([("", "")] + zip(lis, lis), BURNDOWN_INITIAL_WORKFLOW,
+        self.commitment_cols = KeyVal.objects.sprint_commitment_columns(board).value["columns"]
+        formset = forms.get_workflow_formset([("", "")] + zip(lis, lis), self.commitment_cols,
                                              data=self.formset_data)
 
         context["board"] = board
@@ -209,7 +210,7 @@ class BurndownChartDataView(BurndownChartBase):
         sprint = Sprint.objects.get(id=sprint_id)
         data = ChartExporter.burndown_chart_c3(
             sprint.board, sprint.start_dt,
-            sprint.end_dt, BURNDOWN_INITIAL_WORKFLOW)
+            sprint.end_dt, self.commitment_cols)
         return JsonResponse({"data": data})
 
     def post(self, request, board_id, *args, **kwargs):
@@ -334,7 +335,8 @@ class VelocityChartDataView(VelocityChartBase):
 
         sprints = Sprint.objects.for_board_in_range_by_end_date(
             context["board"], form.cleaned_data["from_dt"], form.cleaned_data["to_dt"])
-        data = ChartExporter.velocity_chart_c3(sprints)
+        cc = KeyVal.objects.sprint_commitment_columns(context["board"]).value["columns"]
+        data = ChartExporter.velocity_chart_c3(sprints, cc)
         return JsonResponse({"data": data})
 
 
@@ -399,22 +401,37 @@ def board_detail(request, board_id):
     logger.debug("board detail %s", board)
 
     kv_displ_cols = KeyVal.objects.displayed_cols_in_board_detail(request.user, board)
+    kv_com = KeyVal.objects.sprint_commitment_columns(board)
 
     if request.method == "POST":
         formset_data = request.POST
     else:
         formset_data = None
     lis = List.objects.get_all_listnames_for_board(board)
-    formset = forms.get_workflow_formset([("", "")] + zip(lis, lis),
-                                         kv_displ_cols.value["columns"],
-                                         data=formset_data,
-                                         label="Selected columns")
+    columns_formset = forms.get_workflow_formset(
+        [("", "")] + zip(lis, lis),
+        kv_displ_cols.value["columns"],
+        data=formset_data,
+        label="Selected columns",
+        prefix="columns"
+    )
+    commitment_formset = forms.get_workflow_formset(
+        [("", "")] + zip(lis, lis),
+        kv_com.value["columns"],
+        data=formset_data,
+        label="Sprint commitment columns",
+        prefix="commitment"
+    )
     if request.method == "POST":
-        if formset.is_valid():
-            kv_displ_cols.value["columns"] = formset.workflow
-            kv_displ_cols.save()
+        if commitment_formset.is_valid() and columns_formset.is_valid():
+            if columns_formset.has_changed():
+                kv_displ_cols.value["columns"] = columns_formset.workflow
+                kv_displ_cols.save()
+            if commitment_formset.has_changed():
+                kv_com.value["columns"] = commitment_formset.workflow
+                kv_com.save()
         else:
-            humanize_form_errors(formset=formset)
+            logger.warning("formsets are not valid: %s %s", commitment_formset, columns_formset)
 
     lists = List.objects.filter_lists_for_board(board, f=kv_displ_cols.value["columns"])
     lists = sorted(lists, key=lambda x: x.name)
@@ -424,7 +441,8 @@ def board_detail(request, board_id):
         "board": board,
         "lists": lists,
         "sprints": sprints,
-        "formset": formset,
+        "columns_formset": columns_formset,
+        "commitment_formset": commitment_formset,
         "form_post_url": reverse("board-detail", args=(board_id, )),
         "breadcrumbs": [
             Breadcrumbs.text("Board \"%s\"" % board.name)

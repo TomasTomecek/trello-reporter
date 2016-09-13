@@ -131,7 +131,7 @@ class ChartExporter(object):
         return response
 
     @classmethod
-    def velocity_chart_c3(cls, sprints):
+    def velocity_chart_c3(cls, sprints, commitment_cols):
         response = []
         response_len = 0
         for sprint in reversed(sprints):
@@ -139,7 +139,7 @@ class ChartExporter(object):
             done = sprint.story_points_done
             r = {
                 "done": done,
-                "committed": sprint.story_points_committed,
+                "committed": sprint.story_points_committed(commitment_cols),
                 "name": sprint.name,
             }
             # http://math.stackexchange.com/a/106314

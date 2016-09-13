@@ -3,7 +3,8 @@
 {% block body %}
 <form class="form-horizontal" action="{{ form_post_url }}" method="post">
     {% csrf_token %}
-    {% include 'form/workflow.html' %}
+    {% include 'form/workflow.html' with formset=columns_formset %}
+    {% include 'form/workflow.html' with formset=commitment_formset %}
     {% include 'form/submit.html' %}
 </form>
 <h2>Charts</h2>
