@@ -2,8 +2,9 @@
   margin: 0 20px 0 20px;
 }
 
-.chart-settings-state-column {
-￼ display: inline;
+.state-workflow-column {
+  padding: 0 0.5em 0 0.5em;
+  margin: 0 0 1em 0;
 }
 
 .mtop3p {

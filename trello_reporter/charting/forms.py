@@ -74,6 +74,13 @@ class WorkflowMixin(forms.Form):
 
 
 class WorkflowBaseFormSet(forms.BaseFormSet):
+    def __init__(self, **kwargs):
+        label = kwargs.pop("label", None)
+        super(WorkflowBaseFormSet, self).__init__(**kwargs)
+        if label:
+            for idx, val in enumerate(self):
+                self[idx].fields['workflow'].label = label
+
     def set_initial_data(self, values):
         [form.set_initial_data(values[idx]) for idx, form in enumerate(self.forms)]
 
@@ -84,7 +91,7 @@ class WorkflowBaseFormSet(forms.BaseFormSet):
     def workflow(self):
         if not self.is_valid():
             logger.warning("formset is invalid")
-            raise Exception("form is invalid")
+            raise forms.ValidationError("form is invalid")
         response = []
         for form in self.forms:
             try:
@@ -92,17 +99,23 @@ class WorkflowBaseFormSet(forms.BaseFormSet):
             except IndexError:
                 # might not be filled
                 continue
-        return response
+        return filter(None, response)
 
     def clean(self):
         if not self.workflow:
             raise forms.ValidationError("Please select at least one value.")
 
 
-def get_workflow_formset(choices, initial_data, data=None):
+def get_workflow_formset(choices, initial_data, data=None, label=None):
     fs_kls = forms.formset_factory(
         WorkflowMixin, formset=WorkflowBaseFormSet)
-    fs = fs_kls(data=data, initial=[{"workflow": x} for x in initial_data])
+    q = {
+       "data": data,
+       "initial": [{"workflow": x} for x in initial_data]
+    }
+    if label:
+        q["label"] = label
+    fs = fs_kls(**q)
     fs.set_choices(choices)
     return fs
 
@@ -275,3 +288,7 @@ class SprintEditForm(forms.ModelForm):
         #                                                      "end_dt", "name", "sprint_number"))
         super(SprintEditForm, self).save(commit=commit)
         return self.instance
+
+
+class BoardDetailForm(forms.Form):
+    pass

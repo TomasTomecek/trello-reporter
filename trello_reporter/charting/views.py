@@ -1,17 +1,19 @@
 from __future__ import unicode_literals
 
+import datetime
 import json
 import logging
-import datetime
 from urllib import urlencode
 
 from django.core.urlresolvers import reverse
 from django.http.response import JsonResponse, Http404
 from django.shortcuts import render, redirect
-from django.views.generic.base import TemplateView
 from django.utils import timezone
+from django.views.generic.base import TemplateView
 
+from trello_reporter.authentication.models import KeyVal
 from trello_reporter.charting import forms
+from trello_reporter.charting.constants import CUMULATIVE_FLOW_INITIAL_WORKFLOW
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 from trello_reporter.harvesting.models import CardActionEvent
@@ -22,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 CONTROL_INITIAL_WORKFLOW = ["Next", "Complete"]
 BURNDOWN_INITIAL_WORKFLOW = ["Next", "In Progress"]
-CUMULATIVE_FLOW_INITIAL_WORKFLOW = ["New", "Backlog", "Next", "In Progress", "Complete"]
 
 
 def index(request):
@@ -53,9 +54,9 @@ class BaseView(TemplateView):
     view_name = None  # for javascript
 
 
-def humanize_form_errors(form, formset=None):
+def humanize_form_errors(form=None, formset=None):
     texts = []
-    if form.errors:
+    if form and form.errors:
         form_errors_text = form.errors.as_text()
         logger.info("form errors: %s", form_errors_text)
         texts.append(form_errors_text)
@@ -396,17 +397,37 @@ def list_history_data(request, list_id):
 def board_detail(request, board_id):
     board = Board.objects.by_id(board_id)
     logger.debug("board detail %s", board)
-    lists = List.objects.filter_lists_for_board(board)
+
+    kv_displ_cols = KeyVal.objects.displayed_cols_in_board_detail(request.user, board)
+
+    if request.method == "POST":
+        formset_data = request.POST
+    else:
+        formset_data = None
+    lis = List.objects.get_all_listnames_for_board(board)
+    formset = forms.get_workflow_formset([("", "")] + zip(lis, lis),
+                                         kv_displ_cols.value["columns"],
+                                         data=formset_data,
+                                         label="Selected columns")
+    if request.method == "POST":
+        if formset.is_valid():
+            kv_displ_cols.value["columns"] = formset.workflow
+            kv_displ_cols.save()
+        else:
+            humanize_form_errors(formset=formset)
+
+    lists = List.objects.filter_lists_for_board(board, f=kv_displ_cols.value["columns"])
     lists = sorted(lists, key=lambda x: x.name)
+
     sprints = Sprint.objects.filter(board__id=board_id).order_by("start_dt")
     context = {
         "board": board,
         "lists": lists,
         "sprints": sprints,
+        "formset": formset,
+        "form_post_url": reverse("board-detail", args=(board_id, )),
         "breadcrumbs": [
-            {
-                "text": "Board \"%s\"" % board.name
-            }
+            Breadcrumbs.text("Board \"%s\"" % board.name)
         ],
     }
     return render(request, "board_detail.html", context)

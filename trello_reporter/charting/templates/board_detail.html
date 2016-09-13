@@ -1,6 +1,11 @@
 {% extends "index.html" %}
 {% load humanize %}
 {% block body %}
+<form class="form-horizontal" action="{{ form_post_url }}" method="post">
+    {% csrf_token %}
+    {% include 'form/workflow.html' %}
+    {% include 'form/submit.html' %}
+</form>
 <h2>Charts</h2>
 <ul>
     <li><a href="{% url 'show-cumulative-flow-chart' board.id %}">Cumulative flow chart</a></li>
@@ -14,7 +19,7 @@
     {# <li><a href="{% url 'card-history' board.id %}">Cards history</a></li> #}
     <li><a href="{% url 'board-refresh' board.id %}">Refresh</a></li>
 </ul>
-<h2>Columns</h2>
+<h2>Selected columns</h2>
 <ul>
     {% for list in lists %}
         {% if list.name %}

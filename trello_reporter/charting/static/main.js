@@ -291,9 +291,6 @@ var controller = {
         charting["reload_" + GLOBAL.chart_name](data);
       });
     });
-
-    // focus event is still on when you're changing options, let's hook with change event
-    $("div#chart-workflow div select").change(on_focus_states);
   },
   index: function(){},
   chart_without_form: function() {
@@ -317,6 +314,8 @@ $(function() {
   $('.timepicker').datetimepicker({
     format: 'LT',
   });
+  // focus event is still on when you're changing options, let's hook with change event
+  $("div.state-workflow div.state-workflow-column select").change(on_focus_states);
 });
 
 // handler for growing state machine
@@ -325,10 +324,10 @@ function on_focus_states(data) {
   var parent_div = t.parent("div")
 
   // selectedIndex is better than .filter(":selected")
-  if ($("#chart-workflow div").last().children("select")[0].selectedIndex > 0) {
-    var root_div = parent_div.parent("div#chart-workflow");
+  if ($("div.state-workflow div.state-workflow-column").last().children("select")[0].selectedIndex > 0) {
+    var root_div = parent_div.parent("div.state-workflow");
     var new_div = root_div
-        .children("div.chart-settings-state-column")
+        .children("div.state-workflow-column")
         .last()
         .clone()
         .appendTo(root_div)
@@ -349,7 +348,7 @@ function on_focus_states(data) {
         .on("change", on_focus_states);
     // set # of forms, needed by django formsets
     $("#id_form-TOTAL_FORMS")
-        .val($("#chart-workflow div.chart-settings-state-column").length);
+        .val(root_div.find("div.state-workflow-column").length);
   }
 }
 

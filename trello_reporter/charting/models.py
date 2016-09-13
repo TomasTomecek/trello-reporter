@@ -160,28 +160,27 @@ class ListQuerySet(models.QuerySet):
         return self.filter(name__in=f)
 
     def distinct_list(self):
-        return self.distinct("card_actions__list")
+        return self.distinct("card_actions__list__name")
+
+    def latest_lists(self):
+        return self.order_by("card_actions__list__name", "-card_actions__date").distinct_list()
 
 
 class ListManager(models.Manager):
-    def filter_lists_for_board(self, board, f=None, order_by=None):
+    def filter_lists_for_board(self, board, f=None):
         """
         filter lists for board
 
         :param board:
         :param f: list of str or None
-        :param order_by: tuple of str or None
         """
-        query = self.for_board(board)
+        query = self.for_board(board).latest_lists()
 
         if f:
             logger.debug("limiting lists to %s", f)
             query = query.name_is_in(f)
         else:
             query = query.filter(name__isnull=False)
-        if order_by:
-            query = query.order_by(*order_by)
-        query = query.distinct_list().prefetch_related("card_actions")
         return query
 
     def get_all_listnames_for_board(self, board):
