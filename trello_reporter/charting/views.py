@@ -207,6 +207,8 @@ class BurndownChartDataView(BurndownChartBase):
         sprint_id = request.GET.get("sprint_id", None)
         if not sprint_id:
             raise Http404("Selected view of burndown chart does not exist, please specify sprint.")
+        # so self.commitment_cols is set
+        super(BurndownChartDataView, self).get_context_data(*args, **kwargs)
         sprint = Sprint.objects.get(id=sprint_id)
         data = ChartExporter.burndown_chart_c3(
             sprint.board, sprint.start_dt,
