@@ -23,7 +23,7 @@ urlpatterns = [
     url(r'^board/(?P<board_id>[0-9]+)/refresh/$', views.board_refresh, name='board-refresh'),
 
     url(r'^column/(?P<list_id>[0-9]+)/$',
-        views.list_detail, name='list-detail'),
+        views.ListDetailView.as_view(), name='list-detail'),
     url(r'^column/(?P<list_id>[0-9]+)/stalled-cards/$',
         views.stalled_cards, name='stalled-cards'),
     url(r'^card/(?P<card_id>[0-9]+)/$',
@@ -46,7 +46,7 @@ urlpatterns = [
         name='cumulative-flow-chart-data'),
     url(r'^api/v0/board/(?P<board_id>[0-9]+)/control/$', views.ControlChartDataView.as_view(),
         name='control-chart-data'),
-    url(r'^api/v0/column/(?P<list_id>[0-9]+)/list-history/$', views.list_history_data,
+    url(r'^api/v0/column/(?P<list_id>[0-9]+)/list-history/$', views.ListDetailDataView.as_view(),
         name='list-history-chart-data'),
     url(r'^api/v0/board/(?P<board_id>[0-9]+)/burndown/$',
         views.BurndownChartDataView.as_view(),

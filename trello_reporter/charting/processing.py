@@ -155,9 +155,9 @@ class ChartExporter(object):
         return response
 
     @classmethod
-    def list_history_chart_c3(cls, li):
+    def list_history_chart_c3(cls, li, beginning, end):
         response = []
-        for ls in li.stats.select_related("card_action").order_by("card_action__date"):
+        for ls in ListStat.objects.for_list_in_range(li, beginning, end):
             r = {
                 "cards": ls.cards_rt,
                 "story_points": ls.story_points_rt,

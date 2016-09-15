@@ -23,6 +23,8 @@
     </div>
 </div>
 <form id="chart-settings" class="form-horizontal" action="{{ chart_data_url }}" method="post">
+{{ form.non_field_errors }}
+{% csrf_token %}
 {% block form %}
 {% endblock form %}
 {% include 'form/submit.html' with input_type="button" %}

@@ -270,6 +270,9 @@ class ListStatManager(models.Manager):
         return self.for_list(li).order_by("-card_action__date").select_related(
             "card_action", "card_action__card")
 
+    def for_list_in_range(self, li, beginning, end):
+        return self.for_list_order_by_date(li).in_range(beginning, end)
+
     def stats_for_lists_in_range(self, list_ids, beginning, end):
         return self \
             .for_lists(list_ids) \

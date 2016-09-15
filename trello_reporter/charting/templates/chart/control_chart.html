@@ -1,10 +1,6 @@
 {% extends "charting.html" %}
 {% block form %}
-    {{ form.non_field_errors }}
-    {% csrf_token %}
     {% include 'form/range.html' %}
     {% include 'form/sprint.html' %}
     {% include 'form/workflow.html' %}
-{% endblock %}
-{% block rest %}
 {% endblock %}

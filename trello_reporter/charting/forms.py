@@ -146,12 +146,12 @@ class TimeFieldWithDatepicker(forms.TimeField):
     input_formats = [TIME_FORMAT]
 
 
-class RangeMixin(forms.Form):
+class RangeForm(forms.Form):
     from_dt = DateFieldWithDatepicker(label="From", required=False)
     to_dt = DateFieldWithDatepicker(label="To", required=False)
 
     def clean(self):
-        cleaned_data = super(RangeMixin, self).clean()
+        cleaned_data = super(RangeForm, self).clean()
 
         cleaned_data["from_dt"] = min_time_for_date(cleaned_data.get("from_dt"))
         cleaned_data["to_dt"] = max_time_for_date(cleaned_data.get("to_dt"))
@@ -167,10 +167,10 @@ class SprintMixin(forms.Form):
         self.fields["sprint"].queryset = queryset
 
 
-class SprintAndRangeMixin(SprintMixin, RangeMixin):
+class SprintAndRangeForm(SprintMixin, RangeForm):
     def clean(self):
         cleaned_data = SprintMixin.clean(self)
-        cleaned_data.update(RangeMixin.clean(self))
+        cleaned_data.update(RangeForm.clean(self))
 
         f = cleaned_data.get("from_dt")
         s = cleaned_data.get("sprint")
@@ -218,31 +218,9 @@ class DeltaMixin(forms.Form):
         return cleaned_data
 
 
-# class DateForm(forms.Form):
-#     date = DateFieldWithDatepicker(label="Date")
-
-
-# ACTUAL FORMS
-
-
-class ControlChartForm(SprintAndRangeMixin):
-    pass
-
-
-class BurndownChartForm(SprintAndRangeMixin):
-    pass
-
-
-class CumulativeFlowChartForm(SprintAndRangeMixin, DeltaMixin):
+class RangeMixin(object):
     def clean(self):
-        d = SprintAndRangeMixin.clean(self)
-        d.update(DeltaMixin.clean(self))
-        return d
-
-
-class VelocityChartForm(RangeMixin):
-    def clean(self):
-        cleaned_data = super(VelocityChartForm, self).clean()
+        cleaned_data = super(RangeMixin, self).clean()
 
         f = cleaned_data.get("from_dt")
         t = cleaned_data.get("to_dt")
@@ -251,6 +229,28 @@ class VelocityChartForm(RangeMixin):
             raise forms.ValidationError('Please specify "From" or "To".')
 
         return cleaned_data
+
+
+# ACTUAL FORMS
+
+
+class ControlChartForm(SprintAndRangeForm):
+    pass
+
+
+class BurndownChartForm(SprintAndRangeForm):
+    pass
+
+
+class CumulativeFlowChartForm(SprintAndRangeForm, DeltaMixin):
+    def clean(self):
+        d = SprintAndRangeForm.clean(self)
+        d.update(DeltaMixin.clean(self))
+        return d
+
+
+class VelocityChartForm(RangeMixin, RangeForm):
+    pass
 
 
 class SprintEditForm(forms.ModelForm):
@@ -293,4 +293,8 @@ class SprintEditForm(forms.ModelForm):
 
 
 class BoardDetailForm(forms.Form):
+    pass
+
+
+class ListDetailForm(RangeMixin, RangeForm):
     pass

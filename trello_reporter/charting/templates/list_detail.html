@@ -1,10 +1,9 @@
-{% extends "index.html" %}
-{% block js %}
-{% include 'chart/initialization.html' %}
-{% endblock %}
-{% block body %}
+{% extends "charting.html" %}
 {% load tz %}
-<div id="chart" class="line-chart-pf"></div>
+{% block form %}
+{% include 'form/range.html' %}
+{% endblock %}
+{% block rest %}
 <p>
   <a href="{% url 'stalled-cards' list.id %}">Stalled cards</a>
 </p>

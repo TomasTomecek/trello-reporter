@@ -230,6 +230,10 @@ var charting = {
     chart = c3.generate(ch);
   },
 
+  reload_list_history: function(data) {
+    chart_data["json"] = data["data"];
+    chart.load(chart_data);
+  },
   list_history: function(data) {
     var chart_defaults = init_chart(get_default_line_config());
     chart_data = {

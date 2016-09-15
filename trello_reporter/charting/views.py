@@ -54,6 +54,7 @@ class BaseView(TemplateView):
 
 
 def humanize_form_errors(form=None, formsets=None):
+    """ return html with errors in forms; should be piped into notification widget """
     texts = []
     if form and form.errors:
         form_errors_text = form.errors.as_text()
@@ -342,13 +343,55 @@ class VelocityChartDataView(VelocityChartBase):
         return JsonResponse({"data": data})
 
 
-def list_history_data(request, list_id):
-    li = List.objects.get(id=list_id)
-    data = ChartExporter.list_history_chart_c3(li)
-    response = {
-        "data": data
-    }
-    return JsonResponse(response)
+class ListDetailBase(ChartView):
+    chart_name = "list_history"
+    form_class = forms.ListDetailForm
+
+    def get_context_data(self, list_id, **kwargs):
+        li = List.objects.get(id=list_id)
+        today = timezone.now().date()
+        self.initial_form_data["from_dt"] = today - datetime.timedelta(days=60)
+        self.initial_form_data["to_dt"] = today
+
+        context = super(ListDetailBase, self).get_context_data(**kwargs)
+
+        context["list"] = li
+        return context
+
+
+class ListDetailView(ListDetailBase):
+    template_name = "list_detail.html"
+
+    def get_context_data(self, list_id, **kwargs):
+        logger.debug("list detail: %s", list_id)
+
+        self.chart_data_url = reverse("list-history-chart-data", args=(list_id, ))
+
+        context = super(ListDetailView, self).get_context_data(list_id, **kwargs)
+
+        context["breadcrumbs"] = [
+            Breadcrumbs.board_detail(context["list"].latest_action.board),
+            Breadcrumbs.text("Column \"%s\"" % context["list"].name)
+        ]
+        context["list_stats"] = ListStat.objects.for_list_in_range(
+            context["list"], self.initial_form_data["from_dt"], self.initial_form_data["to_dt"])
+        return context
+
+
+class ListDetailDataView(ListDetailBase):
+    def post(self, request, list_id, *args, **kwargs):
+        logger.debug("get data for list history chart: %s", list_id)
+        self.form_data = request.POST
+        context = super(ListDetailDataView, self).get_context_data(list_id, **kwargs)
+        form = context["form"]
+
+        if not form.is_valid():
+            return self.respond_json_form_errors(form)
+
+        data = ChartExporter.list_history_chart_c3(context["list"],
+                                                   form.cleaned_data["from_dt"],
+                                                   form.cleaned_data["to_dt"])
+        return JsonResponse({"data": data})
 
 
 def board_detail(request, board_id):
@@ -464,28 +507,6 @@ def sprint_detail(request, sprint_id):
         ],
     }
     return render(request, "sprint_detail.html", context)
-
-
-def list_detail(request, list_id):
-    li = List.objects.get(id=list_id)
-    logger.debug("list detail: %s", li)
-    context = {
-        "list": li,
-        "view_name": "chart_without_form",
-        "chart_name": "list_history",
-        "chart_data_url": reverse("list-history-chart-data", args=(list_id, )),
-        "list_stats": ListStat.objects.for_list_order_by_date(li),
-        "breadcrumbs": [
-            {
-                "url": reverse("board-detail", args=(li.latest_action.board.id, )),
-                "text": "Board \"%s\"" % li.latest_action.board.name
-            },
-            {
-                "text": "Column \"%s\"" % li.name
-            },
-        ]
-    }
-    return render(request, "list_detail.html", context)
 
 
 def card_detail(request, card_id):
