@@ -1,7 +1,6 @@
-# we don't have dependencies between targets b/c it's too slow
 .PHONY=default build run clean test
 
-default: run
+default: all
 
 build:
 	docker build --build-arg USER_ID=$(shell id -u) --tag=trelloreporter_web .
@@ -9,6 +8,9 @@ build:
 
 run:
 	docker-compose up -d
+
+all: build run
+# build and run, this is the default; we don't want to build every time we run
 
 clean:
 	docker-compose down -v
