@@ -31,8 +31,6 @@ urlpatterns = [
     url(r'^sprint/(?P<sprint_id>[0-9]+)/$',
         views.sprint_detail, name='sprint-detail'),
 
-    # url(r'^board/(?P<board_id>[0-9]+)/cards-at/$', views.cards_on_board_at, name='cards-at'),
-    # url(r'^board/(?P<board_id>[0-9]+)/card-history/$', views.card_history, name='card-history'),
     url(r'^board/(?P<board_id>[0-9]+)/cumulative/$', views.CumulativeFlowChartView.as_view(),
         name='show-cumulative-flow-chart'),
     url(r'^board/(?P<board_id>[0-9]+)/control/$', views.ControlChartView.as_view(),

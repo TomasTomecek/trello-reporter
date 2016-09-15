@@ -342,53 +342,6 @@ class VelocityChartDataView(VelocityChartBase):
         return JsonResponse({"data": data})
 
 
-# def card_history(request, board_id):
-#     board = Board.objects.by_id(board_id)
-#     card_actions = CardAction.objects.actions_for_board(board_id)
-#     # card -> [action, action]
-#     response = {}
-#     for ca in card_actions:
-#         response.setdefault(ca.card, [])
-#         response[ca.card].insert(0, ca)
-#     return render(
-#         request,
-#         "card_history.html",
-#         {
-#             "response": response,
-#             "board": board,
-#         }
-#     )
-#
-#
-# def cards_on_board_at(request, board_id):
-#     n = datetime.datetime.now()
-#
-#     if request.method == "POST":
-#         form = DateForm(request.POST)
-#         if form.is_valid():
-#             date = form.cleaned_data["date"]
-#         else:
-#             raise Exception("Form is not valid")
-#     else:
-#         date = n - datetime.timedelta(days=10)
-#         form = DateForm(initial={"date": date})
-#
-#     board = Board.objects.get(id=board_id)
-#     card_actions = CardAction.objects.get_card_actions_on_board_in(board, date)
-#     # it's already ordered in sql, we can't order again
-#     card_actions = sorted(card_actions, key=lambda x: x.date, reverse=True)
-#
-#     return render(
-#         request,
-#         "cards_on_board_at.html",
-#         {
-#             "card_actions": card_actions,
-#             "form": form,
-#             "board": board,
-#         }
-#     )
-
-
 def list_history_data(request, list_id):
     li = List.objects.get(id=list_id)
     data = ChartExporter.list_history_chart_c3(li)
