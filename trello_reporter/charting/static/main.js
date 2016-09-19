@@ -366,7 +366,7 @@ function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
 
   var tooltip = $("div#custom-chart-tooltip").html();
 
-  tooltip = tooltip.replace("TITLE", card.name);
+  tooltip = tooltip.replace("TITLE", "#" + card.trello_card_short_id + " " + card.name);
   tooltip = tooltip.replace("DATE", title);
   tooltip = tooltip.replace("DAYS", value);
   return tooltip;

@@ -67,7 +67,7 @@
         {% for bc in breadcrumbs %}
         {% if forloop.last %}
         <li class="active">
-          {{ bc.text }}
+          {{ bc.text|safe }}
         </li>
         {% else %}
         <li>

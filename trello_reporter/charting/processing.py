@@ -90,7 +90,8 @@ class ChartExporter(object):
                     "name": card.name,
                     "size": last_action.story_points,
                     "label": "Hours",
-                    "date": date
+                    "date": date,
+                    "trello_card_short_id": last_action.event.card_short_id,
                 })
         return cards
 

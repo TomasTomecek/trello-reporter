@@ -129,6 +129,58 @@ class BoardUserMapping(models.Model):
         return obj
 
 
+# This is my go on trying doing a raw postgresql sql query to get sprint cards with prefetched
+# card actions with all the related tables; did not succeed
+#
+#     # "charting_cardaction"."id", "charting_cardaction"."trello_id",
+#     #     "charting_cardaction"."date", "charting_cardaction"."action_type",
+#     #     "charting_cardaction"."story_points", "charting_cardaction"."card_id",
+#     #     "charting_cardaction"."list_id", "charting_cardaction"."board_id",
+#     #     "charting_cardaction"."is_archived", "charting_cardaction"."is_deleted",
+#     #     "charting_cardaction"."event_id", "charting_list"."id", "charting_list"."trello_id",
+#     #     "charting_list"."name", "charting_board"."id", "charting_board"."trello_id",
+#     #     "charting_board"."name", "harvesting_cardactionevent"."id",
+#     #     "harvesting_cardactionevent"."data", "harvesting_cardactionevent"."processed_well"
+#     #    INNER JOIN "charting_list" ON ("charting_cardaction"."list_id" = "charting_list"."id")
+#     #    INNER JOIN "charting_board" ON ("charting_cardaction"."board_id" = "charting_board"."id")
+#     #    INNER JOIN "harvesting_cardactionevent" ON ("charting_cardaction"."event_id" =
+#                                                      "harvesting_cardactionevent"."id")
+#     CARDS_WITH_LATEST = """\
+# SELECT *
+# FROM "charting_card"
+# INNER JOIN (
+#     SELECT "charting_cardaction"."id" AS card_action_id,
+#            "charting_cardaction"."card_id" AS card_id
+#     FROM "charting_cardaction"
+#     ORDER BY "charting_cardaction"."date" DESC
+# ) AS q ON ("charting_card"."id" = "card_id")
+# INNER JOIN "charting_sprint_cards" ON ("charting_card"."id" = "charting_sprint_cards"."card_id")
+# WHERE "charting_sprint_cards"."sprint_id" = %s
+# """
+class CardQuerySet(models.QuerySet):
+    def for_sprint(self, sprint):
+        return self.filter(sprints=sprint)
+
+
+class CardManager(models.Manager):
+    def sprint_cards(self, sprint):
+        return self.for_sprint(sprint)
+
+    def sprint_cards_with_latest_actions(self, sprint):
+        cards = self.for_sprint(sprint)
+        card_ids = [c.id for c in cards]
+
+        cas = CardAction.objects.card_actions_for_cards(card_ids)
+        idx = {}
+        for ca in cas:
+            idx[ca.card_id] = ca
+
+        for card in cards:
+            setattr(card, "latest_action", idx[card.id])
+
+        return cards
+
+
 class Card(models.Model):
     """
     trello card, doesn't make sense to store anything here since it changes in time, that's what
@@ -138,15 +190,10 @@ class Card(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     # due_dt = models.DateTimeField(blank=True, null=True)
 
+    objects = CardManager.from_queryset(CardQuerySet)()
+
     def __unicode__(self):
         return "%s (%s)" % (self.id, self.name)
-
-    @property
-    def latest_action(self):
-        try:
-            return self.actions.latest()
-        except ObjectDoesNotExist:
-            return None
 
 
 class ListQuerySet(models.QuerySet):
@@ -271,7 +318,8 @@ class ListStatManager(models.Manager):
             "card_action", "card_action__card")
 
     def for_list_in_range(self, li, beginning, end):
-        return self.for_list_order_by_date(li).in_range(beginning, end)
+        return self.for_list_order_by_date(li).in_range(beginning, end).select_related(
+            "card_action", "card_action__card", "card_action__event")
 
     def stats_for_lists_in_range(self, list_ids, beginning, end):
         return self \
@@ -363,6 +411,9 @@ class CardActionQuerySet(models.QuerySet):
     def for_list(self, li):
         return self.filter(list=li)
 
+    def for_cards(self, card_ids):
+        return self.filter(card_id__in=card_ids)
+
     def for_list_names(self, list_names):
         return self.filter(list__name__in=list_names)
 
@@ -378,30 +429,36 @@ class CardActionQuerySet(models.QuerySet):
     def ordered_desc(self):
         return self.order_by("-date")
 
+    def distinct_cards(self):
+        return self.order_by('card', '-date').distinct('card')
+
 
 class CardActionManager(models.Manager):
     def get_card_actions_on_board_in(self, board, date=None):
         """ this is a time machine: shows board state in a given time """
-        query = self \
-            .for_board(board) \
-            .order_by('card', '-date') \
-            .distinct('card')
+        query = self.for_board(board).distinct_cards()
         if date:
             query = query.before(date)
-        return query.select_related("list", "card", "board")
+        return query.select_related("list", "card", "board", "event")
 
     def actions_on_board_in_range(self, board, beginning, end):
         """ this is a time machine: shows board state in a given time """
         query = self \
             .for_board(board) \
             .in_range(beginning, end)
-        return query.select_related("list", "card", "board")
+        return query.select_related("list", "card", "board", "event")
 
     def card_actions_on_list_names_in(self, board, list_names, date):
         cas = self.get_card_actions_on_board_in(board, date)
         return self.filter(id__in=[x.id for x in cas], list__name__in=list_names).select_related(
-            "list", "card", "board"
+            "list", "card", "board", "event"
         )
+
+    def card_actions_for_cards(self, card_ids):
+        cas = self.for_cards(card_ids).distinct_cards().select_related(
+            "list", "card", "board", "event"
+        )
+        return cas
 
     def card_actions_on_list_names_in_range(self, board, list_names, beginning, end):
         cas = self.get_card_actions_on_board_in(board, end)
@@ -409,7 +466,7 @@ class CardActionManager(models.Manager):
             .since(beginning) \
             .for_list_names(list_names) \
             .filter(id__in=[x.id for x in cas]) \
-            .select_related("list", "card", "board")
+            .select_related("list", "card", "board", "event")
 
     def card_actions_on_list_names_in_interval(self, board, list_names, beginning, end):
         cas = self.actions_on_board_in_range(board, beginning, end)
@@ -422,7 +479,8 @@ class CardActionManager(models.Manager):
     def safe_card_actions_on_list_in(self, board, li, date=None):
         """ aggregate + distinct is not implemented """
         cas = self.get_card_actions_on_board_in(board, date=date)
-        return self.filter(id__in=[x.id for x in cas], list=li)
+        return self.filter(id__in=[x.id for x in cas], list=li).select_related("card", "board",
+                                                                               "event", "list")
 
     def story_points_on_list_in(self, board, li, date):
         return self.safe_card_actions_on_list_in(board, li, date) \

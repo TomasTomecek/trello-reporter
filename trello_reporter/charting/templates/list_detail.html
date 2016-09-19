@@ -1,5 +1,6 @@
 {% extends "charting.html" %}
 {% load tz %}
+{% load card %}
 {% block form %}
 {% include 'form/range.html' %}
 {% endblock %}
@@ -21,7 +22,7 @@
   <tbody>
   {% for ls in list_stats %}
     <tr>
-      <td><a href="{% url 'card-detail' ls.card_action.card.id %}">{{ ls.card_action.card.name }}</a></td>
+      <td>{% display_card_with_detail_link ls.card_action %}</td>
       <td>{{ ls.card_action.action_type }}</td>
       <td>{{ ls.card_action.date|localtime|date:"Y-m-d P T" }}</td>
       <td>{{ ls.diff }}</td>

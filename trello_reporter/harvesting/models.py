@@ -49,3 +49,15 @@ class CardActionEvent(models.Model):
     processed_well = models.BooleanField(default=False)  # = is there an equal CardAction?
 
     objects = CardActionEventManager.from_queryset(CardActionEventQuerySet)()
+
+    @property
+    def card_name(self):
+        return self.data["data"]["card"]["name"]
+
+    @property
+    def card_short_id(self):
+        return self.data["data"]["card"]["idShort"]
+
+    @property
+    def card_url(self):
+        return "https://trello.com/c/%s" % self.data["data"]["card"]["id"]

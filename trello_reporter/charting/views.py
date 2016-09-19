@@ -16,7 +16,9 @@ from trello_reporter.charting import forms
 from trello_reporter.charting.constants import CUMULATIVE_FLOW_INITIAL_WORKFLOW
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
+from trello_reporter.charting.templatetags.card import display_card
 from trello_reporter.harvesting.models import CardActionEvent
+
 
 logger = logging.getLogger(__name__)
 
@@ -469,7 +471,7 @@ def sprint_detail(request, sprint_id):
     else:
         sprint_edit_form = forms.SprintEditForm(instance=sprint)
 
-    sprint_cards = sprint.cards.all()  # TODO optim: latest CAs in one query
+    sprint_cards = Card.objects.sprint_cards_with_latest_actions(sprint)
     sprint_card_ids = [x.id for x in sprint_cards]
 
     completed_card_actions = []
@@ -524,13 +526,8 @@ def card_detail(request, card_id):
         "actions": actions,
         "events": events,
         "breadcrumbs": [
-            {
-                "url": reverse("board-detail", args=(card.latest_action.board.id, )),
-                "text": "Board \"%s\"" % card.latest_action.board.name
-            },
-            {
-                "text": "Card \"%s\"" % card.latest_action.card_name
-            },
+            Breadcrumbs.board_detail(card.latest_action.board),
+            Breadcrumbs.text("Card \"%s\"" % display_card(action_list[-1])),
         ]
     }
     return render(request, "card_detail.html", context)
@@ -538,11 +535,16 @@ def card_detail(request, card_id):
 
 def stalled_cards(request, list_id):
     li = List.objects.get(id=list_id)
-    card_actions = CardAction.objects.safe_card_actions_on_list_in(li.latest_action.board, li)
+    board = li.latest_action.board
+    card_actions = CardAction.objects.safe_card_actions_on_list_in(board, li)
     card_actions = sorted(card_actions, key=lambda x: x.date)
     context = {
         "list": li,
         "card_actions": card_actions,
+        "breadcrumbs": [
+            Breadcrumbs.board_detail(board),
+            Breadcrumbs.text("Stalled cards"),
+        ]
     }
     return render(request, "stalled_cards.html", context)
 
