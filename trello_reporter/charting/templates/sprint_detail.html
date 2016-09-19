@@ -6,6 +6,7 @@
 {% load tz %}
 {% load card %}
 {% load list_tags %}
+{% load story_points %}
 <div id="chart" class="line-chart-pf"></div>
 <div class="mtop3p">
   <form class="form-horizontal" action="{{ post_url }}" method="post">
@@ -71,6 +72,9 @@
     <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
   {% endfor %}
+  <tr><td colspan="4" class="bold">
+    Cards: {{ sprint_cards|length }}, Story points: {% sum_story_points sprint_cards %}
+  </td></tr>
   </tbody>
 </table>
 {% if unfinished_cards %}
@@ -93,6 +97,9 @@
     <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
   {% endfor %}
+  <tr><td colspan="4" class="bold">
+    Cards: {{ unfinished_cards|length }}, Story points: {% sum_story_points unfinished_cards %}
+  </td></tr>
   </tbody>
 </table>
 {% endif %}
@@ -116,6 +123,9 @@
     <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
   {% endfor %}
+  <tr><td colspan="4" class="bold">
+    Cards: {{ after_sprint_cas|length }}, Story points: {% sum_story_points after_sprint_cas %}
+  </td></tr>
   </tbody>
 </table>
 {% endif %}
@@ -139,6 +149,9 @@
     <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
   </tr>
 {% endfor %}
+  <tr><td colspan="4" class="bold">
+    Cards: {{ completed_card_actions|length }}, Story points: {% sum_story_points completed_card_actions %}
+  </td></tr>
   </tbody>
 </table>
 {% endif %}
