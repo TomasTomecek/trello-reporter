@@ -530,7 +530,7 @@ def card_detail(request, card_id):
         "actions": actions,
         "events": events,
         "breadcrumbs": [
-            Breadcrumbs.board_detail(card.latest_action.board),
+            Breadcrumbs.board_detail(action_list[-1].board),
             Breadcrumbs.text("Card \"%s\"" % display_card(action_list[-1])),
         ]
     }

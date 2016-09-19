@@ -1,7 +1,21 @@
 from __future__ import unicode_literals
 
+import copy
+
 from django.db import models
 from django.contrib.postgres.fields import JSONField
+
+
+def graceful_chain_get(d, *args):
+    if not d:
+        return None
+    t = copy.deepcopy(d)
+    for arg in args:
+        try:
+            t = t[arg]
+        except (IndexError, KeyError):
+            return None
+    return t
 
 
 class CardActionEventQuerySet(models.QuerySet):
@@ -52,12 +66,14 @@ class CardActionEvent(models.Model):
 
     @property
     def card_name(self):
-        return self.data["data"]["card"]["name"]
+        return graceful_chain_get(self.data, "data", "card", "name")
 
     @property
     def card_short_id(self):
-        return self.data["data"]["card"]["idShort"]
+        return graceful_chain_get(self.data, "data", "card", "idShort")
 
     @property
     def card_url(self):
-        return "https://trello.com/c/%s" % self.data["data"]["card"]["id"]
+        u = graceful_chain_get(self.data, "data", "card", "id")
+        if u:
+            return "https://trello.com/c/%s" % u

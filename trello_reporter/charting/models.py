@@ -622,10 +622,7 @@ class CardAction(models.Model):
 
     @property
     def card_name(self):
-        try:
-            return self.data["data"]["card"]["name"]
-        except KeyError:
-            return None
+        return self.event.card_name
 
     @classmethod
     def get_story_points(cls, card_name):
@@ -667,7 +664,7 @@ class CardAction(models.Model):
                     card.name = ca.card_name[:255]  # some users are just fun
                     card.save()
 
-                previous_action = card.latest_action
+                previous_action = CardAction.objects.latest_for_card(card)
                 story_points_str = CardAction.get_story_points(ca.card_name)
                 story_points_int = 0
                 if story_points_str is not None:
@@ -829,11 +826,14 @@ class Sprint(models.Model):
 
     def __unicode__(self):
         tz = timezone.get_current_timezone()
-        return "%s (%s - %s)" % (
-            self.name,
-            tz.normalize(self.start_dt).strftime(DATETIME_FORMAT),
-            tz.normalize(self.end_dt).strftime(DATETIME_FORMAT)
-        )
+        s = e = "<missing>"
+        if self.start_dt:
+            logger.debug(self.start_dt)
+            s = tz.normalize(self.start_dt).strftime(DATETIME_FORMAT)
+        if self.end_dt:
+            logger.debug(self.end_dt)
+            e = tz.normalize(self.end_dt).strftime(DATETIME_FORMAT)
+        return "%s (%s - %s)" % (self.name, s, e)
 
     def story_points_committed(self, commitment_cols):
         return ListStat.objects.sum_sp_for_list_names_before(
