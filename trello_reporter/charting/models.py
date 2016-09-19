@@ -11,14 +11,12 @@ import logging
 import re
 
 from django.dispatch.dispatcher import receiver
+from django.utils.dateparse import parse_datetime
 
 from .constants import DATETIME_FORMAT
 from trello_reporter.authentication.models import TrelloUser
 from trello_reporter.harvesting.harvestor import Harvestor
 from trello_reporter.harvesting.models import CardActionEvent
-
-from dateutil import parser as dateparser
-from dateutil.tz import tzutc
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, transaction
@@ -649,8 +647,7 @@ class CardAction(models.Model):
                 event.save()
                 ca = CardAction(
                     trello_id=action_data.get("id", None),
-                    # FIXME: remove dateutil dependency, do this with django and strptime
-                    date=dateparser.parse(action_data["date"], tzinfos=tzutc),
+                    date=parse_datetime(action_data["date"]),
                     action_type=action_data["type"],
                     card=card,
                     event=event,
@@ -890,7 +887,7 @@ class Sprint(models.Model):
 
                     # update or set
                     sprint.start_dt = first.date
-                    sprint.end_dt = due
+                    sprint.end_dt = parse_datetime(due)
                     sprint.name = last.card_name
                     sprint.due_card = last.card
                     sprint.save()
