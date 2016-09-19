@@ -1,6 +1,9 @@
 # date time format used everywhere, TZ is important so users know that it's localized
 DATETIME_FORMAT = '%Y-%m-%d %H:%M %Z'
 
+# final card state in a sprint
+COMPLETED_COLUMNS = ["Complete", "Completed", "Accepted"]
+
 # columns used to compute sprint commitment
 SPRINT_COMMITMENT_COLUMNS = ["Next", "In Progress"]
 

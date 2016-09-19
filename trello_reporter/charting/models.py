@@ -409,6 +409,9 @@ class CardActionQuerySet(models.QuerySet):
     def for_list(self, li):
         return self.filter(list=li)
 
+    def for_card(self, card):
+        return self.filter(card=card)
+
     def for_cards(self, card_ids):
         return self.filter(card_id__in=card_ids)
 
@@ -446,8 +449,8 @@ class CardActionManager(models.Manager):
             .in_range(beginning, end)
         return query.select_related("list", "card", "board", "event")
 
-    def card_actions_on_list_names_in(self, board, list_names, date):
-        cas = self.get_card_actions_on_board_in(board, date)
+    def card_actions_on_list_names_in(self, board, list_names, date=None):
+        cas = self.get_card_actions_on_board_in(board, date=date)
         return self.filter(id__in=[x.id for x in cas], list__name__in=list_names).select_related(
             "list", "card", "board", "event"
         )
@@ -505,6 +508,12 @@ class CardActionManager(models.Manager):
         if since:
             query = query.since(since)
         return query
+
+    def latest_for_card(self, card):
+        try:
+            return self.for_card(card).latest()
+        except ObjectDoesNotExist:
+            return None
 
 
 class CardAction(models.Model):

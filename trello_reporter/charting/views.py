@@ -13,7 +13,7 @@ from django.views.generic.base import TemplateView
 
 from trello_reporter.authentication.models import KeyVal
 from trello_reporter.charting import forms
-from trello_reporter.charting.constants import CUMULATIVE_FLOW_INITIAL_WORKFLOW
+from trello_reporter.charting.constants import CUMULATIVE_FLOW_INITIAL_WORKFLOW, COMPLETED_COLUMNS
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 from trello_reporter.charting.templatetags.card import display_card
@@ -474,7 +474,6 @@ def sprint_detail(request, sprint_id):
     sprint_cards = Card.objects.sprint_cards_with_latest_actions(sprint)
     sprint_card_ids = [x.id for x in sprint_cards]
 
-    completed_card_actions = []
     unfinished_cards = []
     if sprint.completed_list is not None:
         # don't supply date, we want latest stuff
@@ -484,6 +483,11 @@ def sprint_detail(request, sprint_id):
         )
         completed_card_ids = [x.card_id for x in completed_card_actions]
         unfinished_cards = [card for card in sprint_cards if card.id not in completed_card_ids]
+    else:
+        completed_card_actions = CardAction.objects.card_actions_on_list_names_in(
+            sprint.board,
+            COMPLETED_COLUMNS
+        )
 
     current_sprint_cas = CardAction.objects.card_actions_on_list_names_in(
         sprint.board, ["Next", "In Progress", "Complete"], min(timezone.now(), sprint.end_dt))
