@@ -290,7 +290,9 @@ class CumulativeFlowChartDataView(CumulativeFlowChartBase):
             context["board"],
             order,
             form.cleaned_data["beginning"], form.cleaned_data["end"],
-            form.cleaned_data["delta"])
+            form.cleaned_data["delta"],
+            form.cleaned_data["cards_or_sp"]
+        )
         # c3 wants reversed order
         return JsonResponse({"data": data, "order": list(reversed(order))})
 

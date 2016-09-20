@@ -100,6 +100,12 @@ var charting = {
     chart_data.unload = previous_values;
     chart.load(chart_data);
     previous_values = data.order;
+    c_unit = $("#id_cards_or_sp").val();
+    if (c_unit == "c") {
+      chart.axis.labels({y: 'Cards'});
+    } else if (c_unit == "sp") {
+      chart.axis.labels({y: 'Story points'});
+    };
   },
 
   cumulative_flow: function(data) {
@@ -128,7 +134,7 @@ var charting = {
           }
         },
         y: {
-          label: '# cards',
+          label: 'Cards',
         }
       },
       legend: {

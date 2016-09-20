@@ -23,6 +23,13 @@ TICK_CHOICES = (
 )
 TIME_FORMAT = "%I:%M %p"
 
+CARDS_FORM_ID = "c"
+STORY_POINTS_FORM_ID = "sp"
+CARDS_OR_SP_CHOICES = (
+    (CARDS_FORM_ID, "Cards count"),
+    (STORY_POINTS_FORM_ID, "Story points"),
+)
+
 
 # UTILS
 
@@ -231,6 +238,11 @@ class RangeMixin(object):
         return cleaned_data
 
 
+class CardsCountStoryPointsKnobMixin(forms.Form):
+    cards_or_sp = forms.ChoiceField(choices=CARDS_OR_SP_CHOICES, label="Cumulative unit",
+                                    initial=CARDS_FORM_ID)
+
+
 # ACTUAL FORMS
 
 
@@ -242,7 +254,7 @@ class BurndownChartForm(SprintAndRangeForm):
     pass
 
 
-class CumulativeFlowChartForm(SprintAndRangeForm, DeltaMixin):
+class CumulativeFlowChartForm(SprintAndRangeForm, DeltaMixin, CardsCountStoryPointsKnobMixin):
     def clean(self):
         d = SprintAndRangeForm.clean(self)
         d.update(DeltaMixin.clean(self))

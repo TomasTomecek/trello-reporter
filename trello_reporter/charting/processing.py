@@ -13,6 +13,7 @@ import datetime
 
 from django.utils import timezone
 
+from trello_reporter.charting.forms import CARDS_FORM_ID, STORY_POINTS_FORM_ID
 from trello_reporter.charting.models import CardAction, ListStat
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class ChartExporter(object):
     """
 
     @classmethod
-    def cumulative_chart_c3(cls, board, lists_filter, beginning, end, delta):
+    def cumulative_chart_c3(cls, board, lists_filter, beginning, end, delta, c_unit):
         """
         area diagram which shows number of cards in a given list per day
         """
@@ -41,7 +42,10 @@ class ChartExporter(object):
                 "date": d.strftime("%Y-%m-%d %H:%M"),
             }
             for s in stats:
-                tick[s.list.name] = s.cards_rt
+                if c_unit == CARDS_FORM_ID:
+                    tick[s.list.name] = s.cards_rt
+                elif c_unit == STORY_POINTS_FORM_ID:
+                    tick[s.list.name] = s.story_points_rt
             response.append(tick)
             d += delta
         return response
