@@ -378,13 +378,14 @@ function on_point_click(d, element) {
 }
 
 function point_size(d) {
-  var sizes={0:2, 1:3, 2:4, 3:5, 5:6, 8:8, 13:13};
+  var sizes={0:2, 1:3, 2:4, 3:5, 5:6, 8:8, 13:11};
   var point_size = this.data_json[d.source_index].size;
   for (var s in sizes) {
     if (s >= point_size) {
       return sizes[s];
     }
   }
+  return 15;
 }
 
 function get_burndown_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
