@@ -233,6 +233,9 @@ var charting = {
       },
     };
     $.extend(true, ch, line_chart_defaults, bar_chart_defaults);
+    ch.tooltip ={
+      contents: get_velocity_tooltip
+    };
     chart = c3.generate(ch);
   },
 
@@ -419,5 +422,18 @@ function get_burndown_tooltip(d, defaultTitleFormat, defaultValueFormat, color) 
     "<tr><td class=\"name\">Done</td><td class=\"value\">" + data.done + "</td></tr>" +
     "<tr><td class=\"name\">Not done</td><td class=\"value\">" + data.not_done + "</td></tr>" +
     template_e;
+  return response;
+}
+
+function get_velocity_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
+  var data = this.config.data_json[d[0].source_index];
+  var template_b="<table class=\"c3-tooltip\"><tbody>";
+  var template_e="</tbody></table>";
+  var t = "";
+  t += "<tr><td colspan=\"2\">" + data.name + "</td></tr>";
+  t += "<tr><td>Committed</td><td>" + data.committed + "</td></tr>";
+  t += "<tr><td>Done</td><td>" + data.done + "</td></tr>";
+  t += "<tr><td>Average</td><td>" + data.average + "</td></tr>";
+  var response = template_b + t + template_e;
   return response;
 }
