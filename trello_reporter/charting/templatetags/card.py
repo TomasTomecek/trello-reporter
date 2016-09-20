@@ -18,7 +18,7 @@ def display_card(ca):
     """ display card, specified by car action """
     t = "%s %s" % (
         present_card(ca),
-        ca.event.card_name,
+        ca.card.name,
     )
     return mark_safe(t)
 
@@ -29,6 +29,6 @@ def display_card_with_detail_link(ca):
     t = "%s <a href=\"%s\">%s</a>"% (
         present_card(ca),
         reverse("card-detail", args=(ca.card_id, )),
-        ca.event.card_name,
+        ca.card.name,
     )
     return mark_safe(t)

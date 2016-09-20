@@ -185,6 +185,7 @@ class Card(models.Model):
     we have actions for
     """
     trello_id = models.CharField(max_length=32)
+    # this is the most up to date card name
     name = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     # due_dt = models.DateTimeField(blank=True, null=True)
 
@@ -622,6 +623,11 @@ class CardAction(models.Model):
 
     @property
     def card_name(self):
+        """
+        name of card during time of this event
+
+        do NOT use this if you need latest card name (most of the time you need latest card name)
+        """
         return self.event.card_name
 
     @classmethod
@@ -897,7 +903,7 @@ class Sprint(models.Model):
                     # update or set
                     sprint.start_dt = first.date
                     sprint.end_dt = parse_datetime(due)
-                    sprint.name = last.card_name
+                    sprint.name = last.card.name
                     sprint.due_card = last.card
                     sprint.save()
             except DatabaseError as ex:

@@ -276,3 +276,76 @@ faulty_move_to_board = """\
   "id": "54666c0e3e3f2aa396ddf450"
 }]
 """
+
+# these 2 actions did not save newer card name in database
+undetected_name_change = """\
+[{
+  "data": {
+    "cardSource": {
+      "idShort": 547,
+      "shortLink": "JbAFl3kV",
+      "id": "57a9a7b40926fa6762fc07a6",
+      "name": "Sprint 11"
+    },
+    "list": {
+      "id": "56a90aa245f6f65409ac9639",
+      "name": "In Progress"
+    },
+    "board": {
+      "shortLink": "54yBmK8b",
+      "id": "56a906e77b8507cf54ce9c15",
+      "name": "board name"
+    },
+    "card": {
+      "idShort": 600,
+      "shortLink": "iNQpspWJ",
+      "id": "57bc1a90b16af09d709ad712",
+      "name": "Sprint 12"
+    }
+  },
+  "idMemberCreator": "5717e6543ba22e304171bf49",
+  "memberCreator": {
+    "username": "username",
+    "fullName": "Full Name",
+    "avatarHash": "74f0f80e56806ed68bfc460aa69c3f8e",
+    "id": "512553983f48177b52003710",
+    "initials": "FN"
+  },
+  "date": "2016-08-23T09:42:41.406Z",
+  "type": "copyCard",
+  "id": "57bc1a91b16af09d709ad721"
+},
+{
+  "data": {
+    "list": {
+      "id": "56a90aa245f6f65409ac9639",
+      "name": "In Progress"
+    },
+    "old": {
+      "name": "Sprint 12"
+    },
+    "board": {
+      "shortLink": "54yBmK8b",
+      "id": "56a906e77b8507cf54ce9c15",
+      "name": "board name"
+    },
+    "card": {
+      "idShort": 600,
+      "shortLink": "iNQpspWJ",
+      "id": "57bc1a90b16af09d709ad712",
+      "name": "Sprint 13"
+    }
+  },
+  "idMemberCreator": "5717e6543ba22e304171bf49",
+  "memberCreator": {
+    "username": "username",
+    "fullName": "Full Name",
+    "avatarHash": "74f0f80e56806ed68bfc460aa69c3f8e",
+    "id": "512553983f48177b52003710",
+    "initials": "FN"
+  },
+  "date": "2016-09-12T07:54:54.010Z",
+  "type": "updateCard",
+  "id": "57d65f4eaed4e1ab3e2c5c86"
+}]
+"""

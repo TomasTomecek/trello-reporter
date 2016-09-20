@@ -6,6 +6,8 @@ import pytest
 
 from trello_reporter.charting.models import CardAction, Board, ListStat
 from data import faulty_move_to_board
+from trello_reporter.charting.tests.data import undetected_name_change
+from trello_reporter.harvesting.models import CardActionEvent
 
 
 @pytest.mark.django_db
@@ -69,3 +71,19 @@ def test_card_actions_creation():
     assert lss[10].list.name == "Next"
     assert lss[10].card_action.list is None
     assert lss[10].card_action.is_archived
+
+
+@pytest.mark.django_db
+def test_card_actions_creation():
+    b = Board(trello_id="57a9a7b40926fa6762fc07a6", name="board name")
+    b.save()
+    actions = json.loads(undetected_name_change)
+    CardAction.from_trello_response_list(b, actions)
+
+    cas = CardAction.objects.all().order_by("date").select_related("card", "event")
+
+    assert cas[0].card.name == "Sprint 13"
+
+    events = CardActionEvent.objects.all().by_date()
+    assert events[0].card_name == "Sprint 12"
+    assert events[0].card_name == "Sprint 13"
