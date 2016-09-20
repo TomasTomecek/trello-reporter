@@ -29,6 +29,9 @@ class ChartExporter(object):
         """
         area diagram which shows number of cards in a given list per day
         """
+        now = timezone.now()
+        if not end:
+            end = now
 
         response = []
 
@@ -54,6 +57,9 @@ class ChartExporter(object):
     def control_flow_c3(cls, board, lists_filter, beginning, end):
         logger.debug("rendering control chart for board %s, workflow %s, range %s - %s",
                      board, lists_filter, beginning, end)
+        now = timezone.now()
+        if not end:
+            end = now
         card_actions = CardAction.objects.card_actions_on_list_names_in_interval_order_desc(
             board, lists_filter, beginning, end)
 
