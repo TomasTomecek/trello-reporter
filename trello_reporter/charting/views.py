@@ -312,6 +312,15 @@ class VelocityChartBase(ChartView):
         context["board"] = board
         return context
 
+    def get_chart_data(self, context):
+        if self.form.is_bound:
+            last_n = self.form.cleaned_data["last_n"]
+        else:
+            last_n = self.form.fields["last_n"].initial
+        sprints = Sprint.objects.for_board_last_n(context["board"], last_n)
+        cc = KeyVal.objects.sprint_commitment_columns(context["board"]).value["columns"]
+        return ChartExporter.velocity_chart_c3(sprints, cc)
+
 
 class VelocityChartView(VelocityChartBase):
     template_name = "chart/velocity_chart.html"
@@ -327,6 +336,7 @@ class VelocityChartView(VelocityChartBase):
             Breadcrumbs.board_detail(context["board"]),
             Breadcrumbs.text("Velocity Chart")
         ]
+        context["sprint_data"] = self.get_chart_data(context)
         return context
 
 
@@ -340,9 +350,7 @@ class VelocityChartDataView(VelocityChartBase):
         if not form.is_valid():
             return self.respond_json_form_errors(form)
 
-        sprints = Sprint.objects.for_board_last_n(context["board"], form.cleaned_data["last_n"])
-        cc = KeyVal.objects.sprint_commitment_columns(context["board"]).value["columns"]
-        data = ChartExporter.velocity_chart_c3(sprints, cc)
+        data = self.get_chart_data(context)
         return JsonResponse({"data": data})
 
 

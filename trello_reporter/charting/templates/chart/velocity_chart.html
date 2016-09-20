@@ -2,3 +2,25 @@
 {% block form %}
     {% include 'form/last_n_sprints.html' %}
 {% endblock %}
+{% block rest %}
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <td>Sprint</td>
+            <td>Committed</td>
+            <td>Completed</td>
+            <td>Average</td>
+        </tr>
+    </thead>
+    <tbody>
+    {% for sprint in sprint_data %}
+        <tr>
+            <td>{{ sprint.name }}</td>
+            <td>{{ sprint.committed }}</td>
+            <td>{{ sprint.done }}</td>
+            <td>{{ sprint.average }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
