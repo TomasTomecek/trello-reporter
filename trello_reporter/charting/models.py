@@ -786,13 +786,19 @@ class SprintQuerySet(models.QuerySet):
             q["end_dt__lt"] = end
         return self.filter(**q)
 
+    def recent(self):
+        return self.order_by("-end_dt")
+
 
 class SprintManager(models.Manager):
     def for_board_by_end_date(self, board):
-        return self.for_board(board).order_by("-end_dt")
+        return self.for_board(board).recent()
 
     def for_board_in_range_by_end_date(self, board, beginning, end):
         return self.for_board_by_end_date(board).in_range(beginning, end)
+
+    def for_board_last_n(self, board, n):
+        return self.for_board_by_end_date(board).recent()[:n]
 
     def latest_for_board(self, board):
         try:

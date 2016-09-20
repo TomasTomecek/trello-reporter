@@ -340,8 +340,7 @@ class VelocityChartDataView(VelocityChartBase):
         if not form.is_valid():
             return self.respond_json_form_errors(form)
 
-        sprints = Sprint.objects.for_board_in_range_by_end_date(
-            context["board"], form.cleaned_data["from_dt"], form.cleaned_data["to_dt"])
+        sprints = Sprint.objects.for_board_last_n(context["board"], form.cleaned_data["last_n"])
         cc = KeyVal.objects.sprint_commitment_columns(context["board"]).value["columns"]
         data = ChartExporter.velocity_chart_c3(sprints, cc)
         return JsonResponse({"data": data})

@@ -238,6 +238,10 @@ class RangeMixin(object):
         return cleaned_data
 
 
+class SprintPicker(forms.Form):
+    last_n = forms.IntegerField(min_value=1, label="Latest n sprints", initial=5)
+
+
 class CardsCountStoryPointsKnobMixin(forms.Form):
     cards_or_sp = forms.ChoiceField(choices=CARDS_OR_SP_CHOICES, label="Cumulative unit",
                                     initial=CARDS_FORM_ID)
@@ -261,7 +265,7 @@ class CumulativeFlowChartForm(SprintAndRangeForm, DeltaMixin, CardsCountStoryPoi
         return d
 
 
-class VelocityChartForm(RangeMixin, RangeForm):
+class VelocityChartForm(SprintPicker):
     pass
 
 
