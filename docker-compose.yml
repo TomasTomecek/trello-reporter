@@ -3,8 +3,8 @@ web:
   ports:
    - "8000:8000"
   volumes:
-   - ./trello_reporter/:/opt/app/trello_reporter/
-   - ./manage.py:/opt/app/manage.py
+    - ./trello_reporter/:/opt/app/trello_reporter/:Z
+   - ./manage.py:/opt/app/manage.py:Z
   links:
    - db
      #   - redis
@@ -19,7 +19,7 @@ web:
 db:
   image: praiskup/postgresql:APIv1.0.1-fedora23
   volumes:
-    - ./deployment/postgresql/:/usr/share/cont-volume/postgresql/
+    - ./deployment/postgresql/:/usr/share/cont-volume/postgresql/:Z
 #   - ./db:/var/lib/pgsql/data
   environment:
    - CONT_DEBUG=3
@@ -50,7 +50,7 @@ migrator:
    - POSTGRESQL_PASSWORD=password
    - API_KEY
   volumes:
-   - .:/opt/app/
+    - .:/opt/app/:Z
   links:
    - db
   # it indeed takes this long to start the database
