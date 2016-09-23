@@ -344,6 +344,11 @@ $(function() {
       e.preventDefault();
     }
   });
+
+  // Initialize Popovers
+  $(document).ready(function() {
+    $('[data-toggle=popover]').popovers();
+  });
 });
 
 // handler for growing state machine

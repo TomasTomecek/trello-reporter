@@ -1,4 +1,11 @@
 {% extends "charting.html" %}
+{% block top %}
+<div class="panel panel-default">
+    <div class="panel-body">
+        This chart is...
+    </div>
+</div>
+{% endblock %}
 {% block form %}
     {% include 'form/range.html' %}
     {% include 'form/sprint.html' %}

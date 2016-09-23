@@ -3,7 +3,12 @@
     {{ formset.management_form }}
     {% for f in formset %}
     {% if forloop.first %}
-    <label class="col-sm-1 control-label" for="id_{{ f.workflow.name }}">{{ f.workflow.label }}</label>
+    <label class="col-sm-1 control-label" for="id_{{ f.workflow.name }}">{{ f.workflow.label }}
+      {% if popover_content %}
+      <a role="button" data-toggle="popover" data-html="true" title="{{ popover_title }}" data-close="true"
+         data-content="{{ popover_content }}"><span class="fa fa-info-circle"></span></a>
+      {% endif %}
+    </label>
     {% endif %}
     {{ f.workflow.errors }}
     <div class="state-workflow-column col-sm-2">

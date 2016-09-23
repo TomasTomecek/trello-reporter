@@ -22,6 +22,8 @@
         </table>
     </div>
 </div>
+{% block top %}
+{% endblock top %}
 <form id="chart-settings" class="form-horizontal" method="post">
 {{ form.non_field_errors }}
 {% csrf_token %}
