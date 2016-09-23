@@ -327,6 +327,7 @@ $(function() {
   $('.timepicker').datetimepicker({
     format: 'LT',
   });
+
   // focus event is still on when you're changing options, let's hook with change event
   $("div.state-workflow div.state-workflow-column select").change(on_focus_states);
 
@@ -336,7 +337,8 @@ $(function() {
       $('input#submit-button').click();
     }
   });
-  // simulate submit-click when user presses enter on form
+
+  // don't submit forms with <enter>
   $('form').bind("keypress keydown keyup", function(e) {
     if(e.keyCode == 13) {
       e.preventDefault();
