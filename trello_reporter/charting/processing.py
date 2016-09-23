@@ -107,7 +107,7 @@ class ChartExporter(object):
 
     @classmethod
     def burndown_chart_c3(cls, board, beginning, end, in_progress_list_names):
-        completed_lists = ["Complete", "Completed"]
+        completed_lists = ["Complete"]
         now = timezone.now()
         if not end:
             end = now
