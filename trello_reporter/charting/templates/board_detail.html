@@ -3,8 +3,8 @@
 {% block body %}
 <form class="form-horizontal" action="{{ form_post_url }}" method="post">
     {% csrf_token %}
-    {% include 'form/workflow.html' with formset=columns_formset popover_title="Selected columns description" popover_content="Filter..." %}
-    {% include 'form/workflow.html' with formset=commitment_formset popover_title="Sprint commitment description" popover_content="Columns which..." %}
+    {% include 'form/workflow.html' with formset=columns_formset popover_title="Selected columns description" popover_content=selected_columns_description %}
+    {% include 'form/workflow.html' with formset=commitment_formset popover_title="Sprint commitment description" popover_content=sprint_commitment_description  %}
     {% include 'form/submit.html' %}
 </form>
 <h2>Charts</h2>
@@ -17,8 +17,8 @@
 <h2>Actions</h2>
 <ul>
     <li><a href="{% url 'board-refresh' board.id %}">Refresh</a>
-    <a role="button" data-toggle="popover" data-html="true" title="Sync" data-close="true"
-       data-content="Data are synchronized..."><span class="fa fa-info-circle"></span></a></li>
+    <a role="button" data-toggle="popover" data-html="true" title="Synchronization description" data-close="true"
+       data-content="{{ data_synchronization_description }}"><span class="fa fa-info-circle"></span></a></li>
 </ul>
 <h2>Selected columns</h2>
 <ul>
@@ -31,7 +31,7 @@
 </ul>
 <h2>Sprints
 <a role="button" data-toggle="popover" data-html="true" title="Sprint description" data-close="true"
-   data-content="Sprints are calculated..."><span class="fa fa-info-circle"></span></a></h2>
+   data-content="{{ sprint_calculation_description }}"><span class="fa fa-info-circle"></span></a></h2>
 <ul>
     {% for sprint in sprints %}
     <li><a href="{% url 'sprint-detail' sprint.id %}">{{ sprint }}</a></li>

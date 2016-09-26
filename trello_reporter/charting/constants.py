@@ -15,3 +15,15 @@ INITIAL_COLUMNS = ["New", "Backlog", "Next", "In Progress", "Complete"]
 
 # initial is good enough
 CUMULATIVE_FLOW_INITIAL_WORKFLOW = INITIAL_COLUMNS
+
+
+# help messages in UI
+
+BURNDOWN_CHART_DESCRIPTION = "This chart is..."
+CONTROL_CHART_DESCRIPTION = "This chart is..."
+VELOCITY_CHART_DESCRIPTION = "This chart is..."
+CUMULATIVE_FLOW_CHART_DESCRIPTION = "This chart is..."
+SPRINT_COMMITMENT_DESCRIPTION = "Columns which..."
+DATA_SYNCHRONIZATION_DESCRIPTION = "Data are synchronized..."
+SPRINT_CALCULATION_DESCRIPTION = "Sprints are calculated..."
+SELECTED_COLUMNS_DESCRIPTION = "Filter..."

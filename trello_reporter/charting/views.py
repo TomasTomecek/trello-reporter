@@ -13,7 +13,10 @@ from django.views.generic.base import TemplateView
 
 from trello_reporter.authentication.models import KeyVal
 from trello_reporter.charting import forms
-from trello_reporter.charting.constants import CUMULATIVE_FLOW_INITIAL_WORKFLOW, COMPLETED_COLUMNS
+from trello_reporter.charting.constants import CUMULATIVE_FLOW_INITIAL_WORKFLOW, COMPLETED_COLUMNS, \
+    SELECTED_COLUMNS_DESCRIPTION, SPRINT_COMMITMENT_DESCRIPTION, DATA_SYNCHRONIZATION_DESCRIPTION, \
+    SPRINT_CALCULATION_DESCRIPTION, BURNDOWN_CHART_DESCRIPTION, CONTROL_CHART_DESCRIPTION, \
+    VELOCITY_CHART_DESCRIPTION, CUMULATIVE_FLOW_CHART_DESCRIPTION
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
 from trello_reporter.charting.processing import ChartExporter
 from trello_reporter.charting.templatetags.card import display_card
@@ -147,6 +150,7 @@ class ControlChartView(ControlChartBase):
             Breadcrumbs.board_detail(context["board"]),
             Breadcrumbs.text("Control Chart")
         ]
+        context["control_chart_description"] = CONTROL_CHART_DESCRIPTION
         return context
 
 
@@ -202,6 +206,7 @@ class BurndownChartView(BurndownChartBase):
             Breadcrumbs.board_detail(context["board"]),
             Breadcrumbs.text("Burndown Chart")
         ]
+        context["burndown_chart_description"] = BURNDOWN_CHART_DESCRIPTION
         return context
 
 
@@ -272,6 +277,7 @@ class CumulativeFlowChartView(CumulativeFlowChartBase):
             Breadcrumbs.board_detail(context["board"]),
             Breadcrumbs.text("Cumulative flow chart")
         ]
+        context["cumulative_flow_chart_description"] = CUMULATIVE_FLOW_CHART_DESCRIPTION
         return context
 
 
@@ -337,6 +343,7 @@ class VelocityChartView(VelocityChartBase):
             Breadcrumbs.text("Velocity Chart")
         ]
         context["sprint_data"] = self.get_chart_data(context)
+        context["velocity_chart_description"] = VELOCITY_CHART_DESCRIPTION
         return context
 
 
@@ -457,6 +464,10 @@ def board_detail(request, board_id):
         "breadcrumbs": [
             Breadcrumbs.text("Board \"%s\"" % board.name)
         ],
+        "selected_columns_description": SELECTED_COLUMNS_DESCRIPTION,
+        "sprint_commitment_description": SPRINT_COMMITMENT_DESCRIPTION,
+        "data_synchronization_description": DATA_SYNCHRONIZATION_DESCRIPTION,
+        "sprint_calculation_description": SPRINT_CALCULATION_DESCRIPTION,
     }
     return render(request, "board_detail.html", context)
 
