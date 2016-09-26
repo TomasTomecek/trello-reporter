@@ -823,9 +823,9 @@ class Sprint(models.Model):
     sprint_number = models.IntegerField(db_index=True)
     board = models.ForeignKey(Board, models.CASCADE, related_name="sprints")
     # list with completed cards for the sprint
-    completed_list = models.OneToOneField(List, models.CASCADE, related_name="sprint",
+    completed_list = models.OneToOneField(List, models.DO_NOTHING, related_name="sprint",
                                           blank=True, null=True)
-    due_card = models.OneToOneField(Card, models.CASCADE, related_name="sprint",
+    due_card = models.OneToOneField(Card, models.DO_NOTHING, related_name="sprint",
                                     blank=True, null=True)
     # cards which are part of sprint: all cards present on Next column when the sprint starts
     # this needs to be calculated from scratch when start date is changed
