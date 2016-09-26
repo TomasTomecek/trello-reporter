@@ -104,6 +104,21 @@ class KeyValManager(models.Manager):
             default={"columns": SPRINT_COMMITMENT_COLUMNS}
         )
 
+    def board_messages(self, board):
+        """
+        {
+            "messages": [
+                {"message": "..."}
+            ]
+        }
+        :param board:
+        :return:
+        """
+        return self.get_or_create_setting(
+            KeyVal.BOARD_MESSAGES, board_id=board.id,
+            default={"messages": []}
+        )
+
 
 class KeyVal(models.Model):
     """ key & value table """
@@ -117,3 +132,4 @@ class KeyVal(models.Model):
 
     DISPLAYED_COLS_IN_BOARD_DETAIL = "DISPLAYED_COLS_IN_BOARD_DETAIL"
     SPRINT_COMMITMENT_COLS = "SPRINT_COMMITMENT_COLS"
+    BOARD_MESSAGES = "BOARD_MESSAGES"

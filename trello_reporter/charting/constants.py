@@ -4,6 +4,9 @@ DATETIME_FORMAT = '%Y-%m-%d %H:%M %Z'
 # final card state in a sprint
 COMPLETED_COLUMNS = ["Complete", "Accepted"]
 
+# columns for sprint cards which indicate active sprint
+SPRINT_CARDS_ACTIVE = ["In Progress", "Next"]
+
 # columns used to compute sprint commitment
 SPRINT_COMMITMENT_COLUMNS = ["Next", "In Progress"]
 

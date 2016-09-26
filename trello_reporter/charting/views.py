@@ -453,6 +453,7 @@ def board_detail(request, board_id):
         "columns_formset": columns_formset,
         "commitment_formset": commitment_formset,
         "form_post_url": reverse("board-detail", args=(board_id, )),
+        "errors": KeyVal.objects.board_messages(board).value["messages"],
         "breadcrumbs": [
             Breadcrumbs.text("Board \"%s\"" % board.name)
         ],

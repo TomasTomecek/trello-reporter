@@ -275,14 +275,17 @@ var charting = {
 };
 
 function load_chart(callback) {
-  $("#errors").hide()
+  var errors = $("#errors");
+  var error_field = errors.children().first();
+  error_field.addClass("hide");
   $.post(
     GLOBAL.chart_data_url,
     $('#chart-settings').serialize(),
     function(data) {
       if ("error" in data) {
-        $("#errors").show()
-        $("#error-content").html(data.error);
+        error_field.removeClass("hide");
+        var error_content = error_field.children(".error-content");
+        error_content.html(data.error);
       } else {
         callback(data);
       }

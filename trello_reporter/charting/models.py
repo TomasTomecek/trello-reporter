@@ -13,8 +13,9 @@ import re
 from django.dispatch.dispatcher import receiver
 from django.utils.dateparse import parse_datetime
 
+from trello_reporter.charting.constants import SPRINT_CARDS_ACTIVE
 from .constants import DATETIME_FORMAT
-from trello_reporter.authentication.models import TrelloUser
+from trello_reporter.authentication.models import TrelloUser, KeyVal
 from trello_reporter.harvesting.harvestor import Harvestor
 from trello_reporter.harvesting.models import CardActionEvent
 
@@ -497,18 +498,15 @@ class CardActionManager(models.Manager):
     def for_trello_card_id_on_list_names(self, trello_card_id, list_names):
         return self.for_trello_card_id(trello_card_id).for_list_names(list_names)
 
-    def get_sprint_trello_card_ids(self, board, since=None):
-        """ returns list of trello card IDs which set sprint boundaries """
-        regex = r"^\s*sprint \d+$"
+    def get_sprint_trello_card_ids(self, board):
+        """ return a set of trello card ids which match regex for sprint cards """
+        regex = r"^\s*sprint\D+\d+$"
         query = CardAction.objects \
             .filter(board=board) \
             .filter(card__name__iregex=regex) \
-            .order_by("card", "-date") \
-            .distinct("card") \
             .values_list("card__trello_id", flat=True)
-        if since:
-            query = query.since(since)
-        return query
+        card_ids = set(query)
+        return card_ids
 
     def latest_for_card(self, card):
         try:
@@ -569,7 +567,7 @@ class CardAction(models.Model):
 
     @property
     def list_name(self):
-        return self.data["data"]["list"]["name"]
+        return self.event.list_name
 
     @property
     def source_list_name(self):
@@ -870,47 +868,63 @@ class Sprint(models.Model):
         :param board:
         :return:
         """
-        # TODO (optimisation)
+        trello_card_ids = CardAction.objects.get_sprint_trello_card_ids(board)
 
-        since = None
-        latest_sprint = cls.objects.latest_completed(board)
-        if latest_sprint:
-            since = latest_sprint.end_dt
-
-        cards = CardAction.objects.get_sprint_trello_card_ids(board, since=since)
-
-        due_dict = Harvestor(token).get_due_of_cards(cards)
+        due_dict = Harvestor(token).get_due_of_cards(trello_card_ids)
+        due_list = due_dict.items()
 
         sprint_number_re = re.compile(r"(\d+)")
 
-        # we want to process actions in order as they happened so they can potentially overwrite
-        # previous values: make sure this is ordered correctly!
-        for card_id in cards:
+        bm = KeyVal.objects.board_messages(board)
+        board_messages = bm.value["messages"]
+        # reset messages
+        board_messages[:] = []  # python 2 list doesn't have clear()
+
+        for trello_card_id, due_date in sorted(due_list, key=lambda x: x[1]):
             try:
                 with transaction.atomic():
                     try:
-                        due = due_dict[card_id]
+                        due = due_dict[trello_card_id]
                     except KeyError:
-                        logger.error("couldn't figure out due of card %s", card_id)
+                        logger.error("couldn't figure out due of card %s",
+                                     trello_card_id)
                         continue
                     try:
                         first = CardAction.objects.for_trello_card_id_on_list_names(
-                            card_id, ["In Progress", "Next"]).latest()
+                            trello_card_id, SPRINT_CARDS_ACTIVE).latest()
                     except ObjectDoesNotExist:
-                        logger.info("card %s never reached In Progress", card_id)
+                        logger.info("card %s never reached In Progress",
+                                    trello_card_id)
                         continue
-                    last = CardAction.objects.filter(card__trello_id=card_id).latest()
+                    card = first.card
 
-                    logger.debug("processing: %s -> %s", first, last)
+                    if hasattr(card, "sprint"):
+                        if card.name != card.sprint.name:
+                            logger.warning("duplicate sprint card detected: %s", card)
+                            board_messages.append({
+                                "message": (
+                                    "Card \"%s\" is already assigned to sprint \"%s\". "
+                                    "This is likely caused by having only a single card and "
+                                    "renaming it for every sprint. Please create new cards for "
+                                    "every sprint. You can do that even now, then sync the board "
+                                    "and adjust sprint range in sprint detail."
+                                ) % (
+                                    card.name, card.sprint.name
+                                )
+                            })
+                            continue
 
-                    sprint_number = sprint_number_re.findall(last.card.name)[0]
-                    sprint, created = cls.objects.get_or_create(board=board, sprint_number=sprint_number)
+                    logger.debug("new sprint: %s", card)
+
+                    sprint_number = sprint_number_re.findall(card.name)[0]
+                    sprint, created = cls.objects.get_or_create(
+                        board=board, sprint_number=sprint_number)
 
                     # update or set
                     sprint.start_dt = first.date
                     sprint.end_dt = parse_datetime(due)
-                    sprint.name = last.card.name
-                    sprint.due_card = last.card
+                    sprint.name = card.name
+                    sprint.due_card = card
                     sprint.save()
             except DatabaseError as ex:
                 # this can happen if the due card is moved to another board
@@ -918,6 +932,7 @@ class Sprint(models.Model):
                 continue
 
             logger.debug("%s", sprint)
+        bm.save()
 
     @classmethod
     def set_completed_list(cls, board):
