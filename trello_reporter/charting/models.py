@@ -14,7 +14,7 @@ from django.dispatch.dispatcher import receiver
 from django.utils.dateparse import parse_datetime
 
 from .constants import DATETIME_FORMAT
-from trello_reporter.authentication.models import TrelloUser
+from trello_reporter.authentication.models import TrelloUser, KeyVal
 from trello_reporter.harvesting.harvestor import Harvestor
 from trello_reporter.harvesting.models import CardActionEvent
 
@@ -823,9 +823,9 @@ class Sprint(models.Model):
     sprint_number = models.IntegerField(db_index=True)
     board = models.ForeignKey(Board, models.CASCADE, related_name="sprints")
     # list with completed cards for the sprint
-    completed_list = models.OneToOneField(List, models.CASCADE, related_name="sprint",
+    completed_list = models.OneToOneField(List, models.DO_NOTHING, related_name="sprint",
                                           blank=True, null=True)
-    due_card = models.OneToOneField(Card, models.CASCADE, related_name="sprint",
+    due_card = models.OneToOneField(Card, models.DO_NOTHING, related_name="sprint",
                                     blank=True, null=True)
     # cards which are part of sprint: all cards present on Next column when the sprint starts
     # this needs to be calculated from scratch when start date is changed
@@ -883,6 +883,10 @@ class Sprint(models.Model):
 
         sprint_number_re = re.compile(r"(\d+)")
 
+        bm = KeyVal.objects.board_messages(board)
+        board_messages = bm.value["messages"]
+        board_messages[:] = []  # python 2 list doesn't have clear()
+
         # we want to process actions in order as they happened so they can potentially overwrite
         # previous values: make sure this is ordered correctly!
         for card_id in cards:
@@ -901,10 +905,31 @@ class Sprint(models.Model):
                         continue
                     last = CardAction.objects.filter(card__trello_id=card_id).latest()
 
+                    card_names = CardActionEvent.objects.card_names(card_id)
+                    if len(card_names) > 1:
+                        logger.warning("card rename detected: %s, %s", last.card, card_names)
+                        board_messages.append({
+                            "message": (
+                                "Looks like that card \"%s\" had multiple names (%s) during "
+                                "its lifetime, please create a new sprint card for each sprint, "
+                                "otherwise the tool won't be able to pick new sprints up") % (
+                                last.card.name, ", ".join(card_names)
+                            )
+                        })
+
+                    if hasattr(last.card, "sprint"):
+                        logger.warning("duplicate sprint card detected: %s", last.card)
+                        board_messages.append({
+                            "message": "Card \"%s\" is already assigned to sprint %s" % (
+                                last.card.name, last.card.sprint.name
+                            )
+                        })
+
                     logger.debug("processing: %s -> %s", first, last)
 
                     sprint_number = sprint_number_re.findall(last.card.name)[0]
-                    sprint, created = cls.objects.get_or_create(board=board, sprint_number=sprint_number)
+                    sprint, created = cls.objects.get_or_create(
+                        board=board, sprint_number=sprint_number)
 
                     # update or set
                     sprint.start_dt = first.date
@@ -918,6 +943,7 @@ class Sprint(models.Model):
                 continue
 
             logger.debug("%s", sprint)
+        bm.save()
 
     @classmethod
     def set_completed_list(cls, board):

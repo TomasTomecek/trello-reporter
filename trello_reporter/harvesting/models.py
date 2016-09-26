@@ -27,6 +27,11 @@ class CardActionEventQuerySet(models.QuerySet):
 
 
 class CardActionEventManager(models.Manager):
+    def card_names(self, trello_card_id):
+        """ return list of names the card had for its lifetime """
+        return set([x.data["data"]["card"]["name"]
+                    for x in self.for_card_by_date(trello_card_id)])
+
     def for_card_by_date(self, trello_card_id):
         # we can't order by date b/c of some nonsense; should be ordered anyway
         return self.for_card(trello_card_id)
