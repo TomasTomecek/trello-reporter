@@ -22,9 +22,6 @@ class CardActionEventQuerySet(models.QuerySet):
     def for_card(self, trello_card_id):
         return self.filter(data__data__card__id=trello_card_id)
 
-    def by_date(self):
-        return self.order_by('data__date')
-
 
 class CardActionEventManager(models.Manager):
     def card_names(self, trello_card_id):

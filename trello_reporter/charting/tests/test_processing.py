@@ -84,6 +84,6 @@ def test_card_actions_creation():
 
     assert cas[0].card.name == "Sprint 13"
 
-    events = CardActionEvent.objects.all().by_date()
+    events = CardActionEvent.objects.all()
     assert events[0].card_name == "Sprint 12"
-    assert events[0].card_name == "Sprint 13"
+    assert events[1].card_name == "Sprint 13"
