@@ -838,10 +838,8 @@ class Sprint(models.Model):
         tz = timezone.get_current_timezone()
         s = e = "<missing>"
         if self.start_dt:
-            logger.debug(self.start_dt)
             s = tz.normalize(self.start_dt).strftime(DATETIME_FORMAT)
         if self.end_dt:
-            logger.debug(self.end_dt)
             e = tz.normalize(self.end_dt).strftime(DATETIME_FORMAT)
         return "%s (%s - %s)" % (self.name, s, e)
 
