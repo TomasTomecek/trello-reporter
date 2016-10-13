@@ -1,8 +1,13 @@
 from __future__ import unicode_literals
 
+import datetime
 import pytest
+from pytz import timezone as pytz_timezone
+from flexmock import flexmock
+from django.utils import timezone
 
-from trello_reporter.charting.forms import ControlChartForm, get_workflow_formset
+from trello_reporter.charting.forms import ControlChartForm, get_workflow_formset, \
+    datetime_in_current_timezone
 from trello_reporter.charting.models import Sprint, Board
 
 
@@ -55,3 +60,15 @@ def test_control_form_can_be_rendered():
     f = ControlChartForm()
     f.set_sprint_choices(Sprint.objects.all())
     assert f.as_ul()
+
+
+def test_datetime_in_current_timezone():
+    tz = pytz_timezone("Europe/Bratislava")
+    flexmock(timezone, get_current_timezone=lambda: tz)
+
+    date = datetime.date(2016, 1, 1)
+    time = datetime.time(10, 0, 0)
+
+    dt = datetime_in_current_timezone(date, time)
+    fmt = '%Y-%m-%d %H:%M:%S %Z%z'
+    assert dt.strftime(fmt) == "2016-01-01 10:00:00 CET+0100"

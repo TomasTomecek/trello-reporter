@@ -55,9 +55,9 @@ def datetime_in_current_timezone(date, time):
     tz = timezone.get_current_timezone()
     logger.debug("current timezone = %s", tz)
     dt = datetime.datetime.combine(date, time)
-    dt = pytz.utc.localize(dt)
+    dt = tz.localize(dt)
     local_dt = tz.normalize(dt)
-    logger.debug("utc-aware: %s local: %s", dt, local_dt)
+    logger.debug("tz-aware: %s local: %s", dt, local_dt)
     return local_dt
 
 
