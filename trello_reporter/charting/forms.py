@@ -269,17 +269,9 @@ class VelocityChartForm(SprintPicker):
     pass
 
 
-class SprintEditForm(forms.ModelForm):
+class SprintBaseForm(forms.ModelForm):
     start_t = TimeFieldWithDatepicker()
     end_t = TimeFieldWithDatepicker()
-
-    def __init__(self, *args, **kwargs):
-        super(SprintEditForm, self).__init__(*args, **kwargs)
-        tz = timezone.get_current_timezone()
-        s = tz.normalize(self.instance.start_dt)
-        e = tz.normalize(self.instance.end_dt)
-        self.fields["start_t"].initial = s
-        self.fields["end_t"].initial = e
 
     class Meta:
         model = Sprint
@@ -302,10 +294,22 @@ class SprintEditForm(forms.ModelForm):
             self.cleaned_data["end_dt"], self.cleaned_data["end_t"])
         self.instance.name = self.cleaned_data["name"]
         self.instance.sprint_number = self.cleaned_data["sprint_number"]
-        # self.instance.save(force_update=True, update_fields=("start_dt",
-        #                                                      "end_dt", "name", "sprint_number"))
-        super(SprintEditForm, self).save(commit=commit)
+        super(SprintBaseForm, self).save(commit=commit)
         return self.instance
+
+
+class SprintEditForm(SprintBaseForm):
+    def __init__(self, *args, **kwargs):
+        super(SprintEditForm, self).__init__(*args, **kwargs)
+        tz = timezone.get_current_timezone()
+        s = tz.normalize(self.instance.start_dt)
+        e = tz.normalize(self.instance.end_dt)
+        self.fields["start_t"].initial = s
+        self.fields["end_t"].initial = e
+
+
+class SprintCreateForm(SprintBaseForm):
+    pass
 
 
 class BoardDetailForm(forms.Form):

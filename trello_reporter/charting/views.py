@@ -479,6 +479,33 @@ def board_refresh(request, board_id):
     return redirect('board-detail', board_id=board_id)
 
 
+def sprint_create(request, board_id):
+    board = Board.objects.by_id(board_id)
+    logger.debug("sprint create for board: %s", board)
+
+    if request.method == "POST":
+        form = forms.SprintCreateForm(data=request.POST)
+        form.instance.board = board
+        logger.debug("user's timezone = %s", request.user.timezone)
+        if form.is_valid():
+            sprint = form.save()
+            logger.debug("creating new sprint: %s", sprint)
+            Sprint.set_completed_list(board)
+            return redirect('sprint-detail', sprint_id=sprint.id)
+    else:
+        form = forms.SprintCreateForm()
+
+    context = {
+        "form": form,
+        "post_url": reverse("sprint-create", args=(board_id, )),
+        "breadcrumbs": [
+            Breadcrumbs.board_detail(board),
+            Breadcrumbs.text("New sprint")
+        ],
+    }
+    return render(request, "sprint_create.html", context)
+
+
 def sprint_detail(request, sprint_id):
     sprint = Sprint.objects.get(id=sprint_id)
     logger.debug("sprint detail: %s", sprint)

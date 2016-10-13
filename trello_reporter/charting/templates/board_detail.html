@@ -36,5 +36,6 @@
     {% for sprint in sprints %}
     <li><a href="{% url 'sprint-detail' sprint.id %}">{{ sprint }}</a></li>
     {% endfor %}
+    <li><a href="{% url 'sprint-create' board.id %}">Create new sprint</a></li>
 </ul>
 {% endblock %}

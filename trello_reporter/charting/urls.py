@@ -21,6 +21,8 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'^board/(?P<board_id>[0-9]+)/$', views.board_detail, name='board-detail'),
     url(r'^board/(?P<board_id>[0-9]+)/refresh/$', views.board_refresh, name='board-refresh'),
+    url(r'^board/(?P<board_id>[0-9]+)/sprint/create/$',
+        views.sprint_create, name='sprint-create'),
 
     url(r'^column/(?P<list_id>[0-9]+)/$',
         views.ListDetailView.as_view(), name='list-detail'),
