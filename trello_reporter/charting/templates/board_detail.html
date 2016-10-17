@@ -1,41 +1,161 @@
 {% extends "index.html" %}
+{% load tz %}
+{% load static %}
 {% load humanize %}
+{% block buttons %}
+<div class="pull-right mright10px">
+  <button type="button" class="btn btn-default mright10px" data-toggle="modal" data-target=".settings-modal"><span class="pficon pficon-settings"></span> Settings</button>
+  <a href="{% url 'board-refresh' board.id %}" class="btn btn-default"><span class="pficon pficon-refresh"></span> Sync Data</a>
+  <a role="button" data-toggle="popover" data-html="true" title="Synchronization description" data-close="true"
+     data-content="{{ data_synchronization_description }}"><span class="fa fa-info-circle"></span></a>
+</div>
+{% endblock %}
 {% block body %}
-<form class="form-horizontal" action="{{ form_post_url }}" method="post">
-    {% csrf_token %}
-    {% include 'form/workflow.html' with formset=columns_formset popover_title="Selected columns description" popover_content=selected_columns_description %}
-    {% include 'form/workflow.html' with formset=commitment_formset popover_title="Sprint commitment description" popover_content=sprint_commitment_description  %}
-    {% include 'form/submit.html' %}
-</form>
-<h2>Charts</h2>
-<ul>
-    <li><a href="{% url 'show-cumulative-flow-chart' board.id %}">Cumulative flow chart</a></li>
-    <li><a href="{% url 'show-control-chart' board.id %}">Control chart</a></li>
-    <li><a href="{% url 'show-burndown-chart' board.id %}">Burndown chart</a></li>
-    <li><a href="{% url 'show-velocity-chart' board.id %}">Velocity chart</a></li>
-</ul>
-<h2>Actions</h2>
-<ul>
-    <li><a href="{% url 'board-refresh' board.id %}">Refresh</a>
-    <a role="button" data-toggle="popover" data-html="true" title="Synchronization description" data-close="true"
-       data-content="{{ data_synchronization_description }}"><span class="fa fa-info-circle"></span></a></li>
-</ul>
-<h2>Selected columns</h2>
-<ul>
-    {% for list in lists %}
-        {% if list.name %}
-        <li><a href="{% url 'list-detail' list.id %}">{{ list.name }}</a> - last update
-            {{ list.latest_action.date|naturaltime }}</li>
-        {% endif %}
-    {% endfor %}
-</ul>
-<h2>Sprints
-<a role="button" data-toggle="popover" data-html="true" title="Sprint description" data-close="true"
-   data-content="{{ sprint_calculation_description }}"><span class="fa fa-info-circle"></span></a></h2>
-<ul>
-    {% for sprint in sprints %}
-    <li><a href="{% url 'sprint-detail' sprint.id %}">{{ sprint }}</a></li>
-    {% endfor %}
-    <li><a href="{% url 'sprint-create' board.id %}">Create new sprint</a></li>
-</ul>
+      <div class="row">
+        <div class="col-sm-3">
+          <div class="panel panel-default">
+            <a href="{% url 'show-cumulative-flow-chart' board.id %}">
+              <img style="width:100%" src="{% static 'img/cumulative-flow-chart.png' %}">
+              <div class="panel-body">
+                  <h3 class="panel-title">Cumulative Flow Chart</h3>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div class="col-sm-3">
+          <div class="panel panel-default">
+            <a href="{% url 'show-control-chart' board.id %}">
+              <img style="width:100%" src="{% static 'img/controll-chart.png' %}">
+              <div class="panel-body">
+                  <h3 class="panel-title">Controll Chart</h3>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div class="col-sm-3">
+          <div class="panel panel-default">
+            <a href="{% url 'show-burndown-chart' board.id %}">
+              <img style="width:100%" src="{% static 'img/burndown-chart.png' %}">
+              <div class="panel-body">
+                <h3 class="panel-title">Burndown Chart</h3>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div class="col-sm-3">
+          <div class="panel panel-default">
+            <a href="{% url 'show-velocity-chart' board.id %}">
+              <img style="width:100%" src="{% static 'img/velocity-chart.png' %}">
+              <div class="panel-body">
+                <h3 class="panel-title">Velocity Chart</h3>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-sm-6">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">Trello Columns</h3>
+            </div>
+            {% for list in lists %}
+                {% if list.name %}
+            <div class="list-group">
+              <a href="{% url 'list-detail' list.id %}" class="list-group-item">
+                <strong>
+                  {{ list.name }}
+                </strong>
+                <span class="pull-right text-muted">
+                  {{ list.latest_action.date|naturaltime }}
+                </span>
+              </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">Sprint Reports
+              <a role="button" data-toggle="popover" data-html="true" title="Sprint description" data-close="true"
+                 data-content="{{ sprint_calculation_description }}"><span class="fa fa-info-circle"></span></a></h2>
+              </h3>
+            </div>
+            <div class="list-group">
+            {% for sprint in sprints %}
+              <a href="{% url 'sprint-detail' sprint.id %}" class="list-group-item">
+                <strong>
+                  {{ sprint.name }}
+                </strong>
+                <span class="pull-right text-muted">
+                  {{ sprint.start_dt|localtime|date:"Y-m-d P T" }} -
+                  {{ sprint.end_dt|localtime|date:"Y-m-d P T" }}
+                </span>
+              </a>
+            {% endfor %}
+            </div?>
+            <a href="{% url 'sprint-create' board.id %}" class="list-group-item"><strong>Create new sprint</strong></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade settings-modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+        <div class="modal-dialog modal-lg" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title"><span class="pficon pficon-settings"></span> Settings</h4>
+            </div>
+            <form action="{{ form_post_url }}" method="post">
+              {% csrf_token %}
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-sm-6">
+                    <h4> Selected Columns
+                      <a role="button" data-toggle="popover" data-html="true" title="Selected columns description" data-close="true"
+                         data-content="{{ selected_columns_description }}"><span class="fa fa-info-circle"></span></a>
+                    </h4>
+                    {% for f in columns_form %}
+                    <div class="checkbox">
+                    {{ f.errors }}
+                      <label for="id_col_{{ f.name }}">
+                        {{ f }} {{ f.label }}
+                      </label>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  <div class="col-sm-6">
+                    <h4>Sprint Commitment Columns
+                      <a role="button" data-toggle="popover" data-html="true" title="Sprint commitment description" data-close="true"
+                         data-content="{{ sprint_commitment_description }}"><span class="fa fa-info-circle"></span></a>
+                    </h4>
+                    {% for f in commitment_form %}
+                    <div class="checkbox">
+                    {{ f.errors }}
+                      <label for="id_com_{{ f.name }}">
+                        {{ f }} {{ f.label }}
+                      </label>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <input id="submit-button" class="btn btn-primary" type="submit" value="Save changes" />
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
 {% endblock %}

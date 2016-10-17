@@ -80,7 +80,32 @@ class WorkflowMixin(forms.Form):
         self.fields["workflow"].choices = values
 
 
+class ListsSelectorForm(forms.Form):
+    """ workflow captured via checkboxes: order is not important """
+    def __init__(self, selected_columns, all_columns, **kwargs):
+        """
+        :param selected_columns: list of str, tick these
+        :param all_query: list of str, all lists to display
+        :param kwargs:
+        """
+        super(ListsSelectorForm, self).__init__(**kwargs)
+        for list_name in all_columns:
+            self.fields[list_name] = forms.BooleanField(
+                required=False,
+                label=list_name,
+                initial=list_name in selected_columns,
+            )
+
+    @property
+    def workflow(self):
+        if not self.is_valid():
+            logger.warning("form is invalid")
+            raise forms.ValidationError("form is invalid")
+        return [x for x, val in self.cleaned_data.items() if val is True]
+
+
 class WorkflowBaseFormSet(forms.BaseFormSet):
+    """ workflow in select boxes - order matters """
     def __init__(self, **kwargs):
         label = kwargs.pop("label", None)
         super(WorkflowBaseFormSet, self).__init__(**kwargs)

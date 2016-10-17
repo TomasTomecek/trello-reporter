@@ -44,14 +44,19 @@ class Breadcrumbs(object):
         return {"text": text}
 
     @classmethod
-    def url(cls, text):
-        return {"url": text}
+    def url(cls, url, text):
+        t = {
+            "url": url,
+            "text": text
+        }
+        return t
 
     @classmethod
     def board_detail(cls, board):
-        t = cls.url(reverse("board-detail", args=(board.id, )))
-        t.update(cls.text("Board \"%s\"" % board.name))
-        return t
+        return cls.url(
+            reverse("board-detail", args=(board.id, )),
+            "Board \"%s\"" % board.name,
+        )
 
 
 class BaseView(TemplateView):
@@ -420,34 +425,33 @@ def board_detail(request, board_id):
     kv_com = KeyVal.objects.sprint_commitment_columns(board)
 
     if request.method == "POST":
-        formset_data = request.POST
+        form_data = request.POST
     else:
-        formset_data = None
+        form_data = None
+
     lis = List.objects.get_all_listnames_for_board(board)
-    columns_formset = forms.get_workflow_formset(
-        [("", "")] + zip(lis, lis),
+
+    columns_form = forms.ListsSelectorForm(
         kv_displ_cols.value["columns"],
-        data=formset_data,
-        label="Selected columns",
-        prefix="columns"
+        lis,
+        data=form_data,
+        prefix="col"
     )
-    commitment_formset = forms.get_workflow_formset(
-        [("", "")] + zip(lis, lis),
+    commitment_form = forms.ListsSelectorForm(
         kv_com.value["columns"],
-        data=formset_data,
-        label="Sprint commitment columns",
-        prefix="commitment"
+        lis,
+        data=form_data,
+        prefix="com"
     )
     if request.method == "POST":
-        if commitment_formset.is_valid() and columns_formset.is_valid():
-            if columns_formset.has_changed():
-                kv_displ_cols.value["columns"] = columns_formset.workflow
-                kv_displ_cols.save()
-            if commitment_formset.has_changed():
-                kv_com.value["columns"] = commitment_formset.workflow
-                kv_com.save()
+        if commitment_form.is_valid() and columns_form.is_valid():
+            kv_displ_cols.value["columns"] = columns_form.workflow
+            kv_displ_cols.save()
+            kv_com.value["columns"] = commitment_form.workflow
+            kv_com.save()
         else:
-            logger.warning("formsets are not valid: %s %s", commitment_formset, columns_formset)
+            logger.warning("formsets are not valid: %s %s", commitment_form, columns_form)
+            # TODO: propagate to client
 
     lists = List.objects.filter_lists_for_board(board, f=kv_displ_cols.value["columns"])
     lists = sorted(lists, key=lambda x: x.name)
@@ -457,12 +461,13 @@ def board_detail(request, board_id):
         "board": board,
         "lists": lists,
         "sprints": sprints,
-        "columns_formset": columns_formset,
-        "commitment_formset": commitment_formset,
+        "columns_form": columns_form,
+        "commitment_form": commitment_form,
         "form_post_url": reverse("board-detail", args=(board_id, )),
         "errors": KeyVal.objects.board_messages(board).value["messages"],
         "breadcrumbs": [
-            Breadcrumbs.text("Board \"%s\"" % board.name)
+            Breadcrumbs.url(reverse("index"), "Boards"),
+            Breadcrumbs.text(board.name)
         ],
         "selected_columns_description": SELECTED_COLUMNS_DESCRIPTION,
         "sprint_commitment_description": SPRINT_COMMITMENT_DESCRIPTION,

@@ -7,6 +7,14 @@
   margin: 0 0 1em 0;
 }
 
+.mtop20px {
+  margin-top: 20px;
+}
+
+.mright10px {
+  margin-right: 10px;
+}
+
 .mtop3p {
   margin-top: 3%;
 }
@@ -17,4 +25,14 @@
 
 .bold {
   font-weight: bold;
+}
+
+.breadcrumb {
+  font-size: 22px;
+  margin: 0 0 0 0;
+  padding: 0 0 0 0;
+}
+
+.breadcrumb > li + li::before {
+  font-size: 16px;
 }
