@@ -1,0 +1,8 @@
+{% for f in form %}
+<div class="checkbox">
+  {{ f.errors }}
+  <label for="id_com_{{ f.name }}">
+    {{ f }} {{ f.label }}
+  </label>
+</div>
+{% endfor %}

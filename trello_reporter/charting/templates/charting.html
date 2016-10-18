@@ -24,14 +24,13 @@
 </div>
 {% block top %}
 {% endblock top %}
+<div id="chart" class="line-chart-pf"></div>
 <form id="chart-settings" class="form-horizontal" method="post">
 {{ form.non_field_errors }}
 {% csrf_token %}
 {% block form %}
 {% endblock form %}
-{% include 'form/submit.html' with input_type="button" %}
 </form>
-<div id="chart" class="line-chart-pf"></div>
 {% block rest %} {# rest of the data #}
 {% endblock rest %}
 {% endblock %}

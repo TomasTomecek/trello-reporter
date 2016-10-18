@@ -1,14 +1,14 @@
-<div class="row">
-  <div class="form-group">
-    {{ form.from_dt.errors }}
-    <label class="col-sm-1 control-label" for="id_{{ form.from_dt.name }}">{{ form.from_dt.label }}</label>
-    <div class="col-sm-5">
-      {{ form.from_dt }}
-    </div>
-    {{ form.to_dt.errors }}
-    <label class="col-sm-1 control-label" for="id_{{ form.to_dt.name }}">{{ form.to_dt.label }}</label>
-    <div class="col-sm-5">
-      {{ form.to_dt }}
-    </div>
+<div class="form-group">
+  {{ form.from_dt.errors }}
+  <label class="col-sm-5 control-label" for="id_{{ form.from_dt.name }}">{{ form.from_dt.label }}</label>
+  <div class="col-sm-7">
+    {{ form.from_dt }}
+  </div>
+</div>
+<div class="form-group">
+  {{ form.to_dt.errors }}
+  <label class="col-sm-5 control-label" for="id_{{ form.to_dt.name }}">{{ form.to_dt.label }}</label>
+  <div class="col-sm-7">
+    {{ form.to_dt }}
   </div>
 </div>

@@ -63,13 +63,14 @@ class BaseView(TemplateView):
     view_name = None  # for javascript
 
 
-def humanize_form_errors(form=None, formsets=None):
+def humanize_form_errors(form_list=None, formsets=None):
     """ return html with errors in forms; should be piped into notification widget """
     texts = []
-    if form and form.errors:
-        form_errors_text = form.errors.as_text()
-        logger.info("form errors: %s", form_errors_text)
-        texts.append(form_errors_text)
+    for form in form_list:
+        if form and form.errors:
+            form_errors_text = form.errors.as_text()
+            logger.info("form errors: %s", form_errors_text)
+            texts.append(form_errors_text)
     if formsets:
         for formset in formsets:
             nfe = formset.non_form_errors()
@@ -111,9 +112,9 @@ class ChartView(BaseView):
         return context
 
     @staticmethod
-    def respond_json_form_errors(form, formset=None):
+    def respond_json_form_errors(form_list, formset=None):
         return JsonResponse({"error": "Form is not valid: " +
-                                      humanize_form_errors(form, formsets=[formset])})
+                                      humanize_form_errors(form_list, formsets=[formset])})
 
 
 class ControlChartBase(ChartView):
@@ -188,11 +189,15 @@ class BurndownChartBase(ChartView):
 
         lis = List.objects.get_all_listnames_for_board(board)
         self.commitment_cols = KeyVal.objects.sprint_commitment_columns(board).value["columns"]
-        formset = forms.get_workflow_formset([("", "")] + zip(lis, lis), self.commitment_cols,
-                                             data=self.formset_data)
+
+        com_form = forms.ListsSelectorForm(
+            self.commitment_cols,
+            lis,
+            data=self.form_data,
+        )
 
         context["board"] = board
-        context["formset"] = formset
+        context["com_form"] = com_form
         context["latest_sprint"] = sprint
         return context
 
@@ -233,13 +238,13 @@ class BurndownChartDataView(BurndownChartBase):
         self.form_data = request.POST
         self.formset_data = request.POST
         context = super(BurndownChartDataView, self).get_context_data(board_id, **kwargs)
-        form, formset = context["form"], context["formset"]
+        form, com_form = context["form"], context["com_form"]
 
-        if not (form.is_valid() and formset.is_valid()):
-            return self.respond_json_form_errors(form, formset=formset)
+        if not (form.is_valid() and com_form.is_valid()):
+            return self.respond_json_form_errors(form_list=(form, com_form))
         data = ChartExporter.burndown_chart_c3(
             context["board"], form.cleaned_data["beginning"],
-            form.cleaned_data["end"], formset.workflow)
+            form.cleaned_data["end"], com_form.workflow)
         return JsonResponse({"data": data})
 
 
