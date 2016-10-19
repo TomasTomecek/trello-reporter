@@ -357,18 +357,15 @@ $(function() {
 // handler for growing state machine
 function on_focus_states(data) {
   var t = $(this); // select
-  var parent_div = t.parent("div"); // div.state-workflow-column
-  var root_div = parent_div.parent("div.state-workflow");
+  var parent_div = t.parent("div.state-workflow-column");
+  var last_select = t.siblings("select").last();
 
   // selectedIndex is better than .filter(":selected")
-  if (root_div.children("div.state-workflow-column").last().children("select")[0].selectedIndex > 0) {
-    var new_div = root_div
-        .children("div.state-workflow-column")
-        .last()
+  if (last_select[0].selectedIndex > 0) {
+    var new_select = last_select
         .clone()
-        .appendTo(root_div)
-    var new_select = new_div
-        .children("select")
+        .appendTo(parent_div)
+    var new_select = new_select
         .val("")
         .attr("id", function(i, oldVal) {
             return oldVal.replace(/\d+/, function(m) {
@@ -384,7 +381,7 @@ function on_focus_states(data) {
         .on("change", on_focus_states);
     // set # of forms, needed by django formsets
     parent_div.siblings("input[id$='-TOTAL_FORMS']")
-        .val(root_div.find("div.state-workflow-column").length);
+        .val(root_div.find("div.state-workflow-column > select").length);
   }
 }
 

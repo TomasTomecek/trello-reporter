@@ -2,9 +2,8 @@
   margin: 0 20px 0 20px;
 }
 
-.state-workflow-column {
-  padding-right: 0;
-  margin: 0 0 1em 0;
+.state-workflow-column > select {
+  margin-bottom: 15px;
 }
 
 .mtop20px {
