@@ -1,35 +1,52 @@
 {% extends "charting.html" %}
 {% load tz %}
 {% load card %}
+{% block buttons %}
+<div class="pull-right mright10px">
+  <a href="{% url 'stalled-cards' list.id %}" class="btn btn-default"><span class="pficon fa-clock-o"></span> Stalled cards</a>
+</div>
+{% endblock %}
 {% block form %}
-{% include 'form/range.html' %}
+<div class="row">
+  <div class="col-sm-12">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Chart Options</h3>
+      </div>
+      <div class="panel-body">
+        {% include 'form/range.html' %}
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 {% block rest %}
-<p>
-  <a href="{% url 'stalled-cards' list.id %}">Stalled cards</a>
-</p>
-<table class="table table-striped table-bordered">
-  <thead>
-    <tr>
-      <td>Card</td>
-      <td>Last action</td>
-      <td>Date</td>
-      <td>Diff</td>
-      <td># cards</td>
-      <td># story points</td>
-    </tr>
-  </thead>
-  <tbody>
-  {% for ls in list_stats %}
-    <tr>
-      <td>{% display_card_with_detail_link ls.card_action %}</td>
-      <td>{{ ls.card_action.action_type }}</td>
-      <td>{{ ls.card_action.date|localtime|date:"Y-m-d P T" }}</td>
-      <td>{{ ls.diff }}</td>
-      <td>{{ ls.cards_rt }}</td>
-      <td>{{ ls.story_points_rt }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<div class="row">
+  <div class="col-sm-12">
+    <table class="table table-striped table-bordered">
+      <thead>
+      <tr>
+        <td>Card</td>
+        <td>Last action</td>
+        <td>Date</td>
+        <td>Diff</td>
+        <td># cards</td>
+        <td># story points</td>
+      </tr>
+      </thead>
+      <tbody>
+      {% for ls in list_stats %}
+      <tr>
+        <td>{% display_card_with_detail_link ls.card_action %}</td>
+        <td>{{ ls.card_action.action_type }}</td>
+        <td>{{ ls.card_action.date|localtime|date:"Y-m-d P T" }}</td>
+        <td>{{ ls.diff }}</td>
+        <td>{{ ls.cards_rt }}</td>
+        <td>{{ ls.story_points_rt }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

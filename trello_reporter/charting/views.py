@@ -35,6 +35,7 @@ def index(request):
     boards = Board.list_boards(request.user, request.COOKIES["token"])
     return render(request, "index.html", {
         "boards": boards,
+        "breadcrumbs": [Breadcrumbs.text("Boards")]
     })
 
 
@@ -580,10 +581,8 @@ def card_detail(request, card_id):
         "card": card,
         "actions": actions,
         "events": events,
-        "breadcrumbs": [
-            Breadcrumbs.board_detail(action_list[-1].board),
-            Breadcrumbs.text("Card \"%s\"" % display_card(action_list[-1])),
-        ]
+        "breadcrumbs": Breadcrumbs.board_detail(action_list[-1].board) +
+                       [Breadcrumbs.text("Card \"%s\"" % display_card(action_list[-1]))]
     }
     return render(request, "card_detail.html", context)
 
@@ -596,10 +595,7 @@ def stalled_cards(request, list_id):
     context = {
         "list": li,
         "card_actions": card_actions,
-        "breadcrumbs": [
-            Breadcrumbs.board_detail(board),
-            Breadcrumbs.text("Stalled cards"),
-        ]
+        "breadcrumbs": Breadcrumbs.board_detail(board) + [Breadcrumbs.text("Stalled cards")]
     }
     return render(request, "stalled_cards.html", context)
 
