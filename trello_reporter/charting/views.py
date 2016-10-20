@@ -502,10 +502,8 @@ def sprint_create(request, board_id):
     context = {
         "form": form,
         "post_url": reverse("sprint-create", args=(board_id, )),
-        "breadcrumbs": [
-            Breadcrumbs.board_detail(board),
-            Breadcrumbs.text("New sprint")
-        ],
+        "breadcrumbs": Breadcrumbs.board_detail(board) +
+                       [Breadcrumbs.text("Create sprint")]
     }
     return render(request, "sprint_create.html", context)
 
@@ -559,10 +557,9 @@ def sprint_detail(request, sprint_id):
         "view_name": "chart_without_form",
         "chart_name": "burndown",
         "chart_data_url": chart_url,
-        "breadcrumbs": [
-            Breadcrumbs.board_detail(sprint.board),
-            Breadcrumbs.text("Sprint \"%s\"" % sprint.name)
-        ],
+        "submit_input_type": "submit",
+        "breadcrumbs": Breadcrumbs.board_detail(sprint.board) +
+                       [Breadcrumbs.text("Sprint \"%s\"" % sprint.name)]
     }
     return render(request, "sprint_detail.html", context)
 
@@ -595,7 +592,8 @@ def stalled_cards(request, list_id):
     context = {
         "list": li,
         "card_actions": card_actions,
-        "breadcrumbs": Breadcrumbs.board_detail(board) + [Breadcrumbs.text("Stalled cards")]
+        "breadcrumbs": Breadcrumbs.board_detail(board) +
+                       [Breadcrumbs.text("Stalled cards on \"%s\"" % li.name)]
     }
     return render(request, "stalled_cards.html", context)
 

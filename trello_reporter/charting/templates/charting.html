@@ -48,7 +48,7 @@
 {% csrf_token %}
 {% block form %}
 {% endblock form %}
-{% include 'form/submit.html' with input_type="button" name="Apply Settings" %}
+{% include 'form/submit.html' with input_type=submit_input_type|default:"button" name="Apply Settings" %}
 </form>
 {% block rest %} {# rest of the data #}
 {% endblock rest %}

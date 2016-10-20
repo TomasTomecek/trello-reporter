@@ -296,8 +296,8 @@ class VelocityChartForm(SprintPicker):
 
 
 class SprintBaseForm(forms.ModelForm):
-    start_t = TimeFieldWithDatepicker()
-    end_t = TimeFieldWithDatepicker()
+    start_t = TimeFieldWithDatepicker(label="Start time")
+    end_t = TimeFieldWithDatepicker(label="End time")
 
     class Meta:
         model = Sprint

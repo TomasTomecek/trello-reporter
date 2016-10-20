@@ -1,158 +1,151 @@
-{% extends "index.html" %}
-{% block js %}
-{% include 'chart/initialization.html' %}
-{% endblock %}
-{% block body %}
+{% extends "charting.html" %}
 {% load tz %}
 {% load card %}
 {% load list_tags %}
 {% load story_points %}
-<div id="chart" class="line-chart-pf"></div>
-<div class="mtop3p">
-  <form class="form-horizontal" action="{{ post_url }}" method="post">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    <div class="row">
-      <div class="form-group">
-        {{ form.start_dt.errors }}
-        <label class="col-sm-1 control-label" for="id_{{ form.start_dt.name }}">{{ form.start_dt.label }}</label>
-        <div class="col-sm-3">
-          {{ form.start_dt }}
-        </div>
-        {{ form.start_t.errors }}
-        <div class="col-sm-2">
-          {{ form.start_t }}
-        </div>
-        {{ form.end_dt.errors }}
-        <label class="col-sm-1 control-label" for="id_{{ form.end_dt.name }}">{{ form.end_dt.label }}</label>
-        <div class="col-sm-3">
-          {{ form.end_dt }}
-        </div>
-        {{ form.end_t.errors }}
-        <div class="col-sm-2">
-          {{ form.end_t }}
-        </div>
+{% block form %}
+<div class="row">
+  <div class="col-sm-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Sprint dates</h3>
+      </div>
+      <div class="panel-body">
+        {% include 'form/from_to_dt.html' %}
       </div>
     </div>
-    <div class="row">
-      <div class="form-group">
-        {{ form.name.errors }}
-        <label class="col-sm-1 control-label" for="id_{{ form.name.name }}">{{ form.name.label }}</label>
-        <div class="col-sm-5">
-          {{ form.name }}
-        </div>
-        {{ form.sprint_number.errors }}
-        <label class="col-sm-1 control-label" for="id_{{ form.sprint_number.name }}">{{ form.sprint_number.label }}</label>
-        <div class="col-sm-5">
-          {{ form.sprint_number }}
-        </div>
+  </div>
+  <div class="col-sm-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Sprint name</h3>
+      </div>
+      <div class="panel-body">
+        {% include 'form/sprint_name.html' %}
       </div>
     </div>
-    {% include 'form/submit.html' with name="Update sprint" %}
-  </form>
+  </div>
 </div>
-<h2>Cards in sprint</h2>
-<table class="table table-striped table-bordered">
-  <thead>
-  <tr>
-    <th>Name</th>
-    <th>Current column</th>
-    <th>Story points</th>
-    <th>Last action</th>
-  </tr>
-  </thead>
-  <tbody>
-  {% for card in sprint_cards %}
-  <tr>
-    <td>{% display_card_with_detail_link card.latest_action %}</td>
-    <td>
-      {% present_list card.latest_action %}
-    </td>
-    <td>{{ card.latest_action.story_points }}</td>
-    <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
-  </tr>
-  {% endfor %}
-  <tr><td colspan="4" class="bold">
-    Cards: {{ sprint_cards|length }}, Story points: {% sum_story_points sprint_cards %}
-  </td></tr>
-  </tbody>
-</table>
+{% endblock %}
+{% block rest %}
+<div class="row">
+  <div class="col-sm-12">
+    <h2>Cards in sprint</h2>
+    <table class="table table-striped table-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Current column</th>
+        <th>Story points</th>
+        <th>Last action</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for card in sprint_cards %}
+      <tr>
+        <td>{% display_card_with_detail_link card.latest_action %}</td>
+        <td>
+          {% present_list card.latest_action %}
+        </td>
+        <td>{{ card.latest_action.story_points }}</td>
+        <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
+      </tr>
+      {% endfor %}
+      <tr><td colspan="4" class="bold">
+        Cards: {{ sprint_cards|length }}, Story points: {% sum_story_points sprint_cards %}
+      </td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 {% if unfinished_cards %}
-<h2>Unfinished cards</h2>
-<table class="table table-striped table-bordered">
-  <thead>
-  <tr>
-    <th>Name</th>
-    <th>Story points</th>
-    <th>Current column</th>
-    <th>Date</th>
-  </tr>
-  </thead>
-  <tbody>
-  {% for card in unfinished_cards %}
-  <tr>
-    <td>{% display_card_with_detail_link card.latest_action %}</td>
-    <td>{{ card.latest_action.story_points }}</td>
-    <td>{% present_list card.latest_action %}</td>
-    <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
-  </tr>
-  {% endfor %}
-  <tr><td colspan="4" class="bold">
-    Cards: {{ unfinished_cards|length }}, Story points: {% sum_story_points unfinished_cards %}
-  </td></tr>
-  </tbody>
-</table>
+<div class="row">
+  <div class="col-sm-12">
+    <h2>Unfinished cards</h2>
+    <table class="table table-striped table-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Story points</th>
+        <th>Current column</th>
+        <th>Date</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for card in unfinished_cards %}
+      <tr>
+        <td>{% display_card_with_detail_link card.latest_action %}</td>
+        <td>{{ card.latest_action.story_points }}</td>
+        <td>{% present_list card.latest_action %}</td>
+        <td>{{ card.latest_action.date|localtime|date:"Y-m-d P T" }}</td>
+      </tr>
+      {% endfor %}
+      <tr><td colspan="4" class="bold">
+        Cards: {{ unfinished_cards|length }}, Story points: {% sum_story_points unfinished_cards %}
+      </td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endif %}
 {% if after_sprint_cas %}
-<h2>Cards added to sprint after start</h2>
-<table class="table table-striped table-bordered">
-  <thead>
-  <tr>
-    <th>Name</th>
-    <th>Story points</th>
-    <th>Added to column</th>
-    <th>Date</th>
-  </tr>
-  </thead>
-  <tbody>
-  {% for ca in after_sprint_cas %}
-  <tr>
-    <td>{% display_card_with_detail_link ca %}</td>
-    <td>{{ ca.story_points }}</td>
-    <td>{% present_list ca %}</td>
-    <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
-  </tr>
-  {% endfor %}
-  <tr><td colspan="4" class="bold">
-    Cards: {{ after_sprint_cas|length }}, Story points: {% sum_story_points after_sprint_cas %}
-  </td></tr>
-  </tbody>
-</table>
+<div class="row">
+  <div class="col-sm-12">
+    <h2>Cards added to sprint after start</h2>
+    <table class="table table-striped table-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Story points</th>
+        <th>Added to column</th>
+        <th>Date</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for ca in after_sprint_cas %}
+      <tr>
+        <td>{% display_card_with_detail_link ca %}</td>
+        <td>{{ ca.story_points }}</td>
+        <td>{% present_list ca %}</td>
+        <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
+      </tr>
+      {% endfor %}
+      <tr><td colspan="4" class="bold">
+        Cards: {{ after_sprint_cas|length }}, Story points: {% sum_story_points after_sprint_cas %}
+      </td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endif %}
 {% if completed_card_actions %}
-<h2>Completed cards</h2>
-<table class="table table-striped table-bordered">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Story points</th>
-      <th>Column</th>
-      <th>Date</th>
-    </tr>
-  </thead>
-  <tbody>
-{% for ca in completed_card_actions %}
-  <tr>
-    <td>{% display_card_with_detail_link ca %}</td>
-    <td>{{ ca.story_points }}</td>
-    <td>{% present_list ca %}</td>
-    <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
-  </tr>
-{% endfor %}
-  <tr><td colspan="4" class="bold">
-    Cards: {{ completed_card_actions|length }}, Story points: {% sum_story_points completed_card_actions %}
-  </td></tr>
-  </tbody>
-</table>
+<div class="row">
+  <div class="col-sm-12">
+    <h2>Completed cards</h2>
+    <table class="table table-striped table-bordered">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>Story points</th>
+        <th>Column</th>
+        <th>Date</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for ca in completed_card_actions %}
+      <tr>
+        <td>{% display_card_with_detail_link ca %}</td>
+        <td>{{ ca.story_points }}</td>
+        <td>{% present_list ca %}</td>
+        <td>{{ ca.date|localtime|date:"Y-m-d P T" }}</td>
+      </tr>
+      {% endfor %}
+      <tr><td colspan="4" class="bold">
+        Cards: {{ completed_card_actions|length }}, Story points: {% sum_story_points completed_card_actions %}
+      </td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endif %}
 {% endblock %}
