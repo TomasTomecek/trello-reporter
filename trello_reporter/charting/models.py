@@ -897,7 +897,11 @@ class Sprint(models.Model):
                         continue
                     card = first.card
 
-                    if hasattr(card, "sprint"):
+                    sprint_number = sprint_number_re.findall(card.name)[0]
+                    sprint, created = cls.objects.get_or_create(
+                        board=board, sprint_number=sprint_number)
+
+                    if created and hasattr(card, "sprint"):
                         if card.name != card.sprint.name:
                             logger.warning("duplicate sprint card detected: %s", card)
                             board_messages.append({
@@ -914,10 +918,6 @@ class Sprint(models.Model):
                             continue
 
                     logger.debug("new sprint: %s", card)
-
-                    sprint_number = sprint_number_re.findall(card.name)[0]
-                    sprint, created = cls.objects.get_or_create(
-                        board=board, sprint_number=sprint_number)
 
                     # update or set
                     sprint.start_dt = first.date
