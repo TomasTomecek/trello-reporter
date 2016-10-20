@@ -837,6 +837,7 @@ class Sprint(models.Model):
     def __unicode__(self):
         tz = timezone.get_current_timezone()
         s = e = "<missing>"
+        # TODO: display only date, not time
         if self.start_dt:
             s = tz.normalize(self.start_dt).strftime(DATETIME_FORMAT)
         if self.end_dt:

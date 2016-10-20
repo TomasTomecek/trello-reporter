@@ -275,16 +275,18 @@ var charting = {
 };
 
 function load_chart(callback) {
-  var errors = $("#errors");
-  var error_field = errors.children().first();
-  error_field.addClass("hide");
+  var errors = $(".form-errors");
+  var row_div = errors.parent();
+  if (!row_div.hasClass("hide")) {
+    row_div.addClass("hide");
+  }
   $.post(
     GLOBAL.chart_data_url,
     $('#chart-settings').serialize(),
     function(data) {
       if ("error" in data) {
-        error_field.removeClass("hide");
-        var error_content = error_field.children(".error-content");
+        row_div.removeClass("hide");
+        var error_content = errors.find(".error-content");
         error_content.html(data.error);
       } else {
         callback(data);

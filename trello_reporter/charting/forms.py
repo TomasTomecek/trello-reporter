@@ -211,6 +211,7 @@ class SprintAndRangeForm(SprintMixin, RangeForm):
             raise forms.ValidationError('Either pick sprint, or specify interval, not both.')
 
         if not (s or f):
+            # TODO: dont make this an error, from & to > sprint
             raise forms.ValidationError(
                 'Either sprint or beginning of a date range needs to specified.')
 

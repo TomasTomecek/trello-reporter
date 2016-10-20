@@ -4,29 +4,47 @@
 {% endblock %}
 {% block body %}
 <div style="display: none;">
-    <div id="custom-chart-tooltip">
-        <table class="c3-tooltip">
-            <tbody>
-                <tr>
-                    <th colspan="2">TITLE</th>
-                </tr>
-                <tr>
-                    <td class="name">Date</td>
-                    <td class="value">DATE</td>
-                </tr>
-                <tr>
-                    <td class="name">Days</td>
-                    <td class="value">DAYS</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+  <div id="custom-chart-tooltip">
+    <table class="c3-tooltip">
+      <tbody>
+        <tr>
+          <th colspan="2">TITLE</th>
+        </tr>
+          <tr>
+            <td class="name">Date</td>
+            <td class="value">DATE</td>
+          </tr>
+          <tr>
+            <td class="name">Days</td>
+            <td class="value">DAYS</td>
+          </tr>
+       </tbody>
+    </table>
+  </div>
 </div>
 {% block top %}
 {% endblock top %}
-<div id="chart" class="line-chart-pf"></div>
+<div class="panel panel-default">
+  <div class="panel-body">
+    <div id="chart" class="line-chart-pf"></div>
+  </div>
+</div>
 <form id="chart-settings" class="form-horizontal" method="post">
 {{ form.non_field_errors }}
+  <div class="row hide">
+    <div class="form-errors col-sm-12">
+      <div class="alert alert-danger">
+        <span class="pficon pficon-error-circle-o"></span>
+        <span class="error-content"></span>
+      </div>
+      {% for error in errors %}
+      <div class="alert alert-danger">
+        <span class="pficon pficon-error-circle-o"></span>
+        <span class="error-content">{{ error.message }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
 {% csrf_token %}
 {% block form %}
 {% endblock form %}

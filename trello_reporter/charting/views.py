@@ -52,11 +52,15 @@ class Breadcrumbs(object):
         return t
 
     @classmethod
+    def boards_index(cls):
+        return cls.url(reverse("index"), "Boards")
+
+    @classmethod
     def board_detail(cls, board):
-        return cls.url(
-            reverse("board-detail", args=(board.id, )),
-            "Board \"%s\"" % board.name,
-        )
+        return [
+            cls.boards_index(),
+            Breadcrumbs.url(reverse("board-detail", args=(board.id, )), board.name)
+        ]
 
 
 class BaseView(TemplateView):
@@ -152,10 +156,8 @@ class ControlChartView(ControlChartBase):
 
         context = super(ControlChartView, self).get_context_data(board_id, **kwargs)
 
-        context["breadcrumbs"] = [
-            Breadcrumbs.board_detail(context["board"]),
-            Breadcrumbs.text("Control Chart")
-        ]
+        context["breadcrumbs"] = Breadcrumbs.board_detail(context["board"]) + \
+            [Breadcrumbs.text("Control Chart")]
         context["control_chart_description"] = CONTROL_CHART_DESCRIPTION
         return context
 
@@ -168,7 +170,7 @@ class ControlChartDataView(ControlChartBase):
         form, formset = context["form"], context["formset"]
 
         if not (form.is_valid() and formset.is_valid()):
-            return self.respond_json_form_errors(form, formset=formset)
+            return self.respond_json_form_errors([form], formset=formset)
         data = ChartExporter.control_flow_c3(
             context["board"], formset.workflow, form.cleaned_data["beginning"],
             form.cleaned_data["end"])
@@ -212,10 +214,8 @@ class BurndownChartView(BurndownChartBase):
 
         context = super(BurndownChartView, self).get_context_data(board_id, **kwargs)
 
-        context["breadcrumbs"] = [
-            Breadcrumbs.board_detail(context["board"]),
-            Breadcrumbs.text("Burndown Chart")
-        ]
+        context["breadcrumbs"] = Breadcrumbs.board_detail(context["board"]) + \
+            [Breadcrumbs.text("Burndown Chart")]
         context["burndown_chart_description"] = BURNDOWN_CHART_DESCRIPTION
         return context
 
@@ -236,7 +236,6 @@ class BurndownChartDataView(BurndownChartBase):
     def post(self, request, board_id, *args, **kwargs):
         logger.debug("get data for burndown chart")
         self.form_data = request.POST
-        self.formset_data = request.POST
         context = super(BurndownChartDataView, self).get_context_data(board_id, **kwargs)
         form, com_form = context["form"], context["com_form"]
 
@@ -283,10 +282,8 @@ class CumulativeFlowChartView(CumulativeFlowChartBase):
 
         context = super(CumulativeFlowChartView, self).get_context_data(board_id, **kwargs)
 
-        context["breadcrumbs"] = [
-            Breadcrumbs.board_detail(context["board"]),
-            Breadcrumbs.text("Cumulative flow chart")
-        ]
+        context["breadcrumbs"] = Breadcrumbs.board_detail(context["board"]) + \
+            [Breadcrumbs.text("Cumulative flow chart")]
         context["cumulative_flow_chart_description"] = CUMULATIVE_FLOW_CHART_DESCRIPTION
         return context
 
@@ -300,7 +297,7 @@ class CumulativeFlowChartDataView(CumulativeFlowChartBase):
         form, formset = context["form"], context["formset"]
 
         if not (form.is_valid() and formset.is_valid()):
-            return self.respond_json_form_errors(form, formset=formset)
+            return self.respond_json_form_errors([form], formset=formset)
         order = formset.workflow
         data = ChartExporter.cumulative_chart_c3(
             context["board"],
@@ -348,10 +345,8 @@ class VelocityChartView(VelocityChartBase):
 
         context = super(VelocityChartView, self).get_context_data(board_id, **kwargs)
 
-        context["breadcrumbs"] = [
-            Breadcrumbs.board_detail(context["board"]),
-            Breadcrumbs.text("Velocity Chart")
-        ]
+        context["breadcrumbs"] = Breadcrumbs.board_detail(context["board"]) + \
+            [Breadcrumbs.text("Velocity chart")]
         context["sprint_data"] = self.get_chart_data(context)
         context["velocity_chart_description"] = VELOCITY_CHART_DESCRIPTION
         return context
@@ -365,7 +360,7 @@ class VelocityChartDataView(VelocityChartBase):
         form = context["form"]
 
         if not form.is_valid():
-            return self.respond_json_form_errors(form)
+            return self.respond_json_form_errors([form])
 
         data = self.get_chart_data(context)
         return JsonResponse({"data": data})
@@ -397,10 +392,8 @@ class ListDetailView(ListDetailBase):
 
         context = super(ListDetailView, self).get_context_data(list_id, **kwargs)
 
-        context["breadcrumbs"] = [
-            Breadcrumbs.board_detail(context["list"].latest_action.board),
-            Breadcrumbs.text("Column \"%s\"" % context["list"].name)
-        ]
+        context["breadcrumbs"] = Breadcrumbs.board_detail(context["list"].latest_action.board) + \
+            [Breadcrumbs.text("Column \"%s\"" % context["list"].name)]
         context["list_stats"] = ListStat.objects.for_list_in_range(
             context["list"], self.initial_form_data["from_dt"], self.initial_form_data["to_dt"])
         return context
@@ -414,7 +407,7 @@ class ListDetailDataView(ListDetailBase):
         form = context["form"]
 
         if not form.is_valid():
-            return self.respond_json_form_errors(form)
+            return self.respond_json_form_errors([form])
 
         data = ChartExporter.list_history_chart_c3(context["list"],
                                                    form.cleaned_data["from_dt"],
