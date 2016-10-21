@@ -13,7 +13,7 @@ import re
 from django.dispatch.dispatcher import receiver
 from django.utils.dateparse import parse_datetime
 
-from trello_reporter.charting.constants import SPRINT_CARDS_ACTIVE
+from trello_reporter.charting.constants import SPRINT_CARDS_ACTIVE, MAX_STORY_POINTS
 from .constants import DATETIME_FORMAT
 from trello_reporter.authentication.models import TrelloUser, KeyVal
 from trello_reporter.harvesting.harvestor import Harvestor
@@ -684,7 +684,8 @@ class CardAction(models.Model):
                 story_points_int = 0
                 if story_points_str is not None:
                     story_points_int = int(story_points_str)
-                    ca.story_points = story_points_int
+                    ca.story_points = story_points_int if story_points_int <= MAX_STORY_POINTS \
+                        else MAX_STORY_POINTS
 
                 # figure out list_name, archivals, removals and unicorns
                 if ca.action_type in ["createCard", "moveCardToBoard", "defaultCard",

@@ -16,9 +16,10 @@ INITIAL_COLUMNS = ["New", "Backlog", "Next", "In Progress", "Complete"]
 # initial is good enough
 CUMULATIVE_FLOW_INITIAL_WORKFLOW = INITIAL_COLUMNS
 
+# maximum number of story points a card can have
+MAX_STORY_POINTS = 21
 
 # help messages in UI
-
 BURNDOWN_CHART_DESCRIPTION = "A burndown chart is a graphical representation of work left to do versus time. On vertical axis is number of story points, on horizontal axis time. Reporter is showing ideal green line, while blue line shows actual progress of burned cards, which are also shown as blue column going up from horizontal axis. This chart doesn't have to be the right one for you project especially if you are not using story points or if your team is working more in kanban style."
 CONTROL_CHART_DESCRIPTION = "The control chart is a graph used to study how a process changes over time. Data are plotted in time order. Don't forget to define you workflow according to Trello. Number of days are calculated from the first day a card reached the designated column (the one you set in the workflow as first). If cards are moved to In Progress, Next or other is not stopping the calculation. The calculation is stopped when the card reaches the Complete column."
 VELOCITY_CHART_DESCRIPTION = "Velocity is a measurement of how much the team gets done in a sprint. Velocity is what actually got done in the last iteration not what was planned. You can pick how many sprints you want to see and take into counting the average. The green line shows average based on number of sprints, blue columns are for done and committed. "
