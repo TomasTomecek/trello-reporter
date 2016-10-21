@@ -445,10 +445,17 @@ class CardActionManager(models.Manager):
         return query.select_related("list", "card", "board", "event")
 
     def actions_on_board_in_range(self, board, beginning, end):
-        """ this is a time machine: shows board state in a given time """
-        query = self \
-            .for_board(board) \
-            .in_range(beginning, end)
+        """ show actions based on range, beginning and end can be None """
+        logger.debug("actions on board in range: %s - %s", beginning, end)
+        query = self.for_board(board)
+
+        if beginning and end:
+            query = query.in_range(beginning, end)
+        elif beginning:
+            query = query.since(beginning)
+        elif end:
+            query = query.before(end)
+
         return query.select_related("list", "card", "board", "event")
 
     def card_actions_on_list_names_in(self, board, list_names, date=None):
@@ -573,6 +580,10 @@ class CardAction(models.Model):
     def source_list_name(self):
         """ get source list name for movement actions """
         return self.data["data"]["listBefore"]["name"]
+
+    @property
+    def is_a_list_change(self):
+        return "listBefore" in self.data["data"]
 
     @property
     def source_list_id(self):

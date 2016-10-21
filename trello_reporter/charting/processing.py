@@ -19,6 +19,11 @@ from trello_reporter.charting.models import CardAction, ListStat
 logger = logging.getLogger(__name__)
 
 
+def h_f(v):
+    """"humanize float"""
+    return "{:.1f}".format(v)
+
+
 class ChartExporter(object):
     """
     Export selected data as a chart for specific charting javascript library
@@ -52,58 +57,6 @@ class ChartExporter(object):
             response.append(tick)
             d += delta
         return response
-
-    @classmethod
-    def control_flow_c3(cls, board, lists_filter, beginning, end):
-        logger.debug("rendering control chart for board %s, workflow %s, range %s - %s",
-                     board, lists_filter, beginning, end)
-        now = timezone.now()
-        if not end:
-            end = now
-        card_actions = CardAction.objects.card_actions_on_list_names_in_interval_order_desc(
-            board, lists_filter, beginning, end)
-
-        # card -> {
-        #  visited_idx: 3
-        #  data: [ca, ca, ...]
-        # }
-        card_history = {}
-        lists_filter_len = len(lists_filter)
-
-        for ca in card_actions:
-            card = ca.card
-
-            card_history.setdefault(card, {"visited_idx": lists_filter_len - 1, "data": []})
-            card_data = card_history[card]
-            if card_data["visited_idx"] == -1:
-                continue
-            needed_state = lists_filter[card_data["visited_idx"]]
-            if ca.list.name == needed_state:
-                card_data["visited_idx"] -= 1
-                card_data["data"].insert(0, ca)
-
-        cards = []
-        for card, card_data in card_history.items():
-            if card_data["visited_idx"] > -1:
-                # not fulfilled
-                continue
-            else:
-                first_action = card_data["data"][0]
-                last_action = card_data["data"][-1]
-                total_seconds = (last_action.date - first_action.date).total_seconds()
-                days = float(total_seconds) / 60 / 60 / 24
-                days_out = "{:.1f}".format(days)
-                date = last_action.date.strftime("%Y-%m-%d %H:%M")
-                cards.append({
-                    "days": days_out,
-                    "id": card.id,
-                    "name": card.name,
-                    "size": last_action.story_points,
-                    "label": "Hours",
-                    "date": date,
-                    "trello_card_short_id": last_action.event.card_short_id,
-                })
-        return cards
 
     @classmethod
     def burndown_chart_c3(cls, board, beginning, end, in_progress_list_names):
@@ -176,3 +129,86 @@ class ChartExporter(object):
             }
             response.append(r)
         return response
+
+
+class ControlChart(object):
+    def __init__(self, board, lists_filter, beginning, end):
+        logger.debug("control chart: board %s, workflow %s, range %s - %s",
+                     board, lists_filter, beginning, end)
+        self.board = board
+        self.lists_filter = lists_filter
+        self.beginning = beginning
+        self.end = end
+        self._chart_data = None
+
+    @property
+    def chart_data(self):
+        if self._chart_data is None:
+            card_actions = CardAction.objects.card_actions_on_list_names_in_interval_order_desc(
+                self.board, self.lists_filter, self.beginning, self.end)
+
+            # card -> {
+            #  visited_idx: 3
+            #  data: [ca, ca, ...]
+            # }
+            card_history = {}
+            lists_filter_len = len(self.lists_filter)
+
+            for ca in card_actions:
+                if ca.rename and not ca.is_a_list_change:
+                    # ignore card sizing events
+                    continue
+
+                card = ca.card
+
+                card_data = card_history.get(card,
+                                             {"visited_idx": lists_filter_len - 1, "data": []})
+                card_history.setdefault(card, card_data)
+                if card_data["visited_idx"] == -1:
+                    # fulfilled
+                    continue
+                needed_state = self.lists_filter[card_data["visited_idx"]]
+                if ca.list.name == needed_state:  # we need to reach this one
+                    card_data["visited_idx"] -= 1
+                    card_data["data"].insert(0, ca)
+
+            self._chart_data = []
+            valid_cards = {card: card_data
+                           for card, card_data in card_history.items()
+                           if card_data["visited_idx"] == -1}
+
+            for card, card_data in valid_cards.items():
+                first_action = card_data["data"][0]
+                last_action = card_data["data"][-1]
+                total_seconds = (last_action.date - first_action.date).total_seconds()
+                days = float(total_seconds) / 60 / 60 / 24
+                days_out = "{:.1f}".format(days)
+                date = last_action.date.strftime("%Y-%m-%d %H:%M")
+                self._chart_data.append({
+                    "days": days_out,
+                    "days_float": days,
+                    "id": card.id,
+                    "name": card.name,
+                    "size": last_action.story_points,
+                    "label": "Hours",
+                    "date": date,
+                    "trello_card_short_id": last_action.event.card_short_id,
+                })
+        return self._chart_data
+
+    def render_stats(self):
+        """
+        stats for selected interval: min, max, avg
+        lead/cycle/reaction time is not hardcoded - user has to pick the workflow
+
+        :return: string, raw html
+        """
+        logger.debug("control chart stats")
+        if not self.chart_data:
+            return {"min": 0, "max": 0, "avg": 0}
+
+        return {
+            "min": h_f(min(self.chart_data, key=lambda x: x["days_float"])["days_float"]),
+            "max": h_f(max(self.chart_data, key=lambda x: x["days_float"])["days_float"]),
+            "avg": h_f(sum([x["days_float"] for x in self.chart_data]) / len(self.chart_data))
+        }

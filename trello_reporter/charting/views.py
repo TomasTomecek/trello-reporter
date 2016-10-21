@@ -8,6 +8,7 @@ from urllib import urlencode
 from django.core.urlresolvers import reverse
 from django.http.response import JsonResponse, Http404
 from django.shortcuts import render, redirect
+from django.template import loader
 from django.utils import timezone
 from django.views.generic.base import TemplateView
 
@@ -18,7 +19,7 @@ from trello_reporter.charting.constants import CUMULATIVE_FLOW_INITIAL_WORKFLOW,
     SPRINT_CALCULATION_DESCRIPTION, BURNDOWN_CHART_DESCRIPTION, CONTROL_CHART_DESCRIPTION, \
     VELOCITY_CHART_DESCRIPTION, CUMULATIVE_FLOW_CHART_DESCRIPTION
 from trello_reporter.charting.models import Board, CardAction, List, Card, Sprint, ListStat
-from trello_reporter.charting.processing import ChartExporter
+from trello_reporter.charting.processing import ChartExporter, ControlChart
 from trello_reporter.charting.templatetags.card import display_card
 from trello_reporter.harvesting.models import CardActionEvent
 
@@ -172,10 +173,16 @@ class ControlChartDataView(ControlChartBase):
 
         if not (form.is_valid() and formset.is_valid()):
             return self.respond_json_form_errors([form], formset=formset)
-        data = ChartExporter.control_flow_c3(
+        chart = ControlChart(
             context["board"], formset.workflow, form.cleaned_data["beginning"],
             form.cleaned_data["end"])
-        return JsonResponse({"data": data})
+
+        data = chart.chart_data
+
+        html = loader.render_to_string("chunks/control_chart_table.html",
+                                       context=chart.render_stats())
+
+        return JsonResponse({"data": data, "html": html})
 
 
 class BurndownChartBase(ChartView):

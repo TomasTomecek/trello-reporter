@@ -44,6 +44,7 @@ var charting = {
     chart_data.json = data.data;
     chart_data.unload = chart.columns;
     chart.load(chart_data);
+    $("#control-chart-table").html(data.html)
   },
 
   control: function(data) {
@@ -91,6 +92,7 @@ var charting = {
     };
     $.extend(true, chart_defaults, ch);
     chart = c3.generate(chart_defaults);
+    $("#control-chart-table").html(data.html)
   },
 
   reload_cumulative_flow: function(data) {

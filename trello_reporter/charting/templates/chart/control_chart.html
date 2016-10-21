@@ -1,33 +1,50 @@
 {% extends "charting.html" %}
 {% block top %}
 <div class="panel panel-default">
-    <div class="panel-body">
-        {{ control_chart_description }}
-    </div>
+  <div class="panel-body">
+    {{ control_chart_description }}
+  </div>
 </div>
 {% endblock %}
 {% block form %}
 <div class="row">
-    <div class="col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h3 class="panel-title">Timeline</h3>
-            </div>
-            <div class="panel-body">
-                {% include 'form/range.html' %}
-                {% include 'form/sprint.html' %}
-            </div>
-        </div>
+  <div class="col-sm-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Timeline</h3>
+      </div>
+      <div class="panel-body">
+        {% include 'form/range.html' %}
+        {% include 'form/sprint.html' %}
+      </div>
     </div>
-    <div class="col-sm-6">
-        <div class="panel panel-default">
-            <div class="panel-heading">
-                <h3 class="panel-title">Trello Columns</h3>
-            </div>
-            <div class="panel-body">
-                {% include 'form/workflow.html' %}
-            </div>
-        </div>
+  </div>
+  <div class="col-sm-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Trello Columns</h3>
+      </div>
+      <div class="panel-body">
+        {% include 'form/workflow.html' %}
+      </div>
     </div>
+  </div>
+</div>
+{% endblock %}
+{% block rest %}
+<div class="row">
+  <div class="col-sm-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Statistics</h3>
+      </div>
+      <div class="panel-body">
+        <table class="table table-striped table-bordered">
+          <tbody id="control-chart-table">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
