@@ -18,7 +18,7 @@ COPY ./requirements-devel.txt /opt/app/
 RUN  pip install --user -r ./requirements-devel.txt
 
 COPY ./install_static_data.sh /opt/app
-COPY bower.json /opt/app
+COPY ./bower.json /opt/app
 RUN ./install_static_data.sh
 
 # the actual sources will be replaced by bind mount in development
