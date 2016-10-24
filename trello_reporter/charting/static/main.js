@@ -325,7 +325,9 @@ var controller = {
 };
 
 // DOM is ready, let's start the show
+// mainly initialization stuff
 $(function() {
+  // run code specific to current view
   controller[GLOBAL.view]();
 
   $('.datepicker').datepicker({
