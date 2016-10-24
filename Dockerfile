@@ -12,15 +12,16 @@ RUN useradd -o -u ${USER_ID} reporter && \
 USER reporter
 
 WORKDIR /opt/app
-COPY ./install_static_data.sh /opt/app
-RUN ./install_static_data.sh
-
 COPY ./requirements.txt /opt/app/
 RUN pip install --user -r ./requirements.txt
 COPY ./requirements-devel.txt /opt/app/
 RUN  pip install --user -r ./requirements-devel.txt
 
-# the actual sources will be replaced by bind mount
+COPY ./install_static_data.sh /opt/app
+COPY bower.json /opt/app
+RUN ./install_static_data.sh
+
+# the actual sources will be replaced by bind mount in development
 COPY . /opt/app/
 USER root
 RUN chown -R reporter:reporter .

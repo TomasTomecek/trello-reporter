@@ -3,7 +3,7 @@
 
 set -eox
 
-bower install patternfly --save
+bower install
 
 # we have custom patches in c3:
 #  * http://gitthub.com/c3js/c3/pull/1811
