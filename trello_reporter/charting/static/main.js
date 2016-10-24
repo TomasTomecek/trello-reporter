@@ -98,8 +98,7 @@ var charting = {
   reload_cumulative_flow: function(data) {
     chart_data.json = data.data;
     chart_data.keys.value = data.order;
-    chart_data.groups = data.order
-    chart_data.unload = previous_values;
+    chart_data.unload = true;
     chart.load(chart_data);
     previous_values = data.order;
     c_unit = $("#id_cards_or_sp").val();
@@ -121,7 +120,7 @@ var charting = {
       },
       xFormat: constants.datetime_format,
       type: 'area',  // area, area-spline, area-step
-      groups: [data.order],
+      groups: [data.all_lists],  // unloading groups doesn't work
       order: null
     };
 
