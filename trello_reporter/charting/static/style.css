@@ -1,5 +1,5 @@
-.state-workflow-column > select {
-  margin-bottom: 15px;
+div.bootstrap-select {
+  margin-bottom: 15px !important;
 }
 
 .mtop20px {

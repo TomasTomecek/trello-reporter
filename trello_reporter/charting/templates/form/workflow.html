@@ -1,14 +1,20 @@
 <div class="state-workflow">
   {{ formset.management_form }}
-  <label class="control-label col-sm-5" for="id_{{ formset.0.workflow.name }}">{{ formset.0.workflow.label }}
+  <label class="control-label col-sm-3" for="id_{{ formset.0.workflow.name }}">{{ formset.0.workflow.label }}
     {% if popover_content %}
     <a role="button" data-toggle="popover" data-html="true" title="{{ popover_title }}" data-close="true"
        data-content="{{ popover_content }}"><span class="fa fa-info-circle"></span></a>
     {% endif %}
   </label>
-  <div class="col-sm-7 state-workflow-column">
-    {% for f in formset %}
-    {{ f.workflow }}
-    {% endfor %}
+  <div class="col-sm-9 state-workflow-column">
+    <div class="state-workflow-widgets">
+      {% for f in formset %}
+      {{ f.workflow }}
+      {% endfor %}
+    </div>
+    <button type="button" class="btn workflow-adder btn-default" title="Add another state">
+      <span class="pficon pficon-add-circle-o"></span>
+      Add another state
+    </button>
   </div>
 </div>

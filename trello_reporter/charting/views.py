@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # local constants
 
-CONTROL_INITIAL_WORKFLOW = ["Next", "Complete"]
+CONTROL_INITIAL_WORKFLOW = [["Next"], ["Complete"]]
 
 
 def index(request):
@@ -139,7 +139,8 @@ class ControlChartBase(ChartView):
         self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
 
         lis = List.objects.get_all_listnames_for_board(board)
-        formset = forms.get_workflow_formset([("", "")] + zip(lis, lis), CONTROL_INITIAL_WORKFLOW,
+        formset = forms.get_workflow_formset(zip(lis, lis), CONTROL_INITIAL_WORKFLOW,
+                                             form_class=forms.MultiWorkflowMixin,
                                              data=self.formset_data)
 
         context["board"] = board
@@ -271,6 +272,7 @@ class CumulativeFlowChartBase(ChartView):
         self.form.set_sprint_choices(Sprint.objects.for_board_by_end_date(board))
 
         lis = List.objects.get_all_listnames_for_board(board)
+        context["all_lists"] = lis
         formset = forms.get_workflow_formset([("", "")] + zip(lis, lis),
                                              CUMULATIVE_FLOW_INITIAL_WORKFLOW,
                                              data=self.formset_data)
@@ -315,7 +317,8 @@ class CumulativeFlowChartDataView(CumulativeFlowChartBase):
             form.cleaned_data["cards_or_sp"]
         )
         # c3 wants reversed order
-        return JsonResponse({"data": data, "order": list(reversed(order))})
+        return JsonResponse({"data": data, "order": list(reversed(order)),
+                             "all_lists": context["all_lists"]})
 
 
 class VelocityChartBase(ChartView):

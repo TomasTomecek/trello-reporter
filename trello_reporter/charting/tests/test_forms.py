@@ -7,7 +7,7 @@ from flexmock import flexmock
 from django.utils import timezone
 
 from trello_reporter.charting.forms import ControlChartForm, get_workflow_formset, \
-    datetime_in_current_timezone
+    datetime_in_current_timezone, MultiWorkflowMixin
 from trello_reporter.charting.models import Sprint, Board
 
 
@@ -41,6 +41,27 @@ def test_workflow_formset_data():
     assert f.is_valid()
     assert f.total_error_count() == 0
     assert f.workflow == ["A", "B"]
+
+
+def test_workflow_multiselect_formset_choices():
+    choices = [("A", "A"), ("B", "B"), ("C", "C")]
+    f = get_workflow_formset(choices, [], form_class=MultiWorkflowMixin)
+    for form in f.forms:
+        assert form.fields["workflow"].choices == choices
+
+
+def test_workflow_multiselect_formset_data():
+    choices = [("A", "A"), ("B", "B"), ("C", "C")]
+    f = get_workflow_formset(choices, [], form_class=MultiWorkflowMixin, data={
+        'form-TOTAL_FORMS': '3',
+        'form-INITIAL_FORMS': '2',
+        'form-MAX_NUM_FORMS': '',
+        'form-0-workflow': ['A', 'B'],
+        'form-1-workflow': ['C'],
+    })
+    assert f.is_valid()
+    assert f.total_error_count() == 0
+    assert f.workflow == [["A", "B"], ['C']]
 
 
 def test_control_form_has_fields():

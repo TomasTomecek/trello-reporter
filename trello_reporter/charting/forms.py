@@ -65,19 +65,43 @@ def datetime_in_current_timezone(date, time):
 # they have to derive from forms.Form, NOT from object (django metaclass magic)
 
 
-class WorkflowMixin(forms.Form):
-    # initial workflow select, rest is spawned via javascript
+class WorkBaseMixin(forms.Form):
+    """
+    base class for both workflow subclasses
+    """
+    def __init__(self, *args, **kwargs):
+        choices = kwargs.pop('choices')
+        super(WorkBaseMixin, self).__init__(*args, **kwargs)
+        self.set_workflow_choices(choices)
+
+    def set_workflow_choices(self, values):
+        self.fields["workflow"].choices = values
+
+
+class MultiWorkflowMixin(WorkBaseMixin):
+    workflow = forms.MultipleChoiceField(
+        required=False,  # we'll validate in our clean()
+        label="Workflow",
+        widget=forms.SelectMultiple(attrs={"class": "selectpicker",
+                                           # "data-selected-text-format": "count",
+                                           "data-live-search": "true"})
+    )
+
+    def set_initial_data(self, value):
+        self.fields["workflow"].initial = [value]
+
+
+class WorkflowMixin(WorkBaseMixin):
     workflow = forms.ChoiceField(
         required=False,  # we'll validate in our clean()
         label="Workflow",
-        widget=forms.Select(attrs={"class": "form-control"})
+        widget=forms.Select(attrs={"class": "selectpicker",
+                                   # "data-selected-text-format": "count",
+                                   "data-live-search": "true"})
     )
 
     def set_initial_data(self, value):
         self.fields["workflow"].initial = value
-
-    def set_workflow_choices(self, values):
-        self.fields["workflow"].choices = values
 
 
 class ListsSelectorForm(forms.Form):
@@ -122,7 +146,7 @@ class WorkflowBaseFormSet(forms.BaseFormSet):
     @property
     def workflow(self):
         if not self.is_valid():
-            logger.warning("formset is invalid")
+            logger.warning("formset is invalid: %s", self.errors)
             raise forms.ValidationError("form is invalid")
         response = []
         for form in self.forms:
@@ -138,19 +162,25 @@ class WorkflowBaseFormSet(forms.BaseFormSet):
             raise forms.ValidationError("Please select at least one value.")
 
 
-def get_workflow_formset(choices, initial_data, data=None, label=None, prefix=None):
-    fs_kls = forms.formset_factory(
-        WorkflowMixin, formset=WorkflowBaseFormSet)
+def get_workflow_formset(choices, initial_data, data=None, label=None, prefix=None,
+                         form_class=WorkflowMixin):
+    fs_kls = forms.formset_factory(form_class, formset=WorkflowBaseFormSet)
     q = {
        "data": data,
-       "initial": [{"workflow": x} for x in initial_data]
     }
     if label:
         q["label"] = label
     if prefix:
         q["prefix"] = prefix
+    q["form_kwargs"] = {}
+    q["form_kwargs"]["choices"] = choices
+
+    if initial_data:
+        # this has to be a list of dicts
+        q["initial"] = [{"workflow": d} for d in initial_data]
+
     fs = fs_kls(**q)
-    fs.set_choices(choices)
+
     return fs
 
 

@@ -11,6 +11,7 @@ from __future__ import unicode_literals, print_function
 import logging
 import datetime
 
+import itertools
 from django.utils import timezone
 
 from trello_reporter.charting.forms import CARDS_FORM_ID, STORY_POINTS_FORM_ID
@@ -145,7 +146,9 @@ class ControlChart(object):
     def chart_data(self):
         if self._chart_data is None:
             card_actions = CardAction.objects.card_actions_on_list_names_in_interval_order_desc(
-                self.board, self.lists_filter, self.beginning, self.end)
+                self.board,
+                itertools.chain(*self.lists_filter),
+                self.beginning, self.end)
 
             # card -> {
             #  visited_idx: 3
@@ -168,7 +171,8 @@ class ControlChart(object):
                     # fulfilled
                     continue
                 needed_state = self.lists_filter[card_data["visited_idx"]]
-                if ca.list.name == needed_state:  # we need to reach this one
+                assert isinstance(needed_state, list)
+                if ca.list.name in needed_state:  # we need to reach this one
                     card_data["visited_idx"] -= 1
                     card_data["data"].insert(0, ca)
 

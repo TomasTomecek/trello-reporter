@@ -338,7 +338,7 @@ $(function() {
   });
 
   // focus event is still on when you're changing options, let's hook with change event
-  $("div.state-workflow div.state-workflow-column select").change(on_focus_states);
+   $("div.state-workflow-column button.workflow-adder").click(on_add_workflow_state);
 
   // simulate submit-click when user presses enter on form
   $('input[type="number"]').bind("keydown", function(e) {
@@ -358,37 +358,38 @@ $(function() {
   $(document).ready(function() {
     $('[data-toggle=popover]').popovers();
   });
+
+  // use custom (multi-)select picker
+  // $(".selectpicker").selectpicker();
 });
 
 // handler for growing state machine
-function on_focus_states(data) {
-  var t = $(this); // select
-  var parent_div = t.parent("div.state-workflow-column");
-  var last_select = t.siblings("select").last();
+function on_add_workflow_state(data) {
+  var t = $(this); // button
+  var widget_container = t.prev();
+  var parent_div = t.parent("div");
+  var last_state = widget_container.children("div.bootstrap-select").last();
+  var last_select = last_state.children("select");
 
-  // selectedIndex is better than .filter(":selected")
-  if (last_select[0].selectedIndex > 0) {
-    var new_select = last_select
-        .clone()
-        .appendTo(parent_div)
-    var new_select = new_select
-        .val("")
-        .attr("id", function(i, oldVal) {
-            return oldVal.replace(/\d+/, function(m) {
-                return (+m + 1);  // +m means it's converted to `int(m) + 1`
-            });
-        })
-        .attr("name", function(i, oldVal) {
-            return oldVal.replace(/\d+/, function(m) {
-                return (+m + 1);
-            });
-        })
-    new_select
-        .on("change", on_focus_states);
-    // set # of forms, needed by django formsets
-    parent_div.siblings("input[id$='-TOTAL_FORMS']")
-        .val(root_div.find("div.state-workflow-column > select").length);
-  }
+  var new_select = last_select
+      .clone()
+      .appendTo(widget_container);
+  var new_select = new_select
+      .val("")
+      .attr("id", function(i, oldVal) {
+          return oldVal.replace(/\d+/, function(m) {
+              return (+m + 1);  // +m means it's converted to `int(m) + 1`
+          });
+      })
+      .attr("name", function(i, oldVal) {
+          return oldVal.replace(/\d+/, function(m) {
+              return (+m + 1);
+          });
+      })
+  new_select.selectpicker();
+  // set # of forms, needed by django formsets
+  parent_div.siblings("input[id$='-TOTAL_FORMS']")
+      .val(widget_container.children("div.bootstrap-select").length);
 }
 
 function get_tooltip(d, defaultTitleFormat, defaultValueFormat, color) {
