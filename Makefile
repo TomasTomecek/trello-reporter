@@ -16,7 +16,7 @@ clean:
 	docker-compose down -v
 
 test:
-	docker exec -ti $(shell docker-compose ps -q web | head -n 1) py.test trello_reporter/
+	docker exec -ti $(shell docker-compose ps -q web | head -n 1) py.test -vv trello_reporter/$(TEST)
 
 shell:
 	docker exec -ti $(shell docker-compose ps -q web | head -n 1) bash
