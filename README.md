@@ -3,9 +3,6 @@
 Reports and charts for your trello boards!
 
 
-**This project is currently under heavy development.**
-
-
 ## Usage
 
 ### API key
@@ -35,6 +32,14 @@ Then just bring the whole environment up:
 ```
 $ docker-compose up
 ```
+
+It may happen that database is not ready to accept conncetions when `migrator` container wants to create schema. Just restart it then:
+
+```
+$ docker-compose restart migrator
+```
+
+At this point, you should be able to [access](http://localhost:8000/) the tool in browser.
 
 
 ## Development

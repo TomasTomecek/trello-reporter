@@ -54,4 +54,4 @@ migrator:
   links:
    - db
   # it indeed takes this long to start the database
-  command: bash -c "sleep 5 && python /opt/app/manage.py makemigrations && exec python /opt/app/manage.py migrate --no-input"
+  command: bash -c "sleep 7 && python /opt/app/manage.py makemigrations && exec python /opt/app/manage.py migrate --no-input"
