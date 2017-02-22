@@ -19,7 +19,7 @@ The token is retrieved automatically from trello with the first request sent to 
 
 ### Running the tool
 
-Please make sure you have `docker-compose` installed.
+Please make sure you have `docker` installed and running and `docker-compose` installed.
 
 Before starting the tool, you have to provide the API key. The easiest way is to set as an environment variable:
 
